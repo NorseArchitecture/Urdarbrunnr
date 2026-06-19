@@ -18,6 +18,6 @@ This repo's own `.claude/settings.json` carries a `SessionStart` hook that shoul
 
 Urdarbrunnr is **the well's record** — `Norse.EntityFramework`: entity base types, `DbContext` foundations, conventions, value converters, and the migrations chassis. It is the EF Core foundation that Midgard's concrete repository implementations ride on, governed by the contracts Asgard declares. In the dependency chain it sits below Asgard and Svartalfheim, and above Midgard.
 
-This repo is currently a bare shell (LICENSE only) — no specs have converged here yet. Before writing any code: brainstorm → spec → plan, recorded in `../Glitnir/docs/superpowers/`, per the org's spec-first discipline. Do not scaffold a project structure ahead of a converged spec.
+This repo is currently a bare shell (LICENSE only) — no specs have converged here yet. Before writing any code: brainstorm → spec → plan, recorded in `../Glitnir/docs/Urdarbrunnr/`, per the org's spec-first discipline. Do not scaffold a project structure ahead of a converged spec.
 
 See `../Bifrost/CLAUDE.md` (§2 The Naming Model) and `../Glitnir/CLAUDE.md` (§1 Bounded Context Map) for the full realm table and how Urdarbrunnr fits the rest of the cosmos.
