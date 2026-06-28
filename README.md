@@ -2,6 +2,10 @@
 
 > The Well of Urd, beneath Yggdrasil's roots, where the Norns draw the water that keeps the tree alive — the record of all that has become.
 
+![Urdarbrunnr — the Well of Urd beneath Yggdrasil's roots, where the Norns weave fate and keep the record of all that has become](https://github.com/user-attachments/assets/35eb22b3-233c-4eb4-ac31-92002ce0077c "Urdarbrunnr — the record of all that has become")
+
+*Image credit: [@norsemythologyclips](https://www.instagram.com/norsemythologyclips/) — go follow them.*
+
 The well's record for the Norse Architecture — **`Norse.EntityFramework`**: entity base types, `DbContext` foundations, conventions, value converters, and the migrations chassis. It is the EF Core foundation that Midgard's concrete repository implementations ride on, governed by the contracts Asgard declares. In the dependency chain it sits below Asgard and Svartalfheim, and above Midgard.
 
 ## Status
