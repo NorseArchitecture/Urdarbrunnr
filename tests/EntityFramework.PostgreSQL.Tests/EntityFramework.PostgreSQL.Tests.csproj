@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="*" />
+		<ProjectReference Include="../../src/EntityFramework.PostgreSQL/EntityFramework.PostgreSQL.csproj" />
+	</ItemGroup>
+</Project>

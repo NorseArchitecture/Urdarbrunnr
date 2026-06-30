@@ -1,0 +1,30 @@
+<Solution>
+	<Folder Name="/Solution Items/">
+		<File Path=".editorconfig" />
+		<File Path=".gitattributes" />
+		<File Path=".gitignore" />
+		<File Path="CLAUDE.md" />
+		<File Path="Directory.Build.props" />
+		<File Path="global.json" />
+		<File Path="LICENSE" />
+		<File Path="nuget.config" />
+		<File Path="README.md" />
+	</Folder>
+	<Folder Name="/src/">
+		<File Path="src/Directory.Build.props" />
+		<File Path="src/Directory.Build.targets" />
+		<Project Path="src/EntityFramework/EntityFramework.csproj" />
+		<Project Path="src/EntityFramework.PostgreSQL/EntityFramework.PostgreSQL.csproj" />
+		<Project Path="src/EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
+		<Project Path="src/EntityFramework.Migrations.PostgreSQL.Generator/EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
+		<Project Path="src/EntityFramework.Migrations.PostgreSQL/EntityFramework.Migrations.PostgreSQL.csproj" />
+	</Folder>
+	<Folder Name="/tests/">
+		<File Path="tests/Directory.Build.props" />
+		<File Path="tests/Directory.Build.targets" />
+		<Project Path="tests/EntityFramework.Tests/EntityFramework.Tests.csproj" />
+		<Project Path="tests/EntityFramework.PostgreSQL.Tests/EntityFramework.PostgreSQL.Tests.csproj" />
+		<Project Path="tests/EntityFramework.Migrations.Tests/EntityFramework.Migrations.Tests.csproj" />
+		<Project Path="tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests.csproj" />
+	</Folder>
+</Solution>

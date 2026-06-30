@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="*" />
+		<ProjectReference Include="../../src/EntityFramework/EntityFramework.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<!--
+			SQLitePCLRaw.lib.e_sqlite3 2.1.11 (transitive via Microsoft.EntityFrameworkCore.Sqlite) has
+			a known high-severity vulnerability (GHSA-2m69-gcr7-jv3q). No patched version exists as of
+			this writing — 2.1.11 is the latest. The vulnerability is in the bundled native sqlite3
+			library; exposure is test-only (in-memory, no production data). Suppressed explicitly here;
+			revisit when SQLitePCLRaw publishes a fix.
+		-->
+		<NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+	</ItemGroup>
+</Project>
