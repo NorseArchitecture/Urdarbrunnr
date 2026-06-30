@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.EntityFramework: the INorseDbContext marker interface, the abstract NorseDbContext base, and snake_case naming conventions — provider-agnostic EF foundation shared by all Norse contexts regardless of RDBMS.</Description>
+		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
+		<IsAotCompatible>false</IsAotCompatible>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="EFCore.NamingConventions" Version="*" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="*" />
+	</ItemGroup>
+</Project>

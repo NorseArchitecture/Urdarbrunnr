@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="*" />
+		<PackageReference Include="NSubstitute" Version="*" />
+		<ProjectReference Include="../../src/EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
+	</ItemGroup>
+</Project>

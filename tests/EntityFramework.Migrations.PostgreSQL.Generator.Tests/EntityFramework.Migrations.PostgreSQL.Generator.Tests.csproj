@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*">
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<ProjectReference Include="../../src/EntityFramework/EntityFramework.csproj" />
+		<ProjectReference Include="../../src/EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
+		<ProjectReference Include="../../src/EntityFramework.Migrations.PostgreSQL.Generator/EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
+	</ItemGroup>
+</Project>
