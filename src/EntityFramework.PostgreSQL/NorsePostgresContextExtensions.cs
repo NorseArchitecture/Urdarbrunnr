@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Norse.EntityFramework.PostgreSQL;
@@ -26,6 +28,34 @@ public static class NorsePostgresContextExtensions
 	{
 		builder.AddNpgsqlDbContext<TContext>(connectionStringName,
 			configureDbContextOptions: opts => opts.UseSnakeCaseNamingConvention());
+		return builder;
+	}
+
+	/// <summary>
+	/// Registers <typeparamref name="TContext"/> for one-shot, non-pooled use (migrations and other
+	/// short-lived init-container work). Unlike <see cref="AddNorsePostgresContext{TContext}"/>, this
+	/// does NOT pool the context — pooling is reserved for long-running runtime hosts (web server,
+	/// worker); a migrations service constructs its context once and exits, so pooling only adds risk
+	/// (EF Core forbids <c>OnConfiguring</c> from mutating frozen pooled options) for no benefit.
+	/// Still gets Aspire's retry policy, health check, and telemetry via <c>EnrichNpgsqlDbContext</c>.
+	/// </summary>
+	/// <typeparam name="TContext">
+	/// The <see cref="DbContext"/> type to register. Must implement <see cref="INorseDbContext"/>.
+	/// </typeparam>
+	/// <param name="builder">The host application builder.</param>
+	/// <param name="connectionStringName">The connection string name in application configuration.</param>
+	/// <returns>The same <paramref name="builder"/> for chaining.</returns>
+	public static IHostApplicationBuilder AddNorsePostgresMigrationContext<TContext>(
+		this IHostApplicationBuilder builder,
+		string connectionStringName)
+		where TContext : DbContext, INorseDbContext
+	{
+		var connectionString = builder.Configuration.GetConnectionString(connectionStringName)
+			?? throw new InvalidOperationException($"Connection string '{connectionStringName}' was not found.");
+
+		builder.Services.AddDbContext<TContext>(opts => opts.UseNpgsql(connectionString));
+		builder.EnrichNpgsqlDbContext<TContext>();
+
 		return builder;
 	}
 }

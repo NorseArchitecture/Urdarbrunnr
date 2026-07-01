@@ -128,7 +128,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 
 		foreach (var c in contributors)
 		{
-			sb.AppendLine($"\t\tbuilder.AddNorsePostgresContext<{c.ContextType}>(\"{c.ConnectionStringName}\");");
+			sb.AppendLine($"\t\tbuilder.AddNorsePostgresMigrationContext<{c.ContextType}>(\"{c.ConnectionStringName}\");");
 			sb.AppendLine($"\t\tbuilder.Services.AddTransient<global::Norse.Abstractions.Migrations.IMigrationContributor, {c.ContributorType}>();");
 		}
 

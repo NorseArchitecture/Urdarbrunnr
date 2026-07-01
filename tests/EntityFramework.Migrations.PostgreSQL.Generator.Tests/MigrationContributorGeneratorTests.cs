@@ -34,7 +34,7 @@ public sealed class MigrationContributorGeneratorTests
 		generated.ShouldContain("AddNorseMigrationsRunner");
 		generated.ShouldContain("TestContributor");
 		generated.ShouldContain("test-db");
-		generated.ShouldContain("AddNorsePostgresContext");
+		generated.ShouldContain("AddNorsePostgresMigrationContext");
 	}
 
 	[Fact]
