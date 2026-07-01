@@ -44,16 +44,24 @@ public static class NorsePostgresContextExtensions
 	/// </typeparam>
 	/// <param name="builder">The host application builder.</param>
 	/// <param name="connectionStringName">The connection string name in application configuration.</param>
+	/// <param name="migrationsAssemblyName">
+	/// The name of the assembly containing <typeparamref name="TContext"/>'s EF Core migrations. Norse
+	/// convention places migrations in a sibling <c>*.Migrations</c> assembly, never in the context's own
+	/// assembly — this must be supplied explicitly rather than inferred, since EF Core defaults to
+	/// searching the context's own assembly and finds nothing there.
+	/// </param>
 	/// <returns>The same <paramref name="builder"/> for chaining.</returns>
 	public static IHostApplicationBuilder AddNorsePostgresMigrationContext<TContext>(
 		this IHostApplicationBuilder builder,
-		string connectionStringName)
+		string connectionStringName,
+		string migrationsAssemblyName)
 		where TContext : DbContext, INorseDbContext
 	{
 		var connectionString = builder.Configuration.GetConnectionString(connectionStringName)
 			?? throw new InvalidOperationException($"Connection string '{connectionStringName}' was not found.");
 
-		builder.Services.AddDbContext<TContext>(opts => opts.UseNpgsql(connectionString));
+		builder.Services.AddDbContext<TContext>(opts =>
+			opts.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(migrationsAssemblyName)));
 		builder.EnrichNpgsqlDbContext<TContext>();
 
 		return builder;

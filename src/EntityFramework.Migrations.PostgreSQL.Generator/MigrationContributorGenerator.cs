@@ -57,7 +57,8 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 			results.Add(new ContributorInfo(
 				type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
 				dbContextType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-				connectionStringName));
+				connectionStringName,
+				type.ContainingAssembly.Name));
 		}
 
 		return results;
@@ -128,7 +129,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 
 		foreach (var c in contributors)
 		{
-			sb.AppendLine($"\t\tbuilder.AddNorsePostgresMigrationContext<{c.ContextType}>(\"{c.ConnectionStringName}\");");
+			sb.AppendLine($"\t\tbuilder.AddNorsePostgresMigrationContext<{c.ContextType}>(\"{c.ConnectionStringName}\", \"{c.MigrationsAssemblyName}\");");
 			sb.AppendLine($"\t\tbuilder.Services.AddTransient<global::Norse.Abstractions.Migrations.IMigrationContributor, {c.ContributorType}>();");
 		}
 
@@ -142,15 +143,21 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 
 	readonly struct ContributorInfo
 	{
-		public ContributorInfo(string contributorType, string contextType, string connectionStringName)
+		public ContributorInfo(
+			string contributorType,
+			string contextType,
+			string connectionStringName,
+			string migrationsAssemblyName)
 		{
 			ContributorType = contributorType;
 			ContextType = contextType;
 			ConnectionStringName = connectionStringName;
+			MigrationsAssemblyName = migrationsAssemblyName;
 		}
 
 		public string ContributorType { get; }
 		public string ContextType { get; }
 		public string ConnectionStringName { get; }
+		public string MigrationsAssemblyName { get; }
 	}
 }

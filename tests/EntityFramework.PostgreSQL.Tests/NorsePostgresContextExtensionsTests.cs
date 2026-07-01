@@ -28,7 +28,7 @@ public sealed class NorsePostgresContextExtensionsTests
 		builder.Configuration.AddInMemoryCollection(
 			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = "Host=localhost;Database=test" });
 
-		builder.AddNorsePostgresMigrationContext<TestContext>("test-db");
+		builder.AddNorsePostgresMigrationContext<TestContext>("test-db", "Norse.EntityFramework.PostgreSQL.Tests");
 
 		var descriptor = builder.Services
 			.FirstOrDefault(d => d.ServiceType == typeof(TestContext));
@@ -49,7 +49,7 @@ public sealed class NorsePostgresContextExtensionsTests
 		builder.Configuration.AddInMemoryCollection(
 			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = "Host=localhost;Database=test" });
 
-		builder.AddNorsePostgresMigrationContext<TestContext>("test-db");
+		builder.AddNorsePostgresMigrationContext<TestContext>("test-db", "Norse.EntityFramework.PostgreSQL.Tests");
 
 		using var host = builder.Build();
 		using var scope = host.Services.CreateScope();
