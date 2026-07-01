@@ -6,7 +6,7 @@ namespace Norse.EntityFramework.Migrations.PostgreSQL.Generator.Tests;
 public sealed class MigrationContributorGeneratorTests
 {
 	[Fact]
-	public void Generator_produces_AddNorseMigrations_method()
+	void Generator_produces_AddNorseMigrations_method()
 	{
 		var source = """
 			using Norse.EntityFramework;
@@ -34,11 +34,12 @@ public sealed class MigrationContributorGeneratorTests
 		generated.ShouldContain("AddNorseMigrationsRunner");
 		generated.ShouldContain("TestContributor");
 		generated.ShouldContain("test-db");
-		generated.ShouldContain("AddNorsePostgresContext");
+		generated.ShouldContain("AddNorsePostgresMigrationContext");
+		generated.ShouldContain("\"TestAssembly\"");
 	}
 
 	[Fact]
-	public void Generator_emits_no_source_when_no_contributors_found()
+	void Generator_emits_no_source_when_no_contributors_found()
 	{
 		var compilation = CreateCompilation("// empty");
 		var generator = new MigrationContributorGenerator();

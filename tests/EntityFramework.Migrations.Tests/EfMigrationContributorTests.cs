@@ -5,7 +5,7 @@ namespace Norse.EntityFramework.Migrations.Tests;
 public sealed class EfMigrationContributorTests
 {
 	[Fact]
-	public void MigrationConnectionStringAttribute_stores_name()
+	void MigrationConnectionStringAttribute_stores_name()
 	{
 		MigrationConnectionStringAttribute attr = new("my-db");
 
@@ -13,7 +13,7 @@ public sealed class EfMigrationContributorTests
 	}
 
 	[Fact]
-	public void Name_returns_subclass_value()
+	void Name_returns_subclass_value()
 	{
 		using var ctx = CreateContext();
 		StubContributor sut = new(ctx);
