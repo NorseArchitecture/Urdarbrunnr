@@ -5,7 +5,7 @@ namespace Norse.EntityFramework.Tests;
 public sealed class NorseDbContextOptionsExtensionsTests
 {
 	[Fact]
-	public void ApplyNorseConventions_applies_snake_case_naming()
+	void ApplyNorseConventions_applies_snake_case_naming()
 	{
 		var options = new DbContextOptionsBuilder<TestContext>()
 			.UseSqlite("Data Source=:memory:")

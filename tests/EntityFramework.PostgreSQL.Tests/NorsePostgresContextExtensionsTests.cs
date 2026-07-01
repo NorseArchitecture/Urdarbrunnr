@@ -8,7 +8,7 @@ namespace Norse.EntityFramework.PostgreSQL.Tests;
 public sealed class NorsePostgresContextExtensionsTests
 {
 	[Fact]
-	public void AddNorsePostgresContext_registers_TContext_in_DI()
+	void AddNorsePostgresContext_registers_TContext_in_DI()
 	{
 		var builder = Host.CreateApplicationBuilder();
 		builder.Configuration.AddInMemoryCollection(
@@ -22,7 +22,7 @@ public sealed class NorsePostgresContextExtensionsTests
 	}
 
 	[Fact]
-	public void AddNorsePostgresMigrationContext_registers_TContext_non_pooled_in_DI()
+	void AddNorsePostgresMigrationContext_registers_TContext_non_pooled_in_DI()
 	{
 		var builder = Host.CreateApplicationBuilder();
 		builder.Configuration.AddInMemoryCollection(
@@ -43,7 +43,7 @@ public sealed class NorsePostgresContextExtensionsTests
 	}
 
 	[Fact]
-	public void AddNorsePostgresMigrationContext_does_not_throw_with_mutating_OnConfiguring()
+	void AddNorsePostgresMigrationContext_does_not_throw_with_mutating_OnConfiguring()
 	{
 		var builder = Host.CreateApplicationBuilder();
 		builder.Configuration.AddInMemoryCollection(
