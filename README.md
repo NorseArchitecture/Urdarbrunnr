@@ -10,7 +10,7 @@ The well's record for the Norse Architecture — **`Norse.EntityFramework`**: en
 
 ## Status
 
-This realm is currently a bare shell — no code, no specs converged yet. Design happens first: brainstorm → spec → plan, recorded in Glitnir's `docs/Urdarbrunnr/`, before any project is scaffolded here.
+**Live:** `Norse.EntityFramework`, `Norse.EntityFramework.PostgreSQL`, `Norse.EntityFramework.Migrations`, and `Norse.EntityFramework.Migrations.PostgreSQL` — four assemblies shipped as part of the platform-wide migrations framework proven end to end across six realms (the full story is on [Bifröst's README](https://github.com/NorseArchitecture/Bifrost#readme)). The last of the four ships this realm's first Roslyn source generator: it discovers every EF migration contributor at compile time and emits `AddNorseMigrations()`, proven identical whether contributors arrive by `ProjectReference` or `PackageReference`. Design for what's next happens first: brainstorm → spec → plan, recorded in Glitnir's `docs/Urdarbrunnr/`, before any further project is scaffolded here.
 
 ## The cosmos
 
