@@ -3,8 +3,6 @@
 		<Description>Norse.EntityFramework: the INorseDbContext marker interface, the abstract NorseDbContext base, and snake_case naming conventions — provider-agnostic EF foundation shared by all Norse contexts regardless of RDBMS.</Description>
 		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
 		<IsAotCompatible>false</IsAotCompatible>
-		<!-- CS1574: Forward references to RequireExplicitLengthConvention in attributes (Task 2). -->
-		<NoWarn>$(NoWarn);CS1574</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="EFCore.NamingConventions" Version="*" />
