@@ -32,9 +32,7 @@ public sealed class RequireExplicitLengthConventionTests
 	[Fact]
 	public void Unbounded_string_property_throws_on_model_build()
 	{
-#pragma warning disable IDE0200
-		var act = () => BuildModel<UnboundedContext>();
-#pragma warning restore IDE0200
+		var act = BuildModel<UnboundedContext>;
 
 		var ex = act.ShouldThrow<InvalidOperationException>();
 		ex.Message.ShouldContain("UnboundedEntity.Value (String)");
@@ -43,25 +41,19 @@ public sealed class RequireExplicitLengthConventionTests
 	[Fact]
 	public void MaxLength_attribute_satisfies_the_convention()
 	{
-#pragma warning disable IDE0200
-		Should.NotThrow(() => BuildModel<AttributeBoundedContext>());
-#pragma warning restore IDE0200
+		Should.NotThrow(BuildModel<AttributeBoundedContext>);
 	}
 
 	[Fact]
 	public void HasMaxLength_fluent_call_satisfies_the_convention()
 	{
-#pragma warning disable IDE0200
-		Should.NotThrow(() => BuildModel<FluentBoundedContext>());
-#pragma warning restore IDE0200
+		Should.NotThrow(BuildModel<FluentBoundedContext>);
 	}
 
 	[Fact]
 	public void UnboundedLength_attribute_passes_as_explicit_negative_one()
 	{
-#pragma warning disable IDE0200
-		Should.NotThrow(() => BuildModel<ExplicitUnboundedContext>());
-#pragma warning restore IDE0200
+		Should.NotThrow(BuildModel<ExplicitUnboundedContext>);
 	}
 
 	[Fact]
@@ -77,19 +69,21 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	public void Converted_property_with_non_string_storage_type_is_skipped()
+	public void String_property_converted_to_non_string_storage_type_is_skipped()
 	{
-#pragma warning disable IDE0200
-		Should.NotThrow(() => BuildModel<ConvertedContext>());
-#pragma warning restore IDE0200
+		Should.NotThrow(BuildModel<ConvertedContext>);
+	}
+
+	[Fact]
+	public void Json_owned_type_property_is_skipped()
+	{
+		Should.NotThrow(BuildModel<JsonOwnedContext>);
 	}
 
 	[Fact]
 	public void Collects_every_violation_before_throwing()
 	{
-#pragma warning disable IDE0200
-		var act = () => BuildModel<MultiUnboundedContext>();
-#pragma warning restore IDE0200
+		var act = BuildModel<MultiUnboundedContext>;
 
 		var ex = act.ShouldThrow<InvalidOperationException>();
 		ex.Message.ShouldContain("First (String)");
@@ -191,7 +185,7 @@ public sealed class RequireExplicitLengthConventionTests
 	sealed class ConvertedEntity
 	{
 		public int Id { get; set; }
-		public Guid Value { get; set; }
+		public string Value { get; set; } = "";
 	}
 
 	sealed class ConvertedContext(DbContextOptions<ConvertedContext> options) : NorseDbContext(options)
@@ -204,7 +198,33 @@ public sealed class RequireExplicitLengthConventionTests
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
 			base.OnModelCreating(builder);
-			builder.Entity<ConvertedEntity>().Property(e => e.Value).HasConversion<string>().HasMaxLength(36);
+			builder.Entity<ConvertedEntity>().Property(e => e.Value)
+				.HasConversion(s => Guid.Parse(s), g => g.ToString());
+		}
+	}
+
+	sealed class JsonOwnedEntity
+	{
+		public int Id { get; set; }
+		public JsonOwnedDetail Detail { get; set; } = new();
+	}
+
+	sealed class JsonOwnedDetail
+	{
+		public string Value { get; set; } = "";
+	}
+
+	sealed class JsonOwnedContext(DbContextOptions<JsonOwnedContext> options) : NorseDbContext(options)
+	{
+		public DbSet<JsonOwnedEntity> Entities => Set<JsonOwnedEntity>();
+
+		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<JsonOwnedEntity>().OwnsOne(e => e.Detail, o => o.ToJson());
 		}
 	}
 

@@ -23,7 +23,7 @@ sealed class RequireExplicitLengthConvention : IModelFinalizingConvention
 				continue;
 
 			var maxLengthAttr = property.PropertyInfo?.GetCustomAttribute<System.ComponentModel.DataAnnotations.MaxLengthAttribute>();
-			if (maxLengthAttr is not null)
+			if (maxLengthAttr is not null && maxLengthAttr.Length <= 0)
 				property.Builder.HasMaxLength(maxLengthAttr.Length, fromDataAnnotation: true);
 
 			if (property.PropertyInfo?.GetCustomAttribute<FixedLengthAttribute>() is not null)
