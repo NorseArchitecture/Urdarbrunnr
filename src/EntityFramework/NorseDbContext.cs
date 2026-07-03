@@ -3,26 +3,25 @@ using Microsoft.EntityFrameworkCore;
 namespace Norse.EntityFramework;
 
 /// <summary>
-/// Abstract <see cref="DbContext"/> base for all non-auth Norse EF contexts. Applies snake_case naming
-/// conventions via <see cref="NorseDbContextOptionsExtensions.ApplyNorseConventions"/> during context
-/// configuration. Auth contexts inherit <c>IdentityDbContext</c> instead and call
-/// <see cref="NorseDbContextOptionsExtensions.ApplyNorseConventions"/> manually in their <c>OnConfiguring</c>.
+/// Abstract <see cref="DbContext"/> base for all non-auth Norse EF contexts. Naming conventions are
+/// decided by the provider registration extension used to register a context (see
+/// <c>Norse.EntityFramework.PostgreSQL.NorsePostgresContextExtensions</c> and its SQL Server
+/// counterpart), never here — this base stays provider-neutral. Auth contexts inherit
+/// <c>IdentityDbContext</c> instead of this class and replicate its conventions manually.
 /// </summary>
 /// <param name="options">The options for this context.</param>
 public abstract class NorseDbContext(DbContextOptions options) : DbContext(options), INorseDbContext
 {
 	/// <inheritdoc />
-	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-	{
-		base.OnConfiguring(optionsBuilder);
-		NorseDbContextOptionsExtensions.ApplyNorseConventions(optionsBuilder);
-	}
-
-	/// <inheritdoc />
 	protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
 	{
 		base.ConfigureConventions(configurationBuilder);
-		NorseModelConventions.Apply(configurationBuilder);
+
+		// Fixed-length storage (char(n)/nchar(n)) only pays off on SQL Server. Postgres's own docs
+		// say character(n) has no storage/performance benefit over character varying(n) there, and
+		// is usually the slower of the two — see FixedLengthAttribute's remarks.
+		NorseModelConventions.Apply(configurationBuilder,
+			applyFixedLength: Database.ProviderName == NorseDbContextOptionsExtensions.SqlServerProviderName);
 	}
 
 	/// <inheritdoc />

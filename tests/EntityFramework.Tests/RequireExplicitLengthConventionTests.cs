@@ -57,9 +57,21 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	void FixedLength_attribute_sets_IsFixedLength_and_satisfies_the_convention()
+	void FixedLength_attribute_does_not_set_IsFixedLength_on_non_SqlServer_providers()
 	{
 		using var ctx = CreateContext<FixedLengthContext>();
+
+		var property = ctx.Model.FindEntityType(typeof(FixedLengthEntity))!
+			.FindProperty(nameof(FixedLengthEntity.Value))!;
+
+		property.GetMaxLength().ShouldBe(10);
+		property.IsFixedLength().ShouldNotBe(true);
+	}
+
+	[Fact]
+	void FixedLength_attribute_sets_IsFixedLength_on_SqlServer()
+	{
+		using var ctx = CreateSqlServerContext<FixedLengthContext>();
 
 		var property = ctx.Model.FindEntityType(typeof(FixedLengthEntity))!
 			.FindProperty(nameof(FixedLengthEntity.Value))!;
@@ -94,6 +106,12 @@ public sealed class RequireExplicitLengthConventionTests
 		(TContext)Activator.CreateInstance(typeof(TContext),
 			new DbContextOptionsBuilder<TContext>().UseSqlite("Data Source=:memory:").Options)!;
 
+	static TContext CreateSqlServerContext<TContext>() where TContext : DbContext =>
+		(TContext)Activator.CreateInstance(typeof(TContext),
+			new DbContextOptionsBuilder<TContext>()
+				.UseSqlServer("Server=localhost;Database=test;Trusted_Connection=True;TrustServerCertificate=True;")
+				.Options)!;
+
 	static void BuildModel<TContext>() where TContext : DbContext
 	{
 		using var ctx = CreateContext<TContext>();
@@ -111,7 +129,7 @@ public sealed class RequireExplicitLengthConventionTests
 		public DbSet<UnboundedEntity> Entities => Set<UnboundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 	}
 
 	sealed class AttributeBoundedEntity
@@ -127,7 +145,7 @@ public sealed class RequireExplicitLengthConventionTests
 		public DbSet<AttributeBoundedEntity> Entities => Set<AttributeBoundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 	}
 
 	sealed class FluentBoundedEntity
@@ -141,7 +159,7 @@ public sealed class RequireExplicitLengthConventionTests
 		public DbSet<FluentBoundedEntity> Entities => Set<FluentBoundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -163,7 +181,7 @@ public sealed class RequireExplicitLengthConventionTests
 		public DbSet<ExplicitUnboundedEntity> Entities => Set<ExplicitUnboundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 	}
 
 	sealed class FixedLengthEntity
@@ -178,8 +196,11 @@ public sealed class RequireExplicitLengthConventionTests
 	{
 		public DbSet<FixedLengthEntity> Entities => Set<FixedLengthEntity>();
 
-		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+		{
+			var applyFixedLength = Database.ProviderName == NorseDbContextOptionsExtensions.SqlServerProviderName;
+			configurationBuilder.Conventions.Add(_ => new RequireExplicitLengthConvention(applyFixedLength));
+		}
 	}
 
 	sealed class ConvertedEntity
@@ -193,7 +214,7 @@ public sealed class RequireExplicitLengthConventionTests
 		public DbSet<ConvertedEntity> Entities => Set<ConvertedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -219,7 +240,7 @@ public sealed class RequireExplicitLengthConventionTests
 		public DbSet<JsonOwnedEntity> Entities => Set<JsonOwnedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -240,6 +261,6 @@ public sealed class RequireExplicitLengthConventionTests
 		public DbSet<MultiUnboundedEntity> Entities => Set<MultiUnboundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention());
+			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 	}
 }

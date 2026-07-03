@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.EntityFramework.Migrations.SqlServer: pulls in Norse.EntityFramework.Migrations (contributor base) and Norse.EntityFramework.SqlServer (Aspire SQL Server wiring) and ships the Roslyn generator that emits AddNorseMigrations(). Reference this single package from your migrations service.</Description>
+		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
+		<IsAotCompatible>false</IsAotCompatible>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="../EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
+		<ProjectReference Include="../EntityFramework.SqlServer/EntityFramework.SqlServer.csproj" />
+		<ProjectReference
+			Include="../EntityFramework.Migrations.SqlServer.Generator/EntityFramework.Migrations.SqlServer.Generator.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false" />
+	</ItemGroup>
+	<Target Name="IncludeGeneratorInPackage" BeforeTargets="_GetPackageFiles">
+		<MSBuild Projects="../EntityFramework.Migrations.SqlServer.Generator/EntityFramework.Migrations.SqlServer.Generator.csproj"
+			Targets="Build"
+			Properties="Configuration=$(Configuration)" />
+		<ItemGroup>
+			<None Include="../EntityFramework.Migrations.SqlServer.Generator/bin/$(Configuration)/netstandard2.0/Norse.EntityFramework.Migrations.SqlServer.Generator.dll"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs/"
+				Visible="false" />
+		</ItemGroup>
+	</Target>
+</Project>

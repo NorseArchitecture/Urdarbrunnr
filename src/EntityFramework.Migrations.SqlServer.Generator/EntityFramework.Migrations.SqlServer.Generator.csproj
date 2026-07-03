@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>Norse.EntityFramework.Migrations.PostgreSQL.Generator: the Roslyn IIncrementalGenerator that discovers EfMigrationContributor&lt;TContext&gt; implementations at compile time and emits AddNorseMigrations() with Npgsql connection wiring.</Description>
+		<Description>Norse.EntityFramework.Migrations.SqlServer.Generator: the Roslyn IIncrementalGenerator that discovers EfMigrationContributor&lt;TContext&gt; implementations at compile time and emits AddNorseMigrations() with SQL Server connection wiring.</Description>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>

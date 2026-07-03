@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Norse.EntityFramework.Migrations.Generator.Shared;
 
-namespace Norse.EntityFramework.Migrations.PostgreSQL.Generator;
+namespace Norse.EntityFramework.Migrations.SqlServer.Generator;
 
 [Generator]
 public sealed class MigrationContributorGenerator : IIncrementalGenerator
@@ -32,7 +32,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 		sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
 		sb.AppendLine("using Microsoft.Extensions.Hosting;");
 		sb.AppendLine("using Norse.Abstractions.Migrations;");
-		sb.AppendLine("using Norse.EntityFramework.PostgreSQL;");
+		sb.AppendLine("using Norse.EntityFramework.SqlServer;");
 		sb.AppendLine("using Norse.Infrastructure.Migrations;");
 		sb.AppendLine();
 		sb.AppendLine("static class NorseMigrationsGeneratedExtensions");
@@ -43,7 +43,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 
 		foreach (var c in contributors)
 		{
-			sb.AppendLine($"\t\tbuilder.AddNorsePostgresMigrationContext<{c.ContextType}>(\"{c.ConnectionStringName}\", \"{c.MigrationsAssemblyName}\");");
+			sb.AppendLine($"\t\tbuilder.AddNorseSqlServerMigrationContext<{c.ContextType}>(\"{c.ConnectionStringName}\", \"{c.MigrationsAssemblyName}\");");
 			sb.AppendLine($"\t\tbuilder.Services.AddTransient<global::Norse.Abstractions.Migrations.IMigrationContributor, {c.ContributorType}>();");
 		}
 
