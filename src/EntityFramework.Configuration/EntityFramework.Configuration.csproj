@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Description>Norse.EntityFramework.Configuration: pulls in Norse.EntityFramework and ships the Roslyn generator that discovers INorseEntity&lt;TSelf&gt; implementations and emits ApplyNorseConfigurations(). Reference this single package from any project that colocates entities and their DbContext.</Description>
+		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
+		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="../EntityFramework/EntityFramework.csproj" />
