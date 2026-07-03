@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="*" />
+		<ProjectReference Include="../../src/EntityFramework.SqlServer/EntityFramework.SqlServer.csproj" />
+	</ItemGroup>
+</Project>
