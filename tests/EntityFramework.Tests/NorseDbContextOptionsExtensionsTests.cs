@@ -8,6 +8,18 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	[Fact]
 	void ApplyNorseConventions_applies_snake_case_naming()
 	{
+		var optionsBuilder = new DbContextOptionsBuilder<TestContext>().UseSqlite("Data Source=:memory:");
+		NorseDbContextOptionsExtensions.ApplyNorseConventions(optionsBuilder);
+
+		using var ctx = new TestContext(optionsBuilder.Options);
+		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
+
+		tableName.ShouldBe("test_entities");
+	}
+
+	[Fact]
+	void NorseDbContext_does_not_apply_naming_conventions_on_its_own()
+	{
 		var options = new DbContextOptionsBuilder<TestContext>()
 			.UseSqlite("Data Source=:memory:")
 			.Options;
@@ -15,7 +27,10 @@ public sealed class NorseDbContextOptionsExtensionsTests
 		using var ctx = new TestContext(options);
 		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
 
-		tableName.ShouldBe("test_entities");
+		// EF Core's own default: the DbSet property name, untouched. Naming is now decided
+		// exclusively by the provider registration extension used to register a context — see
+		// Norse.EntityFramework.PostgreSQL.NorsePostgresContextExtensions.
+		tableName.ShouldBe("TestEntities");
 	}
 
 	[Fact]

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace Norse.EntityFramework;
 
-sealed class RequireExplicitLengthConvention : IModelFinalizingConvention
+sealed class RequireExplicitLengthConvention(bool applyFixedLength) : IModelFinalizingConvention
 {
 	public void ProcessModelFinalizing(
 		IConventionModelBuilder builder, IConventionContext<IConventionModelBuilder> context)
@@ -26,7 +26,8 @@ sealed class RequireExplicitLengthConvention : IModelFinalizingConvention
 			if (maxLengthAttr is not null && maxLengthAttr.Length <= 0)
 				property.Builder.HasMaxLength(maxLengthAttr.Length, fromDataAnnotation: true);
 
-			if (property.PropertyInfo?.GetCustomAttribute<FixedLengthAttribute>() is not null)
+			// Fixed-length storage only pays off on SQL Server -- see FixedLengthAttribute's remarks.
+			if (applyFixedLength && property.PropertyInfo?.GetCustomAttribute<FixedLengthAttribute>() is not null)
 				property.Builder.IsFixedLength(true, fromDataAnnotation: true);
 
 			if (property.GetMaxLength() is null)

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="*" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="*" />
 		<ProjectReference Include="../../src/EntityFramework/EntityFramework.csproj" />
 	</ItemGroup>
 	<ItemGroup>
