@@ -16,4 +16,7 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 	</ItemGroup>
+	<ItemGroup>
+		<Compile Include="../EntityFramework.Migrations.Generator.Shared/MigrationContributorDiscovery.cs" Link="Shared/MigrationContributorDiscovery.cs" />
+	</ItemGroup>
 </Project>

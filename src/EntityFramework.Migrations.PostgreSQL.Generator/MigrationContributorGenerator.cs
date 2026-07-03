@@ -1,22 +1,17 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Norse.EntityFramework.Migrations.Generator.Shared;
 
 namespace Norse.EntityFramework.Migrations.PostgreSQL.Generator;
 
 [Generator]
 public sealed class MigrationContributorGenerator : IIncrementalGenerator
 {
-	const string AttributeMetadataName =
-		"Norse.EntityFramework.Migrations.MigrationConnectionStringAttribute";
-
-	const string ContributorInterfaceMetadataName =
-		"Norse.Abstractions.Migrations.IMigrationContributor";
-
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
 		var contributors = context.CompilationProvider.Select(static (compilation, _) =>
-			FindContributors(compilation));
+			MigrationContributorDiscovery.FindContributors(compilation));
 
 		context.RegisterSourceOutput(contributors, static (ctx, list) =>
 		{
@@ -26,87 +21,6 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 			var source = BuildSource(list);
 			ctx.AddSource("NorseMigrationsExtensions.g.cs", SourceText.From(source, Encoding.UTF8));
 		});
-	}
-
-	static IList<ContributorInfo> FindContributors(Compilation compilation)
-	{
-		IList<ContributorInfo> results = [];
-
-		foreach (var type in AllTypes(compilation))
-		{
-			if (type.IsAbstract)
-				continue;
-
-			if (!ImplementsContributorInterface(type))
-				continue;
-
-			var attr = type.GetAttributes()
-				.FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == AttributeMetadataName);
-
-			if (attr is null || attr.ConstructorArguments.Length == 0)
-				continue;
-
-			var connectionStringName = attr.ConstructorArguments[0].Value as string;
-			if (connectionStringName is null)
-				continue;
-
-			var dbContextType = FindEfContextType(type);
-			if (dbContextType is null)
-				continue;
-
-			results.Add(new ContributorInfo(
-				type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-				dbContextType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-				connectionStringName,
-				type.ContainingAssembly.Name));
-		}
-
-		return results;
-	}
-
-	// Covers both production (contributors in referenced packages) and
-	// test scenarios (contributor defined in compilation source trees).
-	static IEnumerable<INamedTypeSymbol> AllTypes(Compilation compilation)
-	{
-		foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
-			foreach (var type in GetAllTypes(assembly.GlobalNamespace))
-				yield return type;
-
-		foreach (var type in GetAllTypes(compilation.Assembly.GlobalNamespace))
-			yield return type;
-	}
-
-	// Match by metadata name to avoid cross-layer symbol identity issues in the
-	// generator's CompilationProvider context.
-	static bool ImplementsContributorInterface(INamedTypeSymbol type) =>
-		type.AllInterfaces.Any(i => i.ToDisplayString() == ContributorInterfaceMetadataName);
-
-	static INamedTypeSymbol? FindEfContextType(INamedTypeSymbol type)
-	{
-		var current = type.BaseType;
-		while (current is not null)
-		{
-			if (current.OriginalDefinition?.MetadataName == "EfMigrationContributor`1" &&
-				current.OriginalDefinition?.ContainingNamespace?.ToDisplayString() == "Norse.EntityFramework.Migrations" &&
-				current.TypeArguments.Length == 1)
-			{
-				return current.TypeArguments[0] as INamedTypeSymbol;
-			}
-
-			current = current.BaseType;
-		}
-
-		return null;
-	}
-
-	static IEnumerable<INamedTypeSymbol> GetAllTypes(INamespaceSymbol ns)
-	{
-		foreach (var type in ns.GetTypeMembers())
-			yield return type;
-
-		foreach (var child in ns.GetNamespaceMembers())
-			foreach (var type in GetAllTypes(child))
-				yield return type;
 	}
 
 	static string BuildSource(IList<ContributorInfo> contributors)
@@ -139,25 +53,5 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 		sb.AppendLine("}");
 
 		return sb.ToString();
-	}
-
-	readonly struct ContributorInfo
-	{
-		public ContributorInfo(
-			string contributorType,
-			string contextType,
-			string connectionStringName,
-			string migrationsAssemblyName)
-		{
-			ContributorType = contributorType;
-			ContextType = contextType;
-			ConnectionStringName = connectionStringName;
-			MigrationsAssemblyName = migrationsAssemblyName;
-		}
-
-		public string ContributorType { get; }
-		public string ContextType { get; }
-		public string ConnectionStringName { get; }
-		public string MigrationsAssemblyName { get; }
 	}
 }
