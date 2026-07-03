@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Norse.EntityFramework.Configuration.Generator.Tests;
+namespace Norse.EntityFramework.Generator.Tests;
 
 public sealed class EntityConfigurationApplicationGeneratorTests
 {
