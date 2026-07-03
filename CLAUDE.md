@@ -18,7 +18,15 @@ This repo's own `.claude/settings.json` carries a `SessionStart` hook that shoul
 
 Urdarbrunnr is **the well's record** — `Norse.EntityFramework`: entity base types, `DbContext` foundations, conventions, value converters, and the migrations chassis. It is the EF Core foundation that Midgard's concrete repository implementations ride on, governed by the contracts Asgard declares. In the dependency chain it sits below Asgard and Svartalfheim, and above Midgard.
 
-**Four assemblies are live**, shipped, tagged, and published to NuGet as Tasks 3–6 of the cross-realm migrations framework rollout (`../Glitnir/docs/Platform/plans/2026-06-28-migrations-framework-identity-schema.md`):
+**Four assemblies are live**, shipped, tagged, and published to NuGet as Tasks 3–6 of the cross-realm
+migrations framework rollout (`../Glitnir/docs/Platform/plans/2026-06-28-migrations-framework-identity-schema.md`).
+A SQL Server-parallel trio (`Norse.EntityFramework.SqlServer`, `.Migrations.SqlServer`,
+`.Migrations.SqlServer.Generator`) landed alongside them per
+`../Glitnir/docs/Urdarbrunnr/specs/2026-07-03-provider-aware-length-and-naming-conventions.md` — `[FixedLength(n)]`
+now only translates to `.IsFixedLength()` on SQL Server (Postgres's own docs say `character(n)` has no
+storage/performance benefit over `character varying(n)` there), and snake_case naming is an explicit,
+overridable opt-in/opt-out on every provider's registration extension rather than baked into
+`NorseDbContext`:
 
 - `Norse.EntityFramework` — the `INorseDbContext` marker interface, the abstract `NorseDbContext` base, and the snake_case naming conventions every Norse context inherits.
 - `Norse.EntityFramework.PostgreSQL` — `AddNorsePostgresContext<TContext>()`, the canonical Aspire-wired Postgres registration for runtime contexts.

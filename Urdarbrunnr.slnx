@@ -15,9 +15,13 @@
 		<File Path="src/Directory.Build.targets" />
 		<Project Path="src/EntityFramework/EntityFramework.csproj" />
 		<Project Path="src/EntityFramework.PostgreSQL/EntityFramework.PostgreSQL.csproj" />
+		<Project Path="src/EntityFramework.SqlServer/EntityFramework.SqlServer.csproj" />
 		<Project Path="src/EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
+		<File Path="src/EntityFramework.Migrations.Generator.Shared/MigrationContributorDiscovery.cs" />
 		<Project Path="src/EntityFramework.Migrations.PostgreSQL.Generator/EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
 		<Project Path="src/EntityFramework.Migrations.PostgreSQL/EntityFramework.Migrations.PostgreSQL.csproj" />
+		<Project Path="src/EntityFramework.Migrations.SqlServer.Generator/EntityFramework.Migrations.SqlServer.Generator.csproj" />
+		<Project Path="src/EntityFramework.Migrations.SqlServer/EntityFramework.Migrations.SqlServer.csproj" />
 		<Project Path="src/EntityFramework.Generator/EntityFramework.Generator.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
@@ -25,8 +29,10 @@
 		<File Path="tests/Directory.Build.targets" />
 		<Project Path="tests/EntityFramework.Tests/EntityFramework.Tests.csproj" />
 		<Project Path="tests/EntityFramework.PostgreSQL.Tests/EntityFramework.PostgreSQL.Tests.csproj" />
+		<Project Path="tests/EntityFramework.SqlServer.Tests/EntityFramework.SqlServer.Tests.csproj" />
 		<Project Path="tests/EntityFramework.Migrations.Tests/EntityFramework.Migrations.Tests.csproj" />
 		<Project Path="tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests.csproj" />
+		<Project Path="tests/EntityFramework.Migrations.SqlServer.Generator.Tests/EntityFramework.Migrations.SqlServer.Generator.Tests.csproj" />
 		<Project Path="tests/EntityFramework.Generator.Tests/EntityFramework.Generator.Tests.csproj" />
 	</Folder>
 </Solution>
