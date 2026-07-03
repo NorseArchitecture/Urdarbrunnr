@@ -18,6 +18,8 @@
 		<Project Path="src/EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
 		<Project Path="src/EntityFramework.Migrations.PostgreSQL.Generator/EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
 		<Project Path="src/EntityFramework.Migrations.PostgreSQL/EntityFramework.Migrations.PostgreSQL.csproj" />
+		<Project Path="src/EntityFramework.Configuration.Generator/EntityFramework.Configuration.Generator.csproj" />
+		<Project Path="src/EntityFramework.Configuration/EntityFramework.Configuration.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
 		<File Path="tests/Directory.Build.props" />
@@ -26,5 +28,6 @@
 		<Project Path="tests/EntityFramework.PostgreSQL.Tests/EntityFramework.PostgreSQL.Tests.csproj" />
 		<Project Path="tests/EntityFramework.Migrations.Tests/EntityFramework.Migrations.Tests.csproj" />
 		<Project Path="tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests.csproj" />
+		<Project Path="tests/EntityFramework.Configuration.Generator.Tests/EntityFramework.Configuration.Generator.Tests.csproj" />
 	</Folder>
 </Solution>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*">
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<ProjectReference Include="../../src/EntityFramework/EntityFramework.csproj" />
+		<ProjectReference Include="../../src/EntityFramework.Configuration.Generator/EntityFramework.Configuration.Generator.csproj" />
+	</ItemGroup>
+</Project>

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Norse.EntityFramework.Tests;
 
@@ -34,9 +35,13 @@ public sealed class NorseDbContextOptionsExtensionsTests
 		public DbSet<TestEntity> TestEntities => Set<TestEntity>();
 	}
 
-	sealed class TestEntity
+	sealed class TestEntity : INorseEntity<TestEntity>
 	{
 		public int Id { get; set; }
+
+		[MaxLength(100)]
 		public string Name { get; set; } = "";
+
+		public static void Configure(EntityTypeBuilder<TestEntity> builder) { }
 	}
 }
