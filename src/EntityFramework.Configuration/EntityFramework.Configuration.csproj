@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.EntityFramework.Configuration: pulls in Norse.EntityFramework and ships the Roslyn generator that discovers INorseEntity&lt;TSelf&gt; implementations and emits ApplyNorseConfigurations(). Reference this single package from any project that colocates entities and their DbContext.</Description>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="../EntityFramework/EntityFramework.csproj" />
+		<ProjectReference
+			Include="../EntityFramework.Configuration.Generator/EntityFramework.Configuration.Generator.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false" />
+	</ItemGroup>
+	<Target Name="IncludeGeneratorInPackage" BeforeTargets="_GetPackageFiles">
+		<MSBuild Projects="../EntityFramework.Configuration.Generator/EntityFramework.Configuration.Generator.csproj"
+			Targets="Build"
+			Properties="Configuration=$(Configuration)" />
+		<ItemGroup>
+			<None Include="../EntityFramework.Configuration.Generator/bin/$(Configuration)/netstandard2.0/Norse.EntityFramework.Configuration.Generator.dll"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs/"
+				Visible="false" />
+		</ItemGroup>
+	</Target>
+</Project>
