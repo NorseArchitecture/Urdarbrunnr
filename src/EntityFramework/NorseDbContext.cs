@@ -17,4 +17,11 @@ public abstract class NorseDbContext(DbContextOptions options) : DbContext(optio
 		base.OnConfiguring(optionsBuilder);
 		NorseDbContextOptionsExtensions.ApplyNorseConventions(optionsBuilder);
 	}
+
+	/// <inheritdoc />
+	protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+	{
+		base.ConfigureConventions(configurationBuilder);
+		NorseModelConventions.Apply(configurationBuilder);
+	}
 }
