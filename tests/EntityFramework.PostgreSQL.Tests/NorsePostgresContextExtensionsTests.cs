@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -58,5 +59,55 @@ public sealed class NorsePostgresContextExtensionsTests
 		Should.NotThrow(() => _ = ctx.Model);
 	}
 
-	sealed class TestContext(DbContextOptions<TestContext> options) : NorseDbContext(options);
+	[Fact]
+	void AddNorsePostgresMigrationContext_defaults_to_snake_case_naming()
+	{
+		var builder = Host.CreateApplicationBuilder();
+		builder.Configuration.AddInMemoryCollection(
+			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = "Host=localhost;Database=test" });
+
+		builder.AddNorsePostgresMigrationContext<TestContext>("test-db", "Norse.EntityFramework.PostgreSQL.Tests");
+
+		using var host = builder.Build();
+		using var scope = host.Services.CreateScope();
+		using var ctx = scope.ServiceProvider.GetRequiredService<TestContext>();
+
+		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
+
+		tableName.ShouldBe("test_entities");
+	}
+
+	[Fact]
+	void AddNorsePostgresMigrationContext_opts_out_of_snake_case_naming_when_requested()
+	{
+		var builder = Host.CreateApplicationBuilder();
+		builder.Configuration.AddInMemoryCollection(
+			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = "Host=localhost;Database=test" });
+
+		builder.AddNorsePostgresMigrationContext<TestContext>(
+			"test-db", "Norse.EntityFramework.PostgreSQL.Tests", useSnakeCaseNaming: false);
+
+		using var host = builder.Build();
+		using var scope = host.Services.CreateScope();
+		using var ctx = scope.ServiceProvider.GetRequiredService<TestContext>();
+
+		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
+
+		tableName.ShouldBe("TestEntities");
+	}
+
+	sealed class TestContext(DbContextOptions<TestContext> options) : NorseDbContext(options)
+	{
+		public DbSet<TestEntity> TestEntities => Set<TestEntity>();
+	}
+
+	sealed class TestEntity : INorseEntity<TestEntity>
+	{
+		public int Id { get; set; }
+
+		[MaxLength(100)]
+		public string Name { get; set; } = "";
+
+		public static void Configure(EntityTypeBuilder<TestEntity> builder) { }
+	}
 }

@@ -11,23 +11,34 @@ namespace Norse.EntityFramework.PostgreSQL;
 public static class NorsePostgresContextExtensions
 {
 	/// <summary>
-	/// Registers <typeparamref name="TContext"/> in the Aspire host using Npgsql EF Core integration,
-	/// applying Norse snake_case naming conventions. The connection string is resolved by
-	/// <paramref name="connectionStringName"/> from the application configuration.
+	/// Registers <typeparamref name="TContext"/> in the Aspire host using Npgsql EF Core integration.
+	/// The connection string is resolved by <paramref name="connectionStringName"/> from the
+	/// application configuration.
 	/// </summary>
 	/// <typeparam name="TContext">
 	/// The <see cref="DbContext"/> type to register. Must implement <see cref="INorseDbContext"/>.
 	/// </typeparam>
 	/// <param name="builder">The host application builder.</param>
 	/// <param name="connectionStringName">The connection string name in application configuration.</param>
+	/// <param name="useSnakeCaseNaming">
+	/// Whether to apply snake_case table/column naming. Defaults to <see langword="true"/>: Postgres
+	/// folds unquoted identifiers to lowercase, so snake_case is this engine's own escape-free
+	/// native style, not an opinionated override being imposed on it. Pass <see langword="false"/>
+	/// to opt out and keep EF's raw (quoted) PascalCase naming instead.
+	/// </param>
 	/// <returns>The same <paramref name="builder"/> for chaining.</returns>
 	public static IHostApplicationBuilder AddNorsePostgresContext<TContext>(
 		this IHostApplicationBuilder builder,
-		string connectionStringName)
+		string connectionStringName,
+		bool useSnakeCaseNaming = true)
 		where TContext : DbContext, INorseDbContext
 	{
 		builder.AddNpgsqlDbContext<TContext>(connectionStringName,
-			configureDbContextOptions: opts => opts.UseSnakeCaseNamingConvention());
+			configureDbContextOptions: opts =>
+			{
+				if (useSnakeCaseNaming)
+					NorseDbContextOptionsExtensions.ApplyNorseConventions(opts);
+			});
 		return builder;
 	}
 
@@ -50,18 +61,24 @@ public static class NorsePostgresContextExtensions
 	/// assembly — this must be supplied explicitly rather than inferred, since EF Core defaults to
 	/// searching the context's own assembly and finds nothing there.
 	/// </param>
+	/// <param name="useSnakeCaseNaming">See <see cref="AddNorsePostgresContext{TContext}"/>.</param>
 	/// <returns>The same <paramref name="builder"/> for chaining.</returns>
 	public static IHostApplicationBuilder AddNorsePostgresMigrationContext<TContext>(
 		this IHostApplicationBuilder builder,
 		string connectionStringName,
-		string migrationsAssemblyName)
+		string migrationsAssemblyName,
+		bool useSnakeCaseNaming = true)
 		where TContext : DbContext, INorseDbContext
 	{
 		var connectionString = builder.Configuration.GetConnectionString(connectionStringName)
 			?? throw new InvalidOperationException($"Connection string '{connectionStringName}' was not found.");
 
 		builder.Services.AddDbContext<TContext>(opts =>
-			opts.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(migrationsAssemblyName)));
+		{
+			opts.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(migrationsAssemblyName));
+			if (useSnakeCaseNaming)
+				NorseDbContextOptionsExtensions.ApplyNorseConventions(opts);
+		});
 		builder.EnrichNpgsqlDbContext<TContext>();
 
 		return builder;
