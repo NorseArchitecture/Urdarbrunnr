@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>Norse.EntityFramework: the INorseDbContext marker interface, the abstract NorseDbContext base, and snake_case naming conventions — provider-agnostic EF foundation shared by all Norse contexts regardless of RDBMS.</Description>
+		<Description>Norse.EntityFramework: the INorseDbContext marker interface, the abstract NorseDbContext base, snake_case naming conventions, explicit-length and colocated-entity-configuration enforcement, and the Roslyn generator that discovers INorseEntity&lt;TSelf&gt; implementations — provider-agnostic EF foundation shared by all Norse contexts regardless of RDBMS.</Description>
 		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
@@ -8,5 +8,20 @@
 		<PackageReference Include="EFCore.NamingConventions" Version="*" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="*" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="*" />
+		<ProjectReference
+			Include="../EntityFramework.Generator/EntityFramework.Generator.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false" />
 	</ItemGroup>
+	<Target Name="IncludeGeneratorInPackage" BeforeTargets="_GetPackageFiles">
+		<MSBuild Projects="../EntityFramework.Generator/EntityFramework.Generator.csproj"
+			Targets="Build"
+			Properties="Configuration=$(Configuration)" />
+		<ItemGroup>
+			<None Include="../EntityFramework.Generator/bin/$(Configuration)/netstandard2.0/Norse.EntityFramework.Generator.dll"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs/"
+				Visible="false" />
+		</ItemGroup>
+	</Target>
 </Project>

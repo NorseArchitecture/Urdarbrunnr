@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Norse.EntityFramework.Configuration.Generator;
+namespace Norse.EntityFramework.Generator;
 
 [Generator]
 public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenerator

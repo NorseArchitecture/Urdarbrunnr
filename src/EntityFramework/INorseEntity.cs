@@ -6,7 +6,7 @@ namespace Norse.EntityFramework;
 /// Every Norse entity is its own configuration. Implementing this interface obligates the concrete
 /// type to supply <see cref="Configure"/> — the compiler refuses to build until it exists. Static
 /// (not instance-based like EF Core's own <c>IEntityTypeConfiguration&lt;T&gt;</c>) so the generator
-/// (<c>EntityConfigurationApplicationGenerator</c>, Norse.EntityFramework.Configuration.Generator)
+/// (<c>EntityConfigurationApplicationGenerator</c>, Norse.EntityFramework.Generator)
 /// never constructs an instance purely to call this method.
 /// </summary>
 public interface INorseEntity<TSelf> where TSelf : class, INorseEntity<TSelf>

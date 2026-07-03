@@ -4,6 +4,6 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<ProjectReference Include="../../src/EntityFramework/EntityFramework.csproj" />
-		<ProjectReference Include="../../src/EntityFramework.Configuration.Generator/EntityFramework.Configuration.Generator.csproj" />
+		<ProjectReference Include="../../src/EntityFramework.Generator/EntityFramework.Generator.csproj" />
 	</ItemGroup>
 </Project>
