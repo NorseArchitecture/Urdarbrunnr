@@ -5,7 +5,7 @@ namespace Norse.EntityFramework.Tests;
 public sealed class RequireExplicitLengthConventionTests
 {
 	[Fact]
-	public void MaxLengthAttribute_carries_length()
+	void MaxLengthAttribute_carries_length()
 	{
 		MaxLengthAttribute attr = new(25);
 
@@ -14,7 +14,7 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	public void FixedLengthAttribute_carries_length()
+	void FixedLengthAttribute_carries_length()
 	{
 		FixedLengthAttribute attr = new(10);
 
@@ -22,7 +22,7 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	public void UnboundedLengthAttribute_carries_negative_one()
+	void UnboundedLengthAttribute_carries_negative_one()
 	{
 		UnboundedLengthAttribute attr = new();
 
@@ -30,7 +30,7 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	public void Unbounded_string_property_throws_on_model_build()
+	void Unbounded_string_property_throws_on_model_build()
 	{
 		var act = BuildModel<UnboundedContext>;
 
@@ -39,25 +39,25 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	public void MaxLength_attribute_satisfies_the_convention()
+	void MaxLength_attribute_satisfies_the_convention()
 	{
 		Should.NotThrow(BuildModel<AttributeBoundedContext>);
 	}
 
 	[Fact]
-	public void HasMaxLength_fluent_call_satisfies_the_convention()
+	void HasMaxLength_fluent_call_satisfies_the_convention()
 	{
 		Should.NotThrow(BuildModel<FluentBoundedContext>);
 	}
 
 	[Fact]
-	public void UnboundedLength_attribute_passes_as_explicit_negative_one()
+	void UnboundedLength_attribute_passes_as_explicit_negative_one()
 	{
 		Should.NotThrow(BuildModel<ExplicitUnboundedContext>);
 	}
 
 	[Fact]
-	public void FixedLength_attribute_sets_IsFixedLength_and_satisfies_the_convention()
+	void FixedLength_attribute_sets_IsFixedLength_and_satisfies_the_convention()
 	{
 		using var ctx = CreateContext<FixedLengthContext>();
 
@@ -69,19 +69,19 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	public void String_property_converted_to_non_string_storage_type_is_skipped()
+	void String_property_converted_to_non_string_storage_type_is_skipped()
 	{
 		Should.NotThrow(BuildModel<ConvertedContext>);
 	}
 
 	[Fact]
-	public void Json_owned_type_property_is_skipped()
+	void Json_owned_type_property_is_skipped()
 	{
 		Should.NotThrow(BuildModel<JsonOwnedContext>);
 	}
 
 	[Fact]
-	public void Collects_every_violation_before_throwing()
+	void Collects_every_violation_before_throwing()
 	{
 		var act = BuildModel<MultiUnboundedContext>;
 

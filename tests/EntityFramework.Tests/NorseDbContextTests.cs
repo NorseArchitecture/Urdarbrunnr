@@ -5,7 +5,7 @@ namespace Norse.EntityFramework.Tests;
 public sealed class NorseDbContextTests
 {
 	[Fact]
-	public void ConfigureConventions_registers_both_conventions_by_default()
+	void ConfigureConventions_registers_both_conventions_by_default()
 	{
 		// PlainEntity has no length problem (no string/byte[] properties) but does violate
 		// RequireEntityConfigurationConvention purely by inheriting NorseDbContext with no override —
@@ -30,7 +30,7 @@ public sealed class NorseDbContextTests
 	}
 
 	[Fact]
-	public void ConfigureNorseEntities_is_called_during_OnModelCreating_and_is_overridable()
+	void ConfigureNorseEntities_is_called_during_OnModelCreating_and_is_overridable()
 	{
 		var options = new DbContextOptionsBuilder<HookOverrideContext>()
 			.UseSqlite("Data Source=:memory:").Options;

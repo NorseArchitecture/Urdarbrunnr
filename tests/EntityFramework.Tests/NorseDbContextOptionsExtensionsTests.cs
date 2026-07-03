@@ -19,7 +19,7 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	}
 
 	[Fact]
-	public void NorseDbContext_implements_INorseDbContext()
+	void NorseDbContext_implements_INorseDbContext()
 	{
 		var options = new DbContextOptionsBuilder<TestContext>()
 			.UseSqlite("Data Source=:memory:")

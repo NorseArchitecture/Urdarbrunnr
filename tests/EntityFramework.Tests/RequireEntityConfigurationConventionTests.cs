@@ -6,13 +6,13 @@ namespace Norse.EntityFramework.Tests;
 public sealed class RequireEntityConfigurationConventionTests
 {
 	[Fact]
-	public void Tier1_entity_via_NorseEntityBase_must_implement_Configure()
+	void Tier1_entity_via_NorseEntityBase_must_implement_Configure()
 	{
 		typeof(INorseEntity<Tier1Entity>).IsAssignableFrom(typeof(Tier1Entity)).ShouldBeTrue();
 	}
 
 	[Fact]
-	public void Entity_not_implementing_INorseEntity_throws_on_model_build()
+	void Entity_not_implementing_INorseEntity_throws_on_model_build()
 	{
 		var act = BuildModel<PlainContext>;
 
@@ -21,7 +21,7 @@ public sealed class RequireEntityConfigurationConventionTests
 	}
 
 	[Fact]
-	public void Entity_implementing_INorseEntity_directly_satisfies_the_convention()
+	void Entity_implementing_INorseEntity_directly_satisfies_the_convention()
 	{
 		Should.NotThrow(BuildModel<DirectImplementationContext>);
 	}
