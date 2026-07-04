@@ -18,5 +18,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Compile Include="../EntityFramework.Migrations.Generator.Shared/MigrationContributorDiscovery.cs" Link="Shared/MigrationContributorDiscovery.cs" />
+		<Compile Include="../EntityFramework.Migrations.Generator.Shared/CSharpEmit.cs" Link="Shared/CSharpEmit.cs" />
+		<Compile Include="../EntityFramework.Migrations.Generator.Shared/StringSyntaxAttribute.cs" Link="Shared/StringSyntaxAttribute.cs" />
 	</ItemGroup>
 </Project>
