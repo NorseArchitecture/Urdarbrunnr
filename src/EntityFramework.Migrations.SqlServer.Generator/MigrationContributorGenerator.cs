@@ -62,7 +62,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 		foreach (var s in seedContributors)
 			sb.AppendCSharp(
 				$"""
-						{s.ContributorType}.ConfigureServices(builder.Services);
+						ConfigureSeedContributor<{s.ContributorType}>(builder.Services);
 						builder.Services.AddTransient<global::Norse.Abstractions.Migrations.Seeding.ISeedContributor, {s.ContributorType}>();
 				""");
 
@@ -72,6 +72,18 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 					builder.AddNorseSeedingRunner();
 					return builder;
 				}
+			""");
+
+		if (seedContributors.Count > 0)
+			sb.AppendCSharp(
+				"""
+					static void ConfigureSeedContributor<T>(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+						where T : global::Norse.Abstractions.Migrations.Seeding.ISeedContributor
+						=> T.ConfigureServices(services);
+				""");
+
+		sb.AppendCSharp(
+			"""
 			}
 			""");
 

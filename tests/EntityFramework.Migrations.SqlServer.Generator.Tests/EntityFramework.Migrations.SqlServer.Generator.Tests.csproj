@@ -5,6 +5,7 @@
 		</PackageReference>
 		<ProjectReference Include="../../src/EntityFramework/EntityFramework.csproj" />
 		<ProjectReference Include="../../src/EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
+		<ProjectReference Include="../../src/EntityFramework.SqlServer/EntityFramework.SqlServer.csproj" />
 		<ProjectReference Include="../../src/EntityFramework.Migrations.SqlServer.Generator/EntityFramework.Migrations.SqlServer.Generator.csproj" />
 	</ItemGroup>
 </Project>
