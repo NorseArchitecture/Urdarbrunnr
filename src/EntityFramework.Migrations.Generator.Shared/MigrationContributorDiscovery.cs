@@ -95,6 +95,31 @@ static class MigrationContributorDiscovery
 			foreach (var type in GetAllTypes(child))
 				yield return type;
 	}
+
+	const string SeedContributorInterfaceMetadataName =
+		"Norse.Abstractions.Migrations.Seeding.ISeedContributor";
+
+	public static IList<SeedContributorInfo> FindSeedContributors(Compilation compilation)
+	{
+		IList<SeedContributorInfo> results = [];
+
+		foreach (var type in AllTypes(compilation))
+		{
+			if (type.IsAbstract)
+				continue;
+
+			if (!ImplementsSeedContributorInterface(type))
+				continue;
+
+			results.Add(new SeedContributorInfo(
+				type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
+		}
+
+		return results;
+	}
+
+	static bool ImplementsSeedContributorInterface(INamedTypeSymbol type) =>
+		type.AllInterfaces.Any(i => i.ToDisplayString() == SeedContributorInterfaceMetadataName);
 }
 
 readonly struct ContributorInfo
@@ -115,4 +140,11 @@ readonly struct ContributorInfo
 	public string ContextType { get; }
 	public string ConnectionStringName { get; }
 	public string MigrationsAssemblyName { get; }
+}
+
+readonly struct SeedContributorInfo
+{
+	public SeedContributorInfo(string contributorType) => ContributorType = contributorType;
+
+	public string ContributorType { get; }
 }
