@@ -1,6 +1,6 @@
 // Polyfill for System.Diagnostics.CodeAnalysis.StringSyntaxAttribute (added in .NET 7).
 // Both generator projects target netstandard2.0, so the BCL definition isn't available.
-// Roslyn's IDE classifiers recognise the attribute by namespace + type name (not assembly
+// Roslyn's IDE classifiers recognize the attribute by namespace + type name (not assembly
 // identity), so an internal declaration here drives the embedded-language hint in VS / Rider.
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace System.Diagnostics.CodeAnalysis;
