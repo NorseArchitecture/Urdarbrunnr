@@ -6,7 +6,7 @@
 
 *Image credit: [@norsemythologyclips](https://www.instagram.com/norsemythologyclips/) — go follow them.*
 
-The well's record for the Norse Architecture — **`Norse.EntityFramework`**: entity base types, `DbContext` foundations, conventions, value converters, and the migrations chassis. It is the EF Core foundation that Midgard's concrete repository implementations ride on, governed by the contracts Asgard declares. In the dependency chain it sits below Asgard and Svartalfheim, and above Midgard.
+The well's record for the Norse Architecture — **`Norse.EntityFramework`**: entity base types, `DbContext` foundations, conventions, value converters, and the migrations chassis. It is the EF Core foundation that Midgard's concrete repository implementations ride on, governed by the contracts Asgard declares. In the dependency chain it sits below Asgard and Svartálfheim, and above Midgard.
 
 ## Status
 
