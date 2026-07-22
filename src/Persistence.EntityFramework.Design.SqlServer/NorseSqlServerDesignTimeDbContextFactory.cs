@@ -31,6 +31,16 @@ public abstract class NorseSqlServerDesignTimeDbContextFactory<TContext> : IDesi
 	/// realm's runtime registration also opts in, to keep design-time scaffolding consistent with what
 	/// the running container actually produces.
 	/// </summary>
+	/// <remarks>
+	/// <b>Known gap:</b> when <see langword="true"/>, this factory calls the plain
+	/// <c>ApplyNorseConventions(builder)</c> overload -- it does NOT also rename a temporal entity's
+	/// history table to snake_case the way the runtime path does (<c>NorseSqlServerContextExtensions</c>
+	/// passes <c>RenameTemporalHistoryTable</c> into its own <c>ApplyNorseConventions</c> call). A realm
+	/// that combines <see cref="UseSnakeCaseNaming"/> = <see langword="true"/> with a temporal table on
+	/// SQL Server will see the design-time-scaffolded schema disagree with what the running container
+	/// actually produces for that table's name, until this factory mirrors the runtime overload. Dormant
+	/// today -- no Norse realm uses temporal tables yet, and this flag defaults to <see langword="false"/>.
+	/// </remarks>
 	protected virtual bool UseSnakeCaseNaming => false;
 
 	/// <inheritdoc />
