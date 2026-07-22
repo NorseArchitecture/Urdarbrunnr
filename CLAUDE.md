@@ -12,8 +12,8 @@ Urðarbrunnr is **the well's record** — `Norse.Persistence`: the platform's pe
 
 **Four assemblies are live**, shipped, tagged, and published to NuGet as Tasks 3–6 of the cross-realm
 migrations framework rollout (`../Glitnir/docs/Platform/plans/2026-06-28-migrations-framework-identity-schema.md`).
-A SQL Server-parallel trio (`Norse.Persistence.EntityFramework.SqlServer`, `.Migrations.SqlServer`,
-`.Migrations.SqlServer.Generator`) landed alongside them per
+A SQL Server-parallel trio (`Norse.Persistence.EntityFramework.SqlServer`, `.Design.SqlServer`,
+`.Design.SqlServer.Generator`) landed alongside them per
 `../Glitnir/docs/Urdarbrunnr/specs/2026-07-03-provider-aware-length-and-naming-conventions.md` — `[FixedLength(n)]`
 now only translates to `.IsFixedLength()` on SQL Server (Postgres's own docs say `character(n)` has no
 storage/performance benefit over `character varying(n)` there), and snake_case naming is an explicit,
@@ -22,8 +22,8 @@ overridable opt-in/opt-out on every provider's registration extension rather tha
 
 - `Norse.Persistence.EntityFramework` — the `INorseDbContext` marker interface, the abstract `NorseDbContext` base, and the snake_case naming conventions every Norse context inherits.
 - `Norse.Persistence.EntityFramework.PostgreSQL` — `AddNorsePostgresContext<TContext>()`, the canonical Aspire-wired Postgres registration for runtime contexts.
-- `Norse.Persistence.EntityFramework.Migrations` — `EfMigrationContributor<TContext>` and `MigrationConnectionStringAttribute`, the EF-specific base that realm `.Migrations` projects implement.
-- `Norse.Persistence.EntityFramework.Migrations.PostgreSQL` (+ its `.Generator` sibling) — ships this realm's first Roslyn `IIncrementalGenerator`, which discovers every `EfMigrationContributor<TContext>` visible in a migrations service's compilation and emits `AddNorseMigrations()`. It walks **compiled assembly symbols**, never source syntax trees, by design — the plan's verification gate proved identical output whether contributor packages arrive as `ProjectReference` (Bifröst dev mode, today) or `PackageReference` (NuGet/CI mode, tomorrow) before calling the task done.
+- `Norse.Persistence.EntityFramework.Design` — `EfMigrationContributor<TContext>` and `MigrationConnectionStringAttribute`, the EF-specific base that realm `.Migrations` projects implement.
+- `Norse.Persistence.EntityFramework.Design.PostgreSQL` (+ its `.Generator` sibling) — ships this realm's first Roslyn `IIncrementalGenerator`, which discovers every `EfMigrationContributor<TContext>` visible in a migrations service's compilation and emits `AddNorseMigrations()`. It walks **compiled assembly symbols**, never source syntax trees, by design — the plan's verification gate proved identical output whether contributor packages arrive as `ProjectReference` (Bifröst dev mode, today) or `PackageReference` (NuGet/CI mode, tomorrow) before calling the task done. DdlEmittingMigrationsScaffolder landed in the same pass (2026-07-22) — see the design doc for the mechanism.
 
 Snake_case naming, previously provided by the external `EFCore.NamingConventions` package, is now implemented in-house via `NorseSnakeCaseNamingConvention` and `SnakeCaseNameRewriter` in `Norse.Persistence.EntityFramework`; the dependency has been removed. The registration API — `useSnakeCaseNaming` parameter defaults and override mechanics on `AddNorsePostgresContext` and `AddNorseSqlServerContext` — remains unchanged. Full design: `../Glitnir/docs/Urdarbrunnr/specs/2026-07-22-inhouse-snake-case-naming-convention-design.md`.
 
