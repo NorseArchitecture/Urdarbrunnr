@@ -13,26 +13,26 @@
 	<Folder Name="/src/">
 		<File Path="src/Directory.Build.props" />
 		<File Path="src/Directory.Build.targets" />
-		<Project Path="src/EntityFramework/EntityFramework.csproj" />
-		<Project Path="src/EntityFramework.PostgreSQL/EntityFramework.PostgreSQL.csproj" />
-		<Project Path="src/EntityFramework.SqlServer/EntityFramework.SqlServer.csproj" />
-		<Project Path="src/EntityFramework.Migrations/EntityFramework.Migrations.csproj" />
-		<File Path="src/EntityFramework.Migrations.Generator.Shared/MigrationContributorDiscovery.cs" />
-		<Project Path="src/EntityFramework.Migrations.PostgreSQL.Generator/EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
-		<Project Path="src/EntityFramework.Migrations.PostgreSQL/EntityFramework.Migrations.PostgreSQL.csproj" />
-		<Project Path="src/EntityFramework.Migrations.SqlServer.Generator/EntityFramework.Migrations.SqlServer.Generator.csproj" />
-		<Project Path="src/EntityFramework.Migrations.SqlServer/EntityFramework.Migrations.SqlServer.csproj" />
-		<Project Path="src/EntityFramework.Generator/EntityFramework.Generator.csproj" />
+		<Project Path="src/Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
+		<Project Path="src/Persistence.EntityFramework.PostgreSQL/Persistence.EntityFramework.PostgreSQL.csproj" />
+		<Project Path="src/Persistence.EntityFramework.SqlServer/Persistence.EntityFramework.SqlServer.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Migrations/Persistence.EntityFramework.Migrations.csproj" />
+		<File Path="src/Persistence.EntityFramework.Migrations.Generator.Shared/MigrationContributorDiscovery.cs" />
+		<Project Path="src/Persistence.EntityFramework.Migrations.PostgreSQL.Generator/Persistence.EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Migrations.PostgreSQL/Persistence.EntityFramework.Migrations.PostgreSQL.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Migrations.SqlServer.Generator/Persistence.EntityFramework.Migrations.SqlServer.Generator.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Migrations.SqlServer/Persistence.EntityFramework.Migrations.SqlServer.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
 		<File Path="tests/Directory.Build.props" />
 		<File Path="tests/Directory.Build.targets" />
-		<Project Path="tests/EntityFramework.Tests/EntityFramework.Tests.csproj" />
-		<Project Path="tests/EntityFramework.PostgreSQL.Tests/EntityFramework.PostgreSQL.Tests.csproj" />
-		<Project Path="tests/EntityFramework.SqlServer.Tests/EntityFramework.SqlServer.Tests.csproj" />
-		<Project Path="tests/EntityFramework.Migrations.Tests/EntityFramework.Migrations.Tests.csproj" />
-		<Project Path="tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests/EntityFramework.Migrations.PostgreSQL.Generator.Tests.csproj" />
-		<Project Path="tests/EntityFramework.Migrations.SqlServer.Generator.Tests/EntityFramework.Migrations.SqlServer.Generator.Tests.csproj" />
-		<Project Path="tests/EntityFramework.Generator.Tests/EntityFramework.Generator.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Tests/Persistence.EntityFramework.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.PostgreSQL.Tests/Persistence.EntityFramework.PostgreSQL.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.SqlServer.Tests/Persistence.EntityFramework.SqlServer.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Migrations.Tests/Persistence.EntityFramework.Migrations.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Migrations.PostgreSQL.Generator.Tests/Persistence.EntityFramework.Migrations.PostgreSQL.Generator.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Migrations.SqlServer.Generator.Tests/Persistence.EntityFramework.Migrations.SqlServer.Generator.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Generator.Tests/Persistence.EntityFramework.Generator.Tests.csproj" />
 	</Folder>
 </Solution>
