@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -98,6 +100,26 @@ public sealed class NorseSqlServerContextExtensionsTests
 		tableName.ShouldBe("test_entities");
 	}
 
+	[Fact]
+	void AddNorseSqlServerMigrationContext_renames_temporal_history_table_when_snake_case_requested()
+	{
+		var builder = Host.CreateApplicationBuilder();
+		builder.Configuration.AddInMemoryCollection(
+			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = ConnectionString });
+
+		builder.AddNorseSqlServerMigrationContext<TemporalTestContext>(
+			"test-db", "Norse.EntityFramework.SqlServer.Tests", useSnakeCaseNaming: true);
+
+		using var host = builder.Build();
+		using var scope = host.Services.CreateScope();
+		using var ctx = scope.ServiceProvider.GetRequiredService<TemporalTestContext>();
+
+		var designTimeModel = ctx.GetService<IDesignTimeModel>().Model;
+		var historyTableName = designTimeModel.FindEntityType(typeof(TemporalTestEntity))!.GetHistoryTableName();
+
+		historyTableName.ShouldBe("temporal_test_entity_history");
+	}
+
 	sealed class TestContext(DbContextOptions<TestContext> options) : NorseDbContext(options)
 	{
 		public DbSet<TestEntity> TestEntities => Set<TestEntity>();
@@ -111,5 +133,28 @@ public sealed class NorseSqlServerContextExtensionsTests
 		public string Name { get; set; } = "";
 
 		public static void Configure(EntityTypeBuilder<TestEntity> builder) { }
+	}
+
+	sealed class TemporalTestEntity : INorseEntity<TemporalTestEntity>
+	{
+		public int Id { get; set; }
+
+		[MaxLength(100)]
+		public string Value { get; set; } = "";
+
+		public static void Configure(EntityTypeBuilder<TemporalTestEntity> builder) { }
+	}
+
+	sealed class TemporalTestContext(DbContextOptions<TemporalTestContext> options) : NorseDbContext(options)
+	{
+		public DbSet<TemporalTestEntity> TemporalTestEntities => Set<TemporalTestEntity>();
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<TemporalTestEntity>().ToTable(
+				"TemporalTestEntities",
+				tb => tb.IsTemporal(t => t.UseHistoryTable("TemporalTestEntityHistory")));
+		}
 	}
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,6 +27,8 @@ public static class NorseSqlServerContextExtensions
 	/// round-trips without quoting or escaping -- unlike Postgres, there is no engine-native reason
 	/// to prefer snake_case here. Pass <see langword="true"/> to opt in anyway (e.g. a deployment
 	/// that wants one naming style across both a Postgres and a SQL Server target).
+	/// When <see langword="true"/>, a temporal entity's history table name is renamed too — see
+	/// <see cref="RenameTemporalHistoryTable"/>.
 	/// </param>
 	/// <returns>The same <paramref name="builder"/> for chaining.</returns>
 	public static IHostApplicationBuilder AddNorseSqlServerContext<TContext>(
@@ -38,7 +41,7 @@ public static class NorseSqlServerContextExtensions
 			configureDbContextOptions: opts =>
 			{
 				if (useSnakeCaseNaming)
-					NorseDbContextOptionsExtensions.ApplyNorseConventions(opts);
+					NorseDbContextOptionsExtensions.ApplyNorseConventions(opts, RenameTemporalHistoryTable);
 			});
 		return builder;
 	}
@@ -63,7 +66,7 @@ public static class NorseSqlServerContextExtensions
 	/// assembly — this must be supplied explicitly rather than inferred, since EF Core defaults to
 	/// searching the context's own assembly and finds nothing there.
 	/// </param>
-	/// <param name="useSnakeCaseNaming">See <see cref="AddNorseSqlServerContext{TContext}"/>.</param>
+	/// <param name="useSnakeCaseNaming">See <see cref="AddNorseSqlServerContext{TContext}"/>, including the temporal history table note.</param>
 	/// <returns>The same <paramref name="builder"/> for chaining.</returns>
 	public static IHostApplicationBuilder AddNorseSqlServerMigrationContext<TContext>(
 		this IHostApplicationBuilder builder,
@@ -79,10 +82,27 @@ public static class NorseSqlServerContextExtensions
 		{
 			opts.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationsAssemblyName));
 			if (useSnakeCaseNaming)
-				NorseDbContextOptionsExtensions.ApplyNorseConventions(opts);
+				NorseDbContextOptionsExtensions.ApplyNorseConventions(opts, RenameTemporalHistoryTable);
 		});
 		builder.EnrichSqlServerDbContext<TContext>();
 
 		return builder;
+	}
+
+	/// <summary>
+	/// Renames a temporal entity's history table to snake_case. <c>IsTemporal()</c> and
+	/// <c>GetHistoryTableName()</c>/<c>SetHistoryTableName()</c> are SQL-Server-only EF APIs
+	/// (<c>Microsoft.EntityFrameworkCore.SqlServerEntityTypeExtensions</c>) — this is the only project
+	/// in the platform allowed to reference them; <c>Norse.EntityFramework</c> stays provider-neutral
+	/// and only ever sees this method as an opaque injected action.
+	/// </summary>
+	static void RenameTemporalHistoryTable(IConventionEntityType entity, Func<string, string> rewrite)
+	{
+		if (!entity.IsTemporal())
+			return;
+
+		var historyTableName = entity.GetHistoryTableName();
+		if (!string.IsNullOrWhiteSpace(historyTableName))
+			entity.SetHistoryTableName(rewrite(historyTableName));
 	}
 }
