@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.Persistence.EntityFramework.SqlServer: canonical Aspire-wired SQL Server context registration via AddNorseSqlServerContext&lt;TContext&gt;. Referenced by web server and worker hosts; pulled in transitively by Norse.Persistence.EntityFramework.Migrations.SqlServer for the migrations service.</Description>
+		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
+		<IsAotCompatible>false</IsAotCompatible>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.*" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.*-*" />
+		<ProjectReference Include="../Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
+	</ItemGroup>
+</Project>

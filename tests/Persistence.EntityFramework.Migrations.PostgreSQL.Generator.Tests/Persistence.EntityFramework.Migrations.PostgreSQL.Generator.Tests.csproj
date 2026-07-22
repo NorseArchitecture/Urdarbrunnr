@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*">
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<ProjectReference Include="../../src/Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
+		<ProjectReference Include="../../src/Persistence.EntityFramework.Migrations/Persistence.EntityFramework.Migrations.csproj" />
+		<ProjectReference Include="../../src/Persistence.EntityFramework.PostgreSQL/Persistence.EntityFramework.PostgreSQL.csproj" />
+		<ProjectReference Include="../../src/Persistence.EntityFramework.Migrations.PostgreSQL.Generator/Persistence.EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
+	</ItemGroup>
+</Project>
