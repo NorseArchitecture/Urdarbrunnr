@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Norse.Persistence.EntityFramework.Migrations.PostgreSQL.Generator.Tests;
+namespace Norse.Persistence.EntityFramework.Design.SqlServer.Generator.Tests;
 
 public sealed class MigrationContributorGeneratorTests
 {
@@ -10,7 +10,7 @@ public sealed class MigrationContributorGeneratorTests
 	{
 		var source = """
 			using Norse.Persistence.EntityFramework;
-			using Norse.Persistence.EntityFramework.Migrations;
+			using Norse.Persistence.EntityFramework.Design;
 			using Microsoft.EntityFrameworkCore;
 
 			[MigrationConnectionString("test-db")]
@@ -34,7 +34,7 @@ public sealed class MigrationContributorGeneratorTests
 		generated.ShouldContain("AddNorseMigrationsRunner");
 		generated.ShouldContain("TestContributor");
 		generated.ShouldContain("test-db");
-		generated.ShouldContain("AddNorsePostgresMigrationContext");
+		generated.ShouldContain("AddNorseSqlServerMigrationContext");
 		generated.ShouldContain("\"TestAssembly\"");
 	}
 
@@ -96,7 +96,7 @@ public sealed class MigrationContributorGeneratorTests
 			using System.Threading;
 			using System.Threading.Tasks;
 			using Norse.Persistence.EntityFramework;
-			using Norse.Persistence.EntityFramework.Migrations;
+			using Norse.Persistence.EntityFramework.Design;
 			using Microsoft.EntityFrameworkCore;
 			using Microsoft.Extensions.DependencyInjection;
 			using Norse.Abstractions.Migrations.Seeding;
@@ -150,7 +150,7 @@ public sealed class MigrationContributorGeneratorTests
 
 		var references = ReferenceAssemblies()
 			.Append(MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.Hosting.IHostApplicationBuilder).Assembly.Location))
-			.Append(MetadataReference.CreateFromFile(typeof(Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions).Assembly.Location))
+			.Append(MetadataReference.CreateFromFile(typeof(Norse.Persistence.EntityFramework.SqlServer.NorseSqlServerContextExtensions).Assembly.Location))
 			.ToList();
 
 		var recompiled = CSharpCompilation.Create(
@@ -175,7 +175,7 @@ public sealed class MigrationContributorGeneratorTests
 	{
 		var source = """
 			using Norse.Persistence.EntityFramework;
-			using Norse.Persistence.EntityFramework.Migrations;
+			using Norse.Persistence.EntityFramework.Design;
 			using Microsoft.EntityFrameworkCore;
 
 			[MigrationConnectionString("test-db")]
@@ -214,7 +214,7 @@ public sealed class MigrationContributorGeneratorTests
 		var references = new[]
 		{
 			typeof(object),
-			typeof(Norse.Persistence.EntityFramework.Migrations.MigrationConnectionStringAttribute),
+			typeof(Norse.Persistence.EntityFramework.Design.MigrationConnectionStringAttribute),
 			typeof(Norse.Persistence.EntityFramework.NorseDbContext),
 			typeof(Norse.Abstractions.Migrations.IMigrationContributor),
 			typeof(Norse.Abstractions.Migrations.Seeding.ISeedContributor),

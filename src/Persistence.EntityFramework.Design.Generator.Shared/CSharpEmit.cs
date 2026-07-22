@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace Norse.Persistence.EntityFramework.Migrations.Generator.Shared;
+namespace Norse.Persistence.EntityFramework.Design.Generator.Shared;
 
 static class CSharpEmit
 {

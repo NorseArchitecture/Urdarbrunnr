@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Norse.Persistence.EntityFramework.Migrations.Tests;
+namespace Norse.Persistence.EntityFramework.Design.Tests;
 
 public sealed class EfMigrationContributorTests
 {

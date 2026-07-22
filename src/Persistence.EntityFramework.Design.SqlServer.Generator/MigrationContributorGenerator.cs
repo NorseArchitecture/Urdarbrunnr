@@ -1,9 +1,9 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using Norse.Persistence.EntityFramework.Migrations.Generator.Shared;
+using Norse.Persistence.EntityFramework.Design.Generator.Shared;
 
-namespace Norse.Persistence.EntityFramework.Migrations.PostgreSQL.Generator;
+namespace Norse.Persistence.EntityFramework.Design.SqlServer.Generator;
 
 [Generator]
 public sealed class MigrationContributorGenerator : IIncrementalGenerator
@@ -42,7 +42,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 			using Microsoft.Extensions.Hosting;
 			using Norse.Abstractions.Migrations;
 			using Norse.Abstractions.Migrations.Seeding;
-			using Norse.Persistence.EntityFramework.PostgreSQL;
+			using Norse.Persistence.EntityFramework.SqlServer;
 			using Norse.Infrastructure.Migrations;
 
 			static class NorseMigrationsGeneratedExtensions
@@ -55,7 +55,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 		foreach (var c in contributors)
 			sb.AppendCSharp(
 				$"""
-						builder.AddNorsePostgresMigrationContext<{c.ContextType}>("{c.ConnectionStringName}", "{c.MigrationsAssemblyName}");
+						builder.AddNorseSqlServerMigrationContext<{c.ContextType}>("{c.ConnectionStringName}", "{c.MigrationsAssemblyName}");
 						builder.Services.AddTransient<global::Norse.Abstractions.Migrations.IMigrationContributor, {c.ContributorType}>();
 				""");
 

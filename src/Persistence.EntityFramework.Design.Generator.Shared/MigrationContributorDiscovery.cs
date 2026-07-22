@@ -1,16 +1,16 @@
 using Microsoft.CodeAnalysis;
 
-namespace Norse.Persistence.EntityFramework.Migrations.Generator.Shared;
+namespace Norse.Persistence.EntityFramework.Design.Generator.Shared;
 
-// Linked into both Persistence.EntityFramework.Migrations.PostgreSQL.Generator and
-// Persistence.EntityFramework.Migrations.SqlServer.Generator via <Compile Include> -- provider-agnostic
+// Linked into both Persistence.EntityFramework.Design.PostgreSQL.Generator and
+// Persistence.EntityFramework.Design.SqlServer.Generator via <Compile Include> -- provider-agnostic
 // discovery of EfMigrationContributor<TContext> implementations. Roslyn generators can't reference
 // other analyzer-only assemblies, so this is plain shared source (compiled once per consuming
 // assembly), not a shared package reference.
 static class MigrationContributorDiscovery
 {
 	const string AttributeMetadataName =
-		"Norse.Persistence.EntityFramework.Migrations.MigrationConnectionStringAttribute";
+		"Norse.Persistence.EntityFramework.Design.MigrationConnectionStringAttribute";
 
 	const string ContributorInterfaceMetadataName =
 		"Norse.Abstractions.Migrations.IMigrationContributor";
@@ -74,7 +74,7 @@ static class MigrationContributorDiscovery
 		while (current is not null)
 		{
 			if (current.OriginalDefinition?.MetadataName == "EfMigrationContributor`1" &&
-				current.OriginalDefinition?.ContainingNamespace?.ToDisplayString() == "Norse.Persistence.EntityFramework.Migrations" &&
+				current.OriginalDefinition?.ContainingNamespace?.ToDisplayString() == "Norse.Persistence.EntityFramework.Design" &&
 				current.TypeArguments.Length == 1)
 			{
 				return current.TypeArguments[0] as INamedTypeSymbol;

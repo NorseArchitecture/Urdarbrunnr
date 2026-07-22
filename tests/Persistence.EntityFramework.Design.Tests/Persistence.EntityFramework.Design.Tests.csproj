@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.*-*" />
-		<ProjectReference Include="../../src/Persistence.EntityFramework.Migrations/Persistence.EntityFramework.Migrations.csproj" />
+		<ProjectReference Include="../../src/Persistence.EntityFramework.Design/Persistence.EntityFramework.Design.csproj" />
 	</ItemGroup>
 </Project>

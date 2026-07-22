@@ -4,8 +4,8 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<ProjectReference Include="../../src/Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
-		<ProjectReference Include="../../src/Persistence.EntityFramework.Migrations/Persistence.EntityFramework.Migrations.csproj" />
+		<ProjectReference Include="../../src/Persistence.EntityFramework.Design/Persistence.EntityFramework.Design.csproj" />
 		<ProjectReference Include="../../src/Persistence.EntityFramework.SqlServer/Persistence.EntityFramework.SqlServer.csproj" />
-		<ProjectReference Include="../../src/Persistence.EntityFramework.Migrations.SqlServer.Generator/Persistence.EntityFramework.Migrations.SqlServer.Generator.csproj" />
+		<ProjectReference Include="../../src/Persistence.EntityFramework.Design.SqlServer.Generator/Persistence.EntityFramework.Design.SqlServer.Generator.csproj" />
 	</ItemGroup>
 </Project>
