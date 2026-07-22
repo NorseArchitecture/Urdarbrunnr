@@ -19,4 +19,16 @@ public sealed class DesignTimeSchemaPathTests
 
 		Should.Throw<InvalidOperationException>(() => DesignTimeSchemaPath.Resolve(buildOutput, "norse_referencedata"));
 	}
+
+	[Fact]
+	void Resolve_is_invariant_to_a_trailing_directory_separator_matching_AppContext_BaseDirectory_shape()
+	{
+		var buildOutputWithoutTrailingSeparator = Path.Combine("repo", "Realm.Migrations.PostgreSQL", "bin", "Debug", "net10.0");
+		var buildOutputWithTrailingSeparator = buildOutputWithoutTrailingSeparator + Path.DirectorySeparatorChar;
+
+		var resultWithoutTrailingSeparator = DesignTimeSchemaPath.Resolve(buildOutputWithoutTrailingSeparator, "norse_referencedata");
+		var resultWithTrailingSeparator = DesignTimeSchemaPath.Resolve(buildOutputWithTrailingSeparator, "norse_referencedata");
+
+		resultWithTrailingSeparator.ShouldBe(resultWithoutTrailingSeparator);
+	}
 }

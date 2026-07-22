@@ -23,9 +23,8 @@ public static class NorseDesignTimeServicesExtensions
 {
 	/// <param name="services">The design-time service collection EF's tooling supplies.</param>
 	/// <param name="databaseName">
-	/// The realm's database name (e.g. <c>"norse_referencedata"</c>) -- used both as this call's
-	/// default dev connection-string database and as the emitted schema file's name
-	/// (<c>schema/{databaseName}.sql</c>, resolved via <see cref="DesignTimeSchemaPath"/>).
+	/// The realm's database name (e.g. <c>"norse_referencedata"</c>) -- names the emitted schema
+	/// file (<c>schema/{databaseName}.sql</c>, resolved via <see cref="DesignTimeSchemaPath"/>).
 	/// </param>
 	/// <returns>The same <paramref name="services"/> for chaining.</returns>
 	public static IServiceCollection AddNorseDesignTimeServices(this IServiceCollection services, string databaseName)

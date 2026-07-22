@@ -13,7 +13,13 @@ static class DesignTimeSchemaPath
 {
 	internal static string Resolve(string outputBaseDirectory, string databaseName)
 	{
-		var projectRoot = Up(Up(Up(outputBaseDirectory)))
+		// AppContext.BaseDirectory -- the only real caller -- always ends with a trailing directory
+		// separator. Path.GetDirectoryName on a trailing-separator path only strips that separator
+		// (no ascent), which would silently consume the first Up() call as a no-op. Trim it up front
+		// so a trailing-slash input and a non-trailing-slash input resolve identically.
+		var trimmedBaseDirectory = outputBaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+		var projectRoot = Up(Up(Up(trimmedBaseDirectory)))
 			?? throw new InvalidOperationException(
 				$"Could not resolve a project root three directory levels above '{outputBaseDirectory}'. " +
 				"Expected a standard bin/{Configuration}/{TargetFramework} build output layout.");
