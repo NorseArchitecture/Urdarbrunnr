@@ -38,9 +38,23 @@ public sealed class NorseDesignTimeServicesExtensionsTests
 		using var provider = services.BuildServiceProvider();
 		var scaffolder = provider.GetRequiredService<IMigrationsScaffolder>();
 
-		scaffolder.ScaffoldMigration("Initial", "MyNamespace");
+		var schemaPath = DesignTimeSchemaPath.Resolve(AppContext.BaseDirectory, "test-db");
+		var schemaDir = Path.GetDirectoryName(schemaPath)!;
 
-		efScaffolder.ScaffoldMigrationCallCount.ShouldBe(1);
+		try
+		{
+			scaffolder.ScaffoldMigration("Initial", "MyNamespace");
+
+			efScaffolder.ScaffoldMigrationCallCount.ShouldBe(1);
+		}
+		finally
+		{
+			File.Delete(schemaPath);
+			if (Directory.Exists(schemaDir) && !Directory.EnumerateFileSystemEntries(schemaDir).Any())
+			{
+				Directory.Delete(schemaDir);
+			}
+		}
 	}
 
 	[Fact]
