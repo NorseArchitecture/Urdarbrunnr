@@ -49,4 +49,22 @@ public sealed class SnakeCaseNameRewriterTests
 	{
 		SnakeCaseNameRewriter.RewriteName("A").ShouldBe("a");
 	}
+
+	[Fact]
+	void AspNetIdentity_UserNameIndex_splits_at_every_word_boundary()
+	{
+		SnakeCaseNameRewriter.RewriteName("UserNameIndex").ShouldBe("user_name_index");
+	}
+
+	[Fact]
+	void AspNetIdentity_EmailIndex_splits_at_the_word_boundary()
+	{
+		SnakeCaseNameRewriter.RewriteName("EmailIndex").ShouldBe("email_index");
+	}
+
+	[Fact]
+	void AspNetIdentity_RoleNameIndex_splits_at_every_word_boundary()
+	{
+		SnakeCaseNameRewriter.RewriteName("RoleNameIndex").ShouldBe("role_name_index");
+	}
 }

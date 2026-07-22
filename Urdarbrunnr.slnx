@@ -16,12 +16,12 @@
 		<Project Path="src/Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
 		<Project Path="src/Persistence.EntityFramework.PostgreSQL/Persistence.EntityFramework.PostgreSQL.csproj" />
 		<Project Path="src/Persistence.EntityFramework.SqlServer/Persistence.EntityFramework.SqlServer.csproj" />
-		<Project Path="src/Persistence.EntityFramework.Migrations/Persistence.EntityFramework.Migrations.csproj" />
-		<File Path="src/Persistence.EntityFramework.Migrations.Generator.Shared/MigrationContributorDiscovery.cs" />
-		<Project Path="src/Persistence.EntityFramework.Migrations.PostgreSQL.Generator/Persistence.EntityFramework.Migrations.PostgreSQL.Generator.csproj" />
-		<Project Path="src/Persistence.EntityFramework.Migrations.PostgreSQL/Persistence.EntityFramework.Migrations.PostgreSQL.csproj" />
-		<Project Path="src/Persistence.EntityFramework.Migrations.SqlServer.Generator/Persistence.EntityFramework.Migrations.SqlServer.Generator.csproj" />
-		<Project Path="src/Persistence.EntityFramework.Migrations.SqlServer/Persistence.EntityFramework.Migrations.SqlServer.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Design/Persistence.EntityFramework.Design.csproj" />
+		<File Path="src/Persistence.EntityFramework.Design.Generator.Shared/MigrationContributorDiscovery.cs" />
+		<Project Path="src/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Design.PostgreSQL/Persistence.EntityFramework.Design.PostgreSQL.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Design.SqlServer.Generator/Persistence.EntityFramework.Design.SqlServer.Generator.csproj" />
+		<Project Path="src/Persistence.EntityFramework.Design.SqlServer/Persistence.EntityFramework.Design.SqlServer.csproj" />
 		<Project Path="src/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
@@ -30,9 +30,11 @@
 		<Project Path="tests/Persistence.EntityFramework.Tests/Persistence.EntityFramework.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.PostgreSQL.Tests/Persistence.EntityFramework.PostgreSQL.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.SqlServer.Tests/Persistence.EntityFramework.SqlServer.Tests.csproj" />
-		<Project Path="tests/Persistence.EntityFramework.Migrations.Tests/Persistence.EntityFramework.Migrations.Tests.csproj" />
-		<Project Path="tests/Persistence.EntityFramework.Migrations.PostgreSQL.Generator.Tests/Persistence.EntityFramework.Migrations.PostgreSQL.Generator.Tests.csproj" />
-		<Project Path="tests/Persistence.EntityFramework.Migrations.SqlServer.Generator.Tests/Persistence.EntityFramework.Migrations.SqlServer.Generator.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Design.Tests/Persistence.EntityFramework.Design.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Design.PostgreSQL.Tests/Persistence.EntityFramework.Design.PostgreSQL.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Design.PostgreSQL.Generator.Tests/Persistence.EntityFramework.Design.PostgreSQL.Generator.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Design.SqlServer.Tests/Persistence.EntityFramework.Design.SqlServer.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Design.SqlServer.Generator.Tests/Persistence.EntityFramework.Design.SqlServer.Generator.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.Generator.Tests/Persistence.EntityFramework.Generator.Tests.csproj" />
 	</Folder>
 </Solution>

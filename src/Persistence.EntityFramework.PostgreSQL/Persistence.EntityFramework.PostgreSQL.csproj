@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>Norse.Persistence.EntityFramework.PostgreSQL: canonical Aspire-wired Postgres context registration via AddNorsePostgresContext&lt;TContext&gt;. Referenced by web server and worker hosts; pulled in transitively by Norse.Persistence.EntityFramework.Migrations.PostgreSQL for the migrations service.</Description>
+		<Description>Norse.Persistence.EntityFramework.PostgreSQL: canonical Aspire-wired Postgres context registration via AddNorsePostgresContext&lt;TContext&gt;. Referenced by web server and worker hosts; pulled in transitively by Norse.Persistence.EntityFramework.Design.PostgreSQL for the migrations service.</Description>
 		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>

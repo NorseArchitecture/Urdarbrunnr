@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.Persistence.EntityFramework.Design: EfMigrationContributor&lt;TContext&gt; base class and the MigrationConnectionString attribute — referenced only by migrations service and realm *.Migrations projects; never by runtime containers.</Description>
+		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
+		<IsAotCompatible>false</IsAotCompatible>
+	</PropertyGroup>
+	<ItemGroup>
+		<NorseRef Include="Abstractions.Migrations">
+			<Repo>Asgard</Repo>
+		</NorseRef>
+		<ProjectReference Include="../Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.*-*">
+			<IncludeAssets>compile</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+	</ItemGroup>
+</Project>

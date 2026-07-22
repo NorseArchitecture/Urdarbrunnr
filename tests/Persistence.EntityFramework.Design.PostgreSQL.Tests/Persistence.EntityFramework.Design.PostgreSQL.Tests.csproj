@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<ProjectReference Include="../../src/Persistence.EntityFramework.Design.PostgreSQL/Persistence.EntityFramework.Design.PostgreSQL.csproj" />
+	</ItemGroup>
+</Project>
