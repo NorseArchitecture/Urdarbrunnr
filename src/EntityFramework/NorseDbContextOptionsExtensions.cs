@@ -27,7 +27,8 @@ public static class NorseDbContextOptionsExtensions
 	/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
 	public static DbContextOptionsBuilder ApplyNorseConventions(DbContextOptionsBuilder optionsBuilder)
 	{
-		optionsBuilder.UseSnakeCaseNamingConvention();
+		//TODO: Port snake case naming convention into NorseArchitecture so we are not waiting for the 11.x version for something so simple
+		//optionsBuilder.UseSnakeCaseNamingConvention();
 		return optionsBuilder;
 	}
 }

@@ -5,14 +5,9 @@
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="*" />
-	</ItemGroup>
-	<ItemGroup>
-		<ProjectReference Include="../EntityFramework/EntityFramework.csproj" />
-	</ItemGroup>
-	<ItemGroup>
 		<NorseRef Include="Abstractions.Migrations">
 			<Repo>Asgard</Repo>
 		</NorseRef>
+		<ProjectReference Include="../EntityFramework/EntityFramework.csproj" />
 	</ItemGroup>
 </Project>

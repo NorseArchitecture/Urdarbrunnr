@@ -5,9 +5,8 @@
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="*" />
-	</ItemGroup>
-	<ItemGroup>
+		<PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.*" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.*-*" />
 		<ProjectReference Include="../EntityFramework/EntityFramework.csproj" />
 	</ItemGroup>
 </Project>
