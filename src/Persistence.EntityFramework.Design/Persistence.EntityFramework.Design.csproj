@@ -9,5 +9,9 @@
 			<Repo>Asgard</Repo>
 		</NorseRef>
 		<ProjectReference Include="../Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.*-*">
+			<IncludeAssets>compile</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 	</ItemGroup>
 </Project>
