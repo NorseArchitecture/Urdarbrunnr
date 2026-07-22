@@ -5,9 +5,7 @@
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="EFCore.NamingConventions" Version="*" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="*" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="*" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="11.*-*" />
 		<ProjectReference
 			Include="../EntityFramework.Generator/EntityFramework.Generator.csproj"
 			OutputItemType="Analyzer"

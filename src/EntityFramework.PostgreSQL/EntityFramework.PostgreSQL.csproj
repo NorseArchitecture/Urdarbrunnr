@@ -5,7 +5,8 @@
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="*" />
+		<PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.*" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.*-*" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="../EntityFramework/EntityFramework.csproj" />
