@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.Persistence.EntityFramework.Generator: the Roslyn IIncrementalGenerator that discovers INorseEntity&lt;TSelf&gt; implementations in the compiling project's own syntax tree and emits ApplyNorseConfigurations(), plus a Tier-1 partial-class ConfigureNorseEntities override when a partial NorseDbContext subclass is present.</Description>
+	</PropertyGroup>
+</Project>

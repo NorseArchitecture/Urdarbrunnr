@@ -8,16 +8,16 @@
 		<ProjectReference Include="../Persistence.EntityFramework.Design/Persistence.EntityFramework.Design.csproj" />
 		<ProjectReference Include="../Persistence.EntityFramework.PostgreSQL/Persistence.EntityFramework.PostgreSQL.csproj" />
 		<ProjectReference
-			Include="../Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj"
+			Include="../../gen/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj"
 			OutputItemType="Analyzer"
 			ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<Target Name="IncludeGeneratorInPackage" BeforeTargets="_GetPackageFiles">
-		<MSBuild Projects="../Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj"
+		<MSBuild Projects="../../gen/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj"
 			Targets="Build"
 			Properties="Configuration=$(Configuration)" />
 		<ItemGroup>
-			<None Include="../Persistence.EntityFramework.Design.PostgreSQL.Generator/bin/$(Configuration)/netstandard2.0/Norse.Persistence.EntityFramework.Design.PostgreSQL.Generator.dll"
+			<None Include="../../gen/Persistence.EntityFramework.Design.PostgreSQL.Generator/bin/$(Configuration)/netstandard2.0/Norse.Persistence.EntityFramework.Design.PostgreSQL.Generator.dll"
 				Pack="true"
 				PackagePath="analyzers/dotnet/cs/"
 				Visible="false" />

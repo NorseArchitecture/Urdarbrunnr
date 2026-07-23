@@ -4,6 +4,6 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<ProjectReference Include="../../src/Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
-		<ProjectReference Include="../../src/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj" />
+		<ProjectReference Include="../../gen/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj" />
 	</ItemGroup>
 </Project>
