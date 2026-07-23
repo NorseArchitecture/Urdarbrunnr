@@ -12,6 +12,19 @@ namespace Norse.Persistence.EntityFramework.SqlServer;
 public static class NorseSqlServerContextExtensions
 {
 	/// <summary>
+	/// SQL Server 2025's compatibility level -- the platform's floor for every SqlServer-backed context,
+	/// forced unconditionally (not an opt-in, unlike <c>useSnakeCaseNaming</c>) so EF Core maps
+	/// JSON-mapped properties (<c>ComplexProperty&lt;T&gt;().ToJson()</c>, <c>OwnsOne(...).ToJson()</c>)
+	/// to the native <c>json</c> column type instead of <c>nvarchar(max)</c>. Client-side only -- EF Core
+	/// never emits <c>ALTER DATABASE ... SET COMPATIBILITY_LEVEL</c>, so the target instance must
+	/// genuinely be SQL Server 2025+ (or Azure SQL, which already defaults its own compatibility level to
+	/// 170) or the generated DDL fails to apply. Must match
+	/// <c>NorseSqlServerDesignTimeDbContextFactory</c>'s own compatibility level, or the scaffolded schema
+	/// disagrees with what the running container actually produces.
+	/// </summary>
+	const int SqlServerCompatibilityLevel = 170;
+
+	/// <summary>
 	/// Registers <typeparamref name="TContext"/> in the Aspire host using the SQL Server EF Core
 	/// integration. The connection string is resolved by <paramref name="connectionStringName"/>
 	/// from the application configuration.
@@ -40,6 +53,7 @@ public static class NorseSqlServerContextExtensions
 		builder.AddSqlServerDbContext<TContext>(connectionStringName,
 			configureDbContextOptions: opts =>
 			{
+				opts.UseSqlServer(sql => sql.UseCompatibilityLevel(SqlServerCompatibilityLevel));
 				if (useSnakeCaseNaming)
 					NorseDbContextOptionsExtensions.ApplyNorseConventions(opts, RenameTemporalHistoryTable);
 			});
@@ -80,7 +94,9 @@ public static class NorseSqlServerContextExtensions
 
 		builder.Services.AddDbContext<TContext>(opts =>
 		{
-			opts.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationsAssemblyName));
+			opts.UseSqlServer(connectionString, sql => sql
+				.MigrationsAssembly(migrationsAssemblyName)
+				.UseCompatibilityLevel(SqlServerCompatibilityLevel));
 			if (useSnakeCaseNaming)
 				NorseDbContextOptionsExtensions.ApplyNorseConventions(opts, RenameTemporalHistoryTable);
 		});

@@ -114,6 +114,22 @@ public sealed class NorseSnakeCaseNamingConventionTests
 	}
 
 	[Fact]
+	void Complex_type_mapped_to_JSON_has_its_container_column_name_rewritten()
+	{
+		// Regression test: ComplexProperty<T>().ToJson() (used by ASP.NET Core Identity's passkey
+		// IdentityPasskeyData) is a distinct model construct from OwnsOne(...).ToJson() -- complex types
+		// never appear in Model.GetEntityTypes(), so the main convention loop skipped them entirely and
+		// left their container column PascalCase (e.g. Postgres emitting a quoted "Data" column instead
+		// of data). See NorseSnakeCaseNamingConvention.RenameComplexType.
+		using var ctx = CreateContext<ComplexJsonMappedContext>();
+
+		var entityType = ctx.Model.FindEntityType(typeof(ComplexJsonMappedOwner))!;
+		var complexProperty = entityType.FindComplexProperty(nameof(ComplexJsonMappedOwner.ShippingDetail))!;
+
+		complexProperty.ComplexType.GetContainerColumnName().ShouldBe("shipping_detail");
+	}
+
+	[Fact]
 	void Injected_action_receives_every_entity_and_the_rewrite_function()
 	{
 		List<string> invokedEntityClrNames = [];
@@ -226,6 +242,31 @@ public sealed class NorseSnakeCaseNamingConventionTests
 				o.ToJson();
 				o.OwnsOne(d => d.SubDetail);
 			});
+		}
+	}
+
+	sealed class ComplexJsonMappedOwner
+	{
+		public int Id { get; set; }
+		public ComplexJsonMappedDetail ShippingDetail { get; set; } = new();
+	}
+
+	sealed class ComplexJsonMappedDetail
+	{
+		public string Value { get; set; } = "";
+	}
+
+	sealed class ComplexJsonMappedContext(DbContextOptions<ComplexJsonMappedContext> options) : NorseDbContext(options)
+	{
+		public DbSet<ComplexJsonMappedOwner> ComplexJsonMappedOwners => Set<ComplexJsonMappedOwner>();
+
+		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(null));
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<ComplexJsonMappedOwner>().ComplexProperty(e => e.ShippingDetail).ToJson();
 		}
 	}
 

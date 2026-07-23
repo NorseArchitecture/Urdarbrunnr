@@ -95,6 +95,9 @@ sealed class NorseSnakeCaseNamingConvention(
 					property.SetDefaultConstraintName(SnakeCaseNameRewriter.RewriteName(defaultConstraintName));
 			}
 
+			foreach (var complexProperty in entity.GetComplexProperties())
+				RenameComplexType(complexProperty.ComplexType);
+
 			foreach (var key in entity.GetKeys())
 			{
 				var keyName = key.GetName();
@@ -118,5 +121,31 @@ sealed class NorseSnakeCaseNamingConvention(
 
 			applyProviderSpecificRenames?.Invoke(entity, SnakeCaseNameRewriter.RewriteName);
 		}
+	}
+
+	/// <summary>
+	/// Complex types (<c>ComplexProperty&lt;T&gt;()</c>) never appear in <c>GetEntityTypes()</c> -- they
+	/// hang off their declaring entity's <c>GetComplexProperties()</c>, so the main loop above never sees
+	/// them. A JSON-mapped complex property (<c>.ToJson()</c>) owns its own
+	/// container column exactly like a root JSON entity does, so it gets the same treatment. A non-JSON
+	/// complex property maps its scalar properties onto ordinary columns on the owning table instead.
+	/// Recursion stops the moment a JSON container is found: a complex property nested inside one shares
+	/// that same physical column rather than owning one of its own, so renaming it would hit the identical
+	/// shaper corruption the root-vs-nested JSON entity exclusion above exists to prevent.
+	/// </summary>
+	static void RenameComplexType(IConventionComplexType complexType)
+	{
+		var containerColumnName = complexType.GetContainerColumnName();
+		if (!string.IsNullOrWhiteSpace(containerColumnName))
+		{
+			complexType.SetContainerColumnName(SnakeCaseNameRewriter.RewriteName(containerColumnName));
+			return;
+		}
+
+		foreach (var property in complexType.GetProperties())
+			property.SetColumnName(SnakeCaseNameRewriter.RewriteName(property.GetColumnName()));
+
+		foreach (var nestedComplexProperty in complexType.GetComplexProperties())
+			RenameComplexType(nestedComplexProperty.ComplexType);
 	}
 }
