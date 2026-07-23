@@ -17,12 +17,15 @@
 		<Project Path="src/Persistence.EntityFramework.PostgreSQL/Persistence.EntityFramework.PostgreSQL.csproj" />
 		<Project Path="src/Persistence.EntityFramework.SqlServer/Persistence.EntityFramework.SqlServer.csproj" />
 		<Project Path="src/Persistence.EntityFramework.Design/Persistence.EntityFramework.Design.csproj" />
-		<File Path="src/Persistence.EntityFramework.Design.Generator.Shared/MigrationContributorDiscovery.cs" />
-		<Project Path="src/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj" />
 		<Project Path="src/Persistence.EntityFramework.Design.PostgreSQL/Persistence.EntityFramework.Design.PostgreSQL.csproj" />
-		<Project Path="src/Persistence.EntityFramework.Design.SqlServer.Generator/Persistence.EntityFramework.Design.SqlServer.Generator.csproj" />
 		<Project Path="src/Persistence.EntityFramework.Design.SqlServer/Persistence.EntityFramework.Design.SqlServer.csproj" />
-		<Project Path="src/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj" />
+	</Folder>
+	<Folder Name="/gen/">
+		<File Path="gen/Directory.Build.props" />
+		<File Path="gen/Persistence.EntityFramework.Design.Generator.Shared/MigrationContributorDiscovery.cs" />
+		<Project Path="gen/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj" />
+		<Project Path="gen/Persistence.EntityFramework.Design.SqlServer.Generator/Persistence.EntityFramework.Design.SqlServer.Generator.csproj" />
+		<Project Path="gen/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
 		<File Path="tests/Directory.Build.props" />

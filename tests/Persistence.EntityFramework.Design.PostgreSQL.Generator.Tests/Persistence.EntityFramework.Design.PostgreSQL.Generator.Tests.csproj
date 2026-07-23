@@ -6,6 +6,6 @@
 		<ProjectReference Include="../../src/Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
 		<ProjectReference Include="../../src/Persistence.EntityFramework.Design/Persistence.EntityFramework.Design.csproj" />
 		<ProjectReference Include="../../src/Persistence.EntityFramework.PostgreSQL/Persistence.EntityFramework.PostgreSQL.csproj" />
-		<ProjectReference Include="../../src/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj" />
+		<ProjectReference Include="../../gen/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj" />
 	</ItemGroup>
 </Project>
