@@ -64,7 +64,13 @@ public abstract class NorseSqlServerDesignTimeDbContextFactory<TContext> : IDesi
 	protected virtual void ConfigureOptions(DbContextOptionsBuilder<TContext> builder, string connectionString)
 	{
 		builder.UseSqlServer(connectionString,
-			o => o.MigrationsAssembly(GetType().Assembly.GetName().Name));
+			o => o
+				.MigrationsAssembly(GetType().Assembly.GetName().Name)
+				// Must match NorseSqlServerContextExtensions.SqlServerCompatibilityLevel -- SQL Server
+				// 2025's compatibility level, forced so dotnet-ef scaffolds JSON-mapped properties as the
+				// native `json` column type instead of `nvarchar(max)`, matching what the runtime
+				// registration actually produces.
+				.UseCompatibilityLevel(170));
 
 		if (UseSnakeCaseNaming)
 			NorseDbContextOptionsExtensions.ApplyNorseConventions(builder);
