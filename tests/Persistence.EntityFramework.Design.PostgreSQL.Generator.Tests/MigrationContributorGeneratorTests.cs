@@ -89,7 +89,7 @@ public sealed class MigrationContributorGeneratorTests
 		// only proves generation *ran* (`RunGeneratorsAndUpdateCompilation` + string assertions on the
 		// generated text) — none of them prove the emitted text actually compiles. This test does: it
 		// feeds the real generated tree back through a second, real `CSharpCompilation` alongside the
-		// original source (plus a minimal stand-in for Midgard's runner extensions, which Urdarbrunnr
+		// original source (plus a minimal stand-in for Midgard's runner extensions, which Urðarbrunnr
 		// cannot reference directly — it sits below Midgard in the platform's dependency chain) and
 		// asserts there are zero error diagnostics.
 		var source = """
@@ -124,7 +124,7 @@ public sealed class MigrationContributorGeneratorTests
 			""";
 
 		const string InfrastructureStub = """
-			// Stand-in for Norse.Infrastructure.Migrations (Midgard) -- Urdarbrunnr sits below Midgard in
+			// Stand-in for Norse.Infrastructure.Migrations (Midgard) -- Urðarbrunnr sits below Midgard in
 			// the dependency chain and cannot reference it, so this reproduces just enough of its shape
 			// (same namespace, same method names) for the generated code to resolve against.
 			namespace Norse.Infrastructure.Migrations
