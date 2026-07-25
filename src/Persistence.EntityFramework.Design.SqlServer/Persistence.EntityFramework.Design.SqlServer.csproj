@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>Norse.Persistence.EntityFramework.Design.SqlServer: pulls in Norse.Persistence.EntityFramework.Design (contributor base) and Norse.Persistence.EntityFramework.SqlServer (Aspire SQL Server wiring) and ships the Roslyn generator that emits AddNorseMigrations(). Reference this single package from your migrations service.</Description>
+		<Description>Norse.Persistence.EntityFramework.Design.SqlServer: pulls in Norse.Persistence.EntityFramework.Design (contributor base) and Norse.Persistence.EntityFramework.SqlServer (Aspire SQL Server wiring), ships NorseSqlServerDesignTimeDbContextFactory&lt;TContext&gt;, and ships the Roslyn generator that emits AddNorseMigrations() — discovering both EfMigrationContributor&lt;TContext&gt; and Asgard's ISeedContributor, wiring AddNorseMigrationsRunner() and AddNorseSeedingRunner() (both Midgard) into one call. Reference this single package from your migrations service.</Description>
 		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
