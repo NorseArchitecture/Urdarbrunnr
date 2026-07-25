@@ -18,26 +18,29 @@ public static class NorseDbContextOptionsExtensions
 	/// </summary>
 	public const string SqlServerProviderName = "Microsoft.EntityFrameworkCore.SqlServer";
 
-	/// <summary>
-	/// Applies snake_case naming to all entity table names, column names, keys, foreign keys, indexes,
-	/// and JSON container columns, via Urðarbrunnr's own <see cref="NorseSnakeCaseNamingConvention"/>.
-	/// Called conditionally by each provider's registration extension (see
-	/// <c>Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions</c> and its SQL Server
-	/// counterpart) — never unconditionally by a context itself, since whether snake_case is the right
-	/// default is a provider decision, not a Norse-wide one.
-	/// </summary>
 	/// <param name="optionsBuilder">The options builder to configure.</param>
-	/// <param name="applyProviderSpecificRenames">
-	/// Optional provider-specific rename hook, invoked once per entity in addition to this method's own
-	/// renames. Used by <c>Norse.Persistence.EntityFramework.SqlServer</c> to rename temporal history tables — an
-	/// EF API this provider-neutral project must never reference directly. See
-	/// <see cref="NorseSnakeCaseNamingConvention"/>'s remarks for the full rationale.
-	/// </param>
-	/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
-	public static DbContextOptionsBuilder ApplyNorseConventions(this DbContextOptionsBuilder optionsBuilder, Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames = null)
+	extension(DbContextOptionsBuilder optionsBuilder)
 	{
-		((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
-			.AddOrUpdateExtension(new NorseSnakeCaseNamingOptionsExtension(applyProviderSpecificRenames));
-		return optionsBuilder;
+		/// <summary>
+		/// Applies snake_case naming to all entity table names, column names, keys, foreign keys, indexes,
+		/// and JSON container columns, via Urðarbrunnr's own <see cref="NorseSnakeCaseNamingConvention"/>.
+		/// Called conditionally by each provider's registration extension (see
+		/// <c>Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions</c> and its SQL Server
+		/// counterpart) — never unconditionally by a context itself, since whether snake_case is the right
+		/// default is a provider decision, not a Norse-wide one.
+		/// </summary>
+		/// <param name="applyProviderSpecificRenames">
+		/// Optional provider-specific rename hook, invoked once per entity in addition to this method's own
+		/// renames. Used by <c>Norse.Persistence.EntityFramework.SqlServer</c> to rename temporal history tables — an
+		/// EF API this provider-neutral project must never reference directly. See
+		/// <see cref="NorseSnakeCaseNamingConvention"/>'s remarks for the full rationale.
+		/// </param>
+		/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
+		public DbContextOptionsBuilder ApplyNorseConventions(Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames = null)
+		{
+			((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
+				.AddOrUpdateExtension(new NorseSnakeCaseNamingOptionsExtension(applyProviderSpecificRenames));
+			return optionsBuilder;
+		}
 	}
 }
