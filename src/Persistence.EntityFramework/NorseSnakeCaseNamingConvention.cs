@@ -39,8 +39,8 @@ namespace Norse.Persistence.EntityFramework;
 /// <c>NorseSqlServerContextExtensions</c> — because <c>IsTemporal()</c>/<c>GetHistoryTableName()</c> are
 /// SQL-Server-only EF APIs this provider-neutral project must never reference directly.
 /// </param>
-sealed class NorseSnakeCaseNamingConvention(
-	Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames) : IModelFinalizingConvention
+sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames) :
+	IModelFinalizingConvention
 {
 	public void ProcessModelFinalizing(
 		IConventionModelBuilder builder, IConventionContext<IConventionModelBuilder> context)

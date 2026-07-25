@@ -13,5 +13,5 @@ namespace Norse.Persistence.EntityFramework;
 /// effect; the provider-specific benefit is applied automatically, never by hand.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class FixedLengthAttribute(int length)
-	: System.ComponentModel.DataAnnotations.MaxLengthAttribute(length);
+public sealed class FixedLengthAttribute(int length) :
+	System.ComponentModel.DataAnnotations.MaxLengthAttribute(length);

@@ -6,5 +6,5 @@ namespace Norse.Persistence.EntityFramework;
 /// The only attribute-path escape hatch from <see cref="RequireExplicitLengthConvention"/>.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class UnboundedLengthAttribute()
-	: System.ComponentModel.DataAnnotations.MaxLengthAttribute(-1);
+public sealed class UnboundedLengthAttribute() :
+	System.ComponentModel.DataAnnotations.MaxLengthAttribute(-1);

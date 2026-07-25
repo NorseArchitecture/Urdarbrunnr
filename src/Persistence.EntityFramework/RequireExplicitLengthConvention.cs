@@ -8,8 +8,7 @@ namespace Norse.Persistence.EntityFramework;
 
 sealed class RequireExplicitLengthConvention(bool applyFixedLength) : IModelFinalizingConvention
 {
-	public void ProcessModelFinalizing(
-		IConventionModelBuilder builder, IConventionContext<IConventionModelBuilder> context)
+	public void ProcessModelFinalizing(IConventionModelBuilder builder, IConventionContext<IConventionModelBuilder> context)
 	{
 		List<string> violations = [];
 
@@ -22,7 +21,9 @@ sealed class RequireExplicitLengthConvention(bool applyFixedLength) : IModelFina
 			if (storageType != typeof(string) && storageType != typeof(byte[]))
 				continue;
 
-			var maxLengthAttr = property.PropertyInfo?.GetCustomAttribute<System.ComponentModel.DataAnnotations.MaxLengthAttribute>();
+			var maxLengthAttr =
+				property.PropertyInfo?.GetCustomAttribute<MaxLengthAttribute>() ??
+				property.PropertyInfo?.GetCustomAttribute<System.ComponentModel.DataAnnotations.MaxLengthAttribute>();
 			if (maxLengthAttr is not null && maxLengthAttr.Length <= 0)
 				property.Builder.HasMaxLength(maxLengthAttr.Length, fromDataAnnotation: true);
 
@@ -38,8 +39,6 @@ sealed class RequireExplicitLengthConvention(bool applyFixedLength) : IModelFina
 			return;
 
 		throw new InvalidOperationException(
-			$"{violations.Count} propert{(violations.Count == 1 ? "y has" : "ies have")} no explicit length declared. " +
-			"Decorate with [MaxLength(n)]/[FixedLength(n)], configure HasMaxLength(n) in the entity's Configure method, " +
-			"or declare HasMaxLength(-1) if truly unbounded:\n  - " + string.Join("\n  - ", violations));
+			$"{violations.Count} propert{(violations.Count == 1 ? "y has" : "ies have")} no explicit length declared. Decorate with [MaxLength(n)]/[FixedLength(n)], configure HasMaxLength(n) in the entity's Configure method, or declare HasMaxLength(-1) if truly unbounded:\n  - {string.Join("\n  - ", violations)}");
 	}
 }

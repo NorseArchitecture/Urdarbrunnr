@@ -8,7 +8,7 @@ namespace Norse.Persistence.EntityFramework.Design.SqlServer;
 /// only by <c>dotnet ef</c> tooling. Wires the SQL Server provider; naming stays PascalCase by default
 /// (matching <c>NorseSqlServerContextExtensions</c>' own runtime default -- SQL Server's
 /// case-insensitive collation round-trips raw PascalCase fine, unlike Postgres). For the full rationale
-/// behind the <see cref="ConfigureOptions"/> extension point, see the PostgreSQL design-time factory.
+/// behind the <see cref="ConfigureOptions"/> extension point, see the Postgres design-time factory.
 /// </summary>
 /// <typeparam name="TContext">The Norse EF context this factory constructs at design time.</typeparam>
 public abstract class NorseSqlServerDesignTimeDbContextFactory<TContext> : IDesignTimeDbContextFactory<TContext>
@@ -47,8 +47,8 @@ public abstract class NorseSqlServerDesignTimeDbContextFactory<TContext> : IDesi
 	public TContext CreateDbContext(string[] args)
 	{
 		var connectionString =
-			Environment.GetEnvironmentVariable("DOTNET_EFTOOLS_CONNECTIONSTRING")
-			?? DefaultConnectionString;
+			Environment.GetEnvironmentVariable("DOTNET_EFTOOLS_CONNECTIONSTRING") ??
+			DefaultConnectionString;
 
 		DbContextOptionsBuilder<TContext> optionsBuilder = new();
 		ConfigureOptions(optionsBuilder, connectionString);
@@ -73,7 +73,7 @@ public abstract class NorseSqlServerDesignTimeDbContextFactory<TContext> : IDesi
 				.UseCompatibilityLevel(170));
 
 		if (UseSnakeCaseNaming)
-			NorseDbContextOptionsExtensions.ApplyNorseConventions(builder);
+			builder.ApplyNorseConventions();
 	}
 
 	/// <summary>Constructs <typeparamref name="TContext"/> from the configured options.</summary>

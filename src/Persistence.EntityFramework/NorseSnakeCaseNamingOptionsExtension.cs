@@ -20,11 +20,10 @@ sealed class NorseSnakeCaseNamingOptionsExtension(
 	// A primary-constructor-captured parameter is only resolvable as a bare identifier inside this
 	// class's own instance members -- it is not a real member reachable via instance.parameterName,
 	// even from a nested class after a cast. ExtensionInfo needs a genuine named member to read.
-	internal Action<IConventionEntityType, Func<string, string>>? ApplyProviderSpecificRenames { get; }
-		= applyProviderSpecificRenames;
+	internal Action<IConventionEntityType, Func<string, string>>? ApplyProviderSpecificRenames { get; } = applyProviderSpecificRenames;
 
-	public void ApplyServices(IServiceCollection services)
-		=> services.AddSingleton<IConventionSetPlugin>(new NorseSnakeCaseConventionSetPlugin(ApplyProviderSpecificRenames));
+	public void ApplyServices(IServiceCollection services) =>
+		services.AddSingleton<IConventionSetPlugin>(new NorseSnakeCaseConventionSetPlugin(ApplyProviderSpecificRenames));
 
 	public IDbContextOptionsExtension ApplyDefaults(IDbContextOptions options) => this;
 
@@ -32,7 +31,8 @@ sealed class NorseSnakeCaseNamingOptionsExtension(
 	{
 	}
 
-	public DbContextOptionsExtensionInfo Info => new ExtensionInfo(this);
+	public DbContextOptionsExtensionInfo Info =>
+		new ExtensionInfo(this);
 
 	sealed class ExtensionInfo(IDbContextOptionsExtension extension) : DbContextOptionsExtensionInfo(extension)
 	{
@@ -40,14 +40,13 @@ sealed class NorseSnakeCaseNamingOptionsExtension(
 
 		public override string LogFragment => "using Norse snake_case naming";
 
-		public override int GetServiceProviderHashCode()
-			=> ((NorseSnakeCaseNamingOptionsExtension)Extension).ApplyProviderSpecificRenames?.GetHashCode() ?? 0;
+		public override int GetServiceProviderHashCode() =>
+			((NorseSnakeCaseNamingOptionsExtension)Extension).ApplyProviderSpecificRenames?.GetHashCode() ?? 0;
 
-		public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other)
-			=> other is ExtensionInfo otherInfo
-			   && Equals(
-				   ((NorseSnakeCaseNamingOptionsExtension)Extension).ApplyProviderSpecificRenames,
-				   ((NorseSnakeCaseNamingOptionsExtension)otherInfo.Extension).ApplyProviderSpecificRenames);
+		public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other) =>
+			other is ExtensionInfo otherInfo && Equals(
+				((NorseSnakeCaseNamingOptionsExtension)Extension).ApplyProviderSpecificRenames,
+				((NorseSnakeCaseNamingOptionsExtension)otherInfo.Extension).ApplyProviderSpecificRenames);
 
 		public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)
 		{
