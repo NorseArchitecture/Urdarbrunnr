@@ -5,9 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Norse.Persistence.EntityFramework.Design;
 
 /// <summary>
-/// Installs <see cref="DdlEmittingMigrationsScaffolder"/> as EF's <see cref="IMigrationsScaffolder"/>.
+/// Installs <see cref="DdlEmittingMigrationsScaffolder"/> as EFs <see cref="IMigrationsScaffolder"/>.
 /// A downstream realm's own <c>IDesignTimeServices</c> implementation calls this from its
-/// <c>.Migrations.{Provider}</c> project -- the one place EF's tooling actually reflects over to
+/// <c>.Migrations.{Provider}</c> project -- the one place EFs tooling actually reflects over to
 /// discover design-time services, so this boilerplate can't be hoisted any further up the chassis.
 /// </summary>
 /// <example>
@@ -15,15 +15,15 @@ namespace Norse.Persistence.EntityFramework.Design;
 /// sealed class DesignTimeServices : IDesignTimeServices
 /// {
 ///     public void ConfigureDesignTimeServices(IServiceCollection services) =>
-///         services.AddNorseDesignTimeServices("norse_referencedata");
+///         services.AddNorseDesignTimeServices("norse_reference");
 /// }
 /// </code>
 /// </example>
 public static class NorseDesignTimeServicesExtensions
 {
-	/// <param name="services">The design-time service collection EF's tooling supplies.</param>
+	/// <param name="services">The design-time service collection EFs tooling supplies.</param>
 	/// <param name="databaseName">
-	/// The realm's database name (e.g. <c>"norse_referencedata"</c>) -- names the emitted schema
+	/// The realm's database name (e.g. <c>"norse_reference"</c>) -- names the emitted schema
 	/// file (<c>schema/{databaseName}.sql</c>, resolved via <see cref="DesignTimeSchemaPath"/>).
 	/// </param>
 	/// <returns>The same <paramref name="services"/> for chaining.</returns>

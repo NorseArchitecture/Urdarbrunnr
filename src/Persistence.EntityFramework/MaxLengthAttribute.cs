@@ -7,5 +7,5 @@ namespace Norse.Persistence.EntityFramework;
 /// positional record parameter a compile error.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class MaxLengthAttribute(int length)
-	: System.ComponentModel.DataAnnotations.MaxLengthAttribute(length);
+public sealed class MaxLengthAttribute(int length) :
+	System.ComponentModel.DataAnnotations.MaxLengthAttribute(length);

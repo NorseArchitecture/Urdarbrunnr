@@ -20,7 +20,7 @@ public static class NorseDbContextOptionsExtensions
 
 	/// <summary>
 	/// Applies snake_case naming to all entity table names, column names, keys, foreign keys, indexes,
-	/// and JSON container columns, via Urðarbrunnr's own <see cref="NorseSnakeCaseNamingConvention"/>.
+	/// and JSON container columns, via Urdarbrunnr's own <see cref="NorseSnakeCaseNamingConvention"/>.
 	/// Called conditionally by each provider's registration extension (see
 	/// <c>Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions</c> and its SQL Server
 	/// counterpart) — never unconditionally by a context itself, since whether snake_case is the right
@@ -34,9 +34,7 @@ public static class NorseDbContextOptionsExtensions
 	/// <see cref="NorseSnakeCaseNamingConvention"/>'s remarks for the full rationale.
 	/// </param>
 	/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
-	public static DbContextOptionsBuilder ApplyNorseConventions(
-		DbContextOptionsBuilder optionsBuilder,
-		Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames = null)
+	public static DbContextOptionsBuilder ApplyNorseConventions(this DbContextOptionsBuilder optionsBuilder, Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames = null)
 	{
 		((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
 			.AddOrUpdateExtension(new NorseSnakeCaseNamingOptionsExtension(applyProviderSpecificRenames));

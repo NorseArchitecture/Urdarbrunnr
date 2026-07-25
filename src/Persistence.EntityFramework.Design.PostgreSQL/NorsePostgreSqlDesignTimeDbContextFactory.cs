@@ -19,7 +19,7 @@ namespace Norse.Persistence.EntityFramework.Design.PostgreSQL;
 public abstract class NorsePostgreSqlDesignTimeDbContextFactory<TContext> : IDesignTimeDbContextFactory<TContext>
 	where TContext : DbContext, INorseDbContext
 {
-	/// <summary>The realm's database name -- e.g. <c>"norse_referencedata"</c>.</summary>
+	/// <summary>The realm's database name -- e.g. <c>"norse_reference"</c>.</summary>
 	protected abstract string DatabaseName { get; }
 
 	/// <summary>
@@ -41,8 +41,8 @@ public abstract class NorsePostgreSqlDesignTimeDbContextFactory<TContext> : IDes
 	public TContext CreateDbContext(string[] args)
 	{
 		var connectionString =
-			Environment.GetEnvironmentVariable("DOTNET_EFTOOLS_CONNECTIONSTRING")
-			?? DefaultConnectionString;
+			Environment.GetEnvironmentVariable("DOTNET_EFTOOLS_CONNECTIONSTRING") ??
+			DefaultConnectionString;
 
 		DbContextOptionsBuilder<TContext> optionsBuilder = new();
 		ConfigureOptions(optionsBuilder, connectionString);
@@ -57,11 +57,11 @@ public abstract class NorsePostgreSqlDesignTimeDbContextFactory<TContext> : IDes
 	/// </summary>
 	protected virtual void ConfigureOptions(DbContextOptionsBuilder<TContext> builder, string connectionString)
 	{
-		builder.UseNpgsql(connectionString,
-			o => o.MigrationsAssembly(GetType().Assembly.GetName().Name));
+		builder.UseNpgsql(connectionString, o =>
+			o.MigrationsAssembly(GetType().Assembly.GetName().Name));
 
 		if (UseSnakeCaseNaming)
-			NorseDbContextOptionsExtensions.ApplyNorseConventions(builder);
+			builder.ApplyNorseConventions();
 	}
 
 	/// <summary>Constructs <typeparamref name="TContext"/> from the configured options.</summary>
