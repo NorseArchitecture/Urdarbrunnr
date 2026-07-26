@@ -8,6 +8,7 @@
 		</NorseRef>
 		<Compile Include="../Persistence.EntityFramework.Design.Generator.Shared/MigrationContributorDiscovery.cs" Link="Shared/MigrationContributorDiscovery.cs" />
 	</ItemGroup>
+	<!-- See Persistence.EntityFramework.Design.SqlServer.Generator.csproj for why this hook exists. -->
 	<PropertyGroup>
 		<GetTargetPathDependsOn>$(GetTargetPathDependsOn);_NorseIncludeEmitDependencyTargetPath</GetTargetPathDependsOn>
 	</PropertyGroup>

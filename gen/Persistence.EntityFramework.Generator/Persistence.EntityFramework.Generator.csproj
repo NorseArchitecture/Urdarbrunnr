@@ -7,6 +7,7 @@
 			<Repo>Asgard</Repo>
 		</NorseRef>
 	</ItemGroup>
+	<!-- See Persistence.EntityFramework.Design.SqlServer.Generator.csproj for why this hook exists. -->
 	<PropertyGroup>
 		<GetTargetPathDependsOn>$(GetTargetPathDependsOn);_NorseIncludeEmitDependencyTargetPath</GetTargetPathDependsOn>
 	</PropertyGroup>
