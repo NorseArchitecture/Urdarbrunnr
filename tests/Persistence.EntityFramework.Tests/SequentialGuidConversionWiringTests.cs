@@ -38,6 +38,17 @@ public sealed class SequentialGuidConversionWiringTests
 		act.ShouldThrow<ArgumentOutOfRangeException>();
 	}
 
+	[Fact]
+	void DeterministicGuid_properties_build_without_throwing_and_get_their_converter()
+	{
+		using var ctx = CreateContext<DeterministicGuidContext>();
+
+		var property = ctx.Model.FindEntityType(typeof(DeterministicGuidEntity))!
+			.FindProperty(nameof(DeterministicGuidEntity.Id))!;
+
+		property.GetValueConverter().ShouldBeOfType<DeterministicGuidValueConverter>();
+	}
+
 	static TContext CreateContext<TContext>() where TContext : DbContext =>
 		(TContext)Activator.CreateInstance(typeof(TContext),
 			new DbContextOptionsBuilder<TContext>().UseSqlite("Data Source=:memory:").Options)!;
@@ -70,5 +81,19 @@ public sealed class SequentialGuidConversionWiringTests
 			NorseModelConventions.Apply(configurationBuilder,
 				applyFixedLength: false, sequentialGuidOrder: GuidByteOrder.Unspecified);
 		}
+	}
+
+	// Regression coverage for the real Mímisbrunnr defect: DeterministicGuid has no automatic EF
+	// conversion inference, so a property typed with it used to throw InvalidOperationException at
+	// model-build time. This proves NorseModelConventions.Apply's unconditional registration fixes it.
+	sealed record DeterministicGuidEntity(DeterministicGuid Id) : NorseEntityBase<DeterministicGuidEntity>, INorseEntity<DeterministicGuidEntity>
+	{
+		public static void Configure(EntityTypeBuilder<DeterministicGuidEntity> builder) =>
+			builder.HasKey(e => e.Id);
+	}
+
+	sealed class DeterministicGuidContext(DbContextOptions<DeterministicGuidContext> options) : NorseDbContext(options)
+	{
+		public DbSet<DeterministicGuidEntity> Entities => Set<DeterministicGuidEntity>();
 	}
 }

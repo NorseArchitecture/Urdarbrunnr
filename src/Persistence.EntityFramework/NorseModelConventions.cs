@@ -51,6 +51,7 @@ public static class NorseModelConventions
 				"GuidByteOrder.Unspecified (or any other unhandled value) is never a valid argument.")
 		};
 		configurationBuilder.Properties<SequentialGuid>().HaveConversion(converterType);
+		configurationBuilder.Properties<DeterministicGuid>().HaveConversion<DeterministicGuidValueConverter>();
 		return configurationBuilder;
 	}
 }
