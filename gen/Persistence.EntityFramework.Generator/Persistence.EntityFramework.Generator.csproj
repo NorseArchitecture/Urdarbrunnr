@@ -7,13 +7,4 @@
 			<Repo>Asgard</Repo>
 		</NorseRef>
 	</ItemGroup>
-	<!-- See Persistence.EntityFramework.Design.SqlServer.Generator.csproj for why this hook exists. -->
-	<PropertyGroup>
-		<GetTargetPathDependsOn>$(GetTargetPathDependsOn);_NorseIncludeEmitDependencyTargetPath</GetTargetPathDependsOn>
-	</PropertyGroup>
-	<Target Name="_NorseIncludeEmitDependencyTargetPath">
-		<ItemGroup>
-			<TargetPathWithTargetPlatformMoniker Include="@(ReferenceCopyLocalPaths->WithMetadataValue('Filename', 'Norse.Abstractions.Emit')->WithMetadataValue('Extension', '.dll'))" IncludeRuntimeDependency="false" />
-		</ItemGroup>
-	</Target>
 </Project>
