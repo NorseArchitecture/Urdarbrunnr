@@ -12,4 +12,4 @@ namespace Norse.Persistence.EntityFramework;
 sealed class DeterministicGuidValueConverter() :
 	ValueConverter<DeterministicGuid, Guid>(
 		id => id.Value,
-		value => new DeterministicGuid(value));
+		value => new(value));
