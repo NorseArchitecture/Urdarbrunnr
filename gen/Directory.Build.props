@@ -16,9 +16,9 @@
 		     PackageReference does not — CopyLocalLockFileAssemblies defaults to false for a non-exe
 		     (library) project, since a library normally expects its consumers to resolve transitive
 		     package dependencies themselves via the NuGet graph. In standalone/CI mode (NorseRef
-		     resolves to PackageReference here), that left Norse.Abstractions.Emit.dll missing from
+		     resolves to PackageReference here), that left a NorseRef'd dependency's DLL missing from
 		     this project's own bin output — the IncludeGeneratorInPackage target's hardcoded file
-		     grab then fails pack with NU5019, and the forwarding hook above finds nothing in
+		     grab then fails pack with NU5019, and the forwarding hook below finds nothing in
 		     @(ReferenceCopyLocalPaths) either. Forcing copy-local makes both modes behave the same. -->
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
