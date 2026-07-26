@@ -41,10 +41,14 @@ public static class NorseModelConventions
 	{
 		configurationBuilder.Conventions.Add(_ => new RequireExplicitLengthConvention(applyFixedLength));
 		configurationBuilder.Conventions.Add(static _ => new RequireEntityConfigurationConvention());
-		configurationBuilder.Properties<SequentialGuid>().HaveConversion(
-			sequentialGuidOrder == GuidByteOrder.SqlServer
-				? typeof(SqlServerSequentialGuidValueConverter)
-				: typeof(Rfc9562SequentialGuidValueConverter));
+		var converterType = sequentialGuidOrder switch
+		{
+			GuidByteOrder.SqlServer => typeof(SqlServerSequentialGuidValueConverter),
+			GuidByteOrder.Rfc9562 => typeof(Rfc9562SequentialGuidValueConverter),
+			_ => throw new ArgumentOutOfRangeException(nameof(sequentialGuidOrder), sequentialGuidOrder,
+				"GuidByteOrder.Unspecified (or any other unhandled value) is never a valid argument.")
+		};
+		configurationBuilder.Properties<SequentialGuid>().HaveConversion(converterType);
 		return configurationBuilder;
 	}
 }
