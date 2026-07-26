@@ -12,11 +12,10 @@ namespace Norse.Persistence.EntityFramework;
 /// <see cref="SequentialGuid.ToSqlOrder"/>/<see cref="SequentialGuid.ToRfcOrder"/> explicitly before
 /// assigning a value bound for the other provider.
 /// </summary>
-abstract class SequentialGuidValueConverter(GuidByteOrder expectedOrder, ConverterMappingHints? mappingHints = null) :
+abstract class SequentialGuidValueConverter(GuidByteOrder expectedOrder) :
 	ValueConverter<SequentialGuid, Guid>(
 		guid => Guard(guid, expectedOrder),
-		value => new SequentialGuid(value, expectedOrder),
-		mappingHints)
+		value => new SequentialGuid(value, expectedOrder))
 {
 	static Guid Guard(SequentialGuid guid, GuidByteOrder expectedOrder) =>
 		guid.Order == expectedOrder
