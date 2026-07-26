@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Norse.Primitives.Identifiers;
 
 namespace Norse.Persistence.EntityFramework;
 
@@ -20,8 +21,10 @@ public abstract class NorseDbContext(DbContextOptions options) : DbContext(optio
 		// Fixed-length storage (char(n)/nchar(n)) only pays off on SQL Server. Postgres's own docs
 		// say character(n) has no storage/performance benefit over character varying(n) there, and
 		// is usually the slower of the two — see FixedLengthAttribute's remarks.
+		var isSqlServer = Database.ProviderName == NorseDbContextOptionsExtensions.SqlServerProviderName;
 		NorseModelConventions.Apply(configurationBuilder,
-			applyFixedLength: Database.ProviderName == NorseDbContextOptionsExtensions.SqlServerProviderName);
+			applyFixedLength: isSqlServer,
+			sequentialGuidOrder: isSqlServer ? GuidByteOrder.SqlServer : GuidByteOrder.Rfc9562);
 	}
 
 	/// <inheritdoc />
