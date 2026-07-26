@@ -136,8 +136,10 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		IList<string> invokedEntityClrNames = [];
 		Func<string, string>? capturedRewrite = null;
 
+		var optionsBuilder = new DbContextOptionsBuilder<InjectedActionContext>().UseSqlite("Data Source=:memory:");
+		optionsBuilder.ApplyNorseTrackingBehavior();
 		using InjectedActionContext ctx = new(
-			new DbContextOptionsBuilder<InjectedActionContext>().UseSqlite("Data Source=:memory:").ApplyNorseTrackingBehavior().Options,
+			optionsBuilder.Options,
 			(entity, rewrite) =>
 			{
 				invokedEntityClrNames.Add(entity.ClrType.Name);
@@ -151,9 +153,12 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		capturedRewrite!("CustomerId").ShouldBe("customer_id");
 	}
 
-	static TContext CreateContext<TContext>() where TContext : DbContext =>
-		(TContext)Activator.CreateInstance(typeof(TContext),
-			new DbContextOptionsBuilder<TContext>().UseSqlite("Data Source=:memory:").ApplyNorseTrackingBehavior().Options)!;
+	static TContext CreateContext<TContext>() where TContext : DbContext
+	{
+		var optionsBuilder = new DbContextOptionsBuilder<TContext>().UseSqlite("Data Source=:memory:");
+		optionsBuilder.ApplyNorseTrackingBehavior();
+		return (TContext)Activator.CreateInstance(typeof(TContext), optionsBuilder.Options)!;
+	}
 
 	sealed record RewriteTestEntity(int Id, string CustomerName = "");
 
