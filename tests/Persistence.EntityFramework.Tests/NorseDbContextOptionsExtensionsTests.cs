@@ -9,9 +9,9 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	void ApplyNorseConventions_applies_snake_case_naming()
 	{
 		var optionsBuilder = new DbContextOptionsBuilder<TestContext>().UseSqlite("Data Source=:memory:");
-		NorseDbContextOptionsExtensions.ApplyNorseConventions(optionsBuilder);
+		optionsBuilder.ApplyNorseConventions();
 
-		using var ctx = new TestContext(optionsBuilder.Options);
+		using TestContext ctx = new(optionsBuilder.Options);
 		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
 
 		tableName.ShouldBe("test_entities");
@@ -24,7 +24,7 @@ public sealed class NorseDbContextOptionsExtensionsTests
 			.UseSqlite("Data Source=:memory:")
 			.Options;
 
-		using var ctx = new TestContext(options);
+		using TestContext ctx = new(options);
 		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
 
 		// EF Core's own default: the DbSet property name, untouched. Naming is now decided
@@ -40,7 +40,7 @@ public sealed class NorseDbContextOptionsExtensionsTests
 			.UseSqlite("Data Source=:memory:")
 			.Options;
 
-		using var ctx = new TestContext(options);
+		using TestContext ctx = new(options);
 
 		ctx.ShouldBeAssignableTo<INorseDbContext>();
 	}
@@ -49,9 +49,9 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	void ApplyNorseConventions_renames_foreign_key_and_index_names()
 	{
 		var optionsBuilder = new DbContextOptionsBuilder<RelatedEntitiesContext>().UseSqlite("Data Source=:memory:");
-		NorseDbContextOptionsExtensions.ApplyNorseConventions(optionsBuilder);
+		optionsBuilder.ApplyNorseConventions();
 
-		using var ctx = new RelatedEntitiesContext(optionsBuilder.Options);
+		using RelatedEntitiesContext ctx = new(optionsBuilder.Options);
 		var childEntity = ctx.Model.FindEntityType(typeof(ChildEntity))!;
 		var foreignKey = childEntity.GetForeignKeys().Single();
 		var index = childEntity.GetIndexes().Single();
@@ -65,29 +65,29 @@ public sealed class NorseDbContextOptionsExtensionsTests
 		public DbSet<TestEntity> TestEntities => Set<TestEntity>();
 	}
 
-	sealed class TestEntity : INorseEntity<TestEntity>
+	sealed record TestEntity : INorseEntity<TestEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
 		[MaxLength(100)]
-		public string Name { get; set; } = "";
+		public string Name { get; init; } = "";
 
 		public static void Configure(EntityTypeBuilder<TestEntity> builder) { }
 	}
 
-	sealed class ParentEntity : INorseEntity<ParentEntity>
+	sealed record ParentEntity : INorseEntity<ParentEntity>
 	{
-		public int Id { get; set; }
-		public List<ChildEntity> Children { get; set; } = [];
+		public int Id { get; init; }
+		public ICollection<ChildEntity> Children { get; init; } = [];
 
 		public static void Configure(EntityTypeBuilder<ParentEntity> builder) { }
 	}
 
-	sealed class ChildEntity : INorseEntity<ChildEntity>
+	sealed record ChildEntity : INorseEntity<ChildEntity>
 	{
-		public int Id { get; set; }
-		public int ParentEntityId { get; set; }
-		public ParentEntity ParentEntity { get; set; } = null!;
+		public int Id { get; init; }
+		public int ParentEntityId { get; init; }
+		public ParentEntity ParentEntity { get; init; } = null!;
 
 		public static void Configure(EntityTypeBuilder<ChildEntity> builder) { }
 	}

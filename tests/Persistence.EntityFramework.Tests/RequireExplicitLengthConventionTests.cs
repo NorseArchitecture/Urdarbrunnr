@@ -39,22 +39,16 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	void MaxLength_attribute_satisfies_the_convention()
-	{
+	void MaxLength_attribute_satisfies_the_convention() =>
 		Should.NotThrow(BuildModel<AttributeBoundedContext>);
-	}
 
 	[Fact]
-	void HasMaxLength_fluent_call_satisfies_the_convention()
-	{
+	void HasMaxLength_fluent_call_satisfies_the_convention() =>
 		Should.NotThrow(BuildModel<FluentBoundedContext>);
-	}
 
 	[Fact]
-	void UnboundedLength_attribute_passes_as_explicit_negative_one()
-	{
+	void UnboundedLength_attribute_passes_as_explicit_negative_one() =>
 		Should.NotThrow(BuildModel<ExplicitUnboundedContext>);
-	}
 
 	[Fact]
 	void FixedLength_attribute_does_not_set_IsFixedLength_on_non_SqlServer_providers()
@@ -81,16 +75,12 @@ public sealed class RequireExplicitLengthConventionTests
 	}
 
 	[Fact]
-	void String_property_converted_to_non_string_storage_type_is_skipped()
-	{
+	void String_property_converted_to_non_string_storage_type_is_skipped() =>
 		Should.NotThrow(BuildModel<ConvertedContext>);
-	}
 
 	[Fact]
-	void Json_owned_type_property_is_skipped()
-	{
+	void Json_owned_type_property_is_skipped() =>
 		Should.NotThrow(BuildModel<JsonOwnedContext>);
-	}
 
 	[Fact]
 	void Collects_every_violation_before_throwing()
@@ -118,26 +108,26 @@ public sealed class RequireExplicitLengthConventionTests
 		_ = ctx.Model;
 	}
 
-	sealed class UnboundedEntity
+	sealed record UnboundedEntity
 	{
-		public int Id { get; set; }
-		public string Value { get; set; } = "";
+		public int Id { get; init; }
+		public string Value { get; init; } = "";
 	}
 
 	sealed class UnboundedContext(DbContextOptions<UnboundedContext> options) : NorseDbContext(options)
 	{
-		public DbSet<UnboundedEntity> Entities => Set<UnboundedEntity>();
+		public DbSet<UnboundedEntity> Entities =>
+			Set<UnboundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
 			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 	}
 
-	sealed class AttributeBoundedEntity
+	sealed record AttributeBoundedEntity
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
-		[MaxLength(25)]
-		public string Value { get; set; } = "";
+		[MaxLength(25)] public string Value { get; init; } = "";
 	}
 
 	sealed class AttributeBoundedContext(DbContextOptions<AttributeBoundedContext> options) : NorseDbContext(options)
@@ -148,15 +138,16 @@ public sealed class RequireExplicitLengthConventionTests
 			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 	}
 
-	sealed class FluentBoundedEntity
+	sealed record FluentBoundedEntity
 	{
-		public int Id { get; set; }
-		public string Value { get; set; } = "";
+		public int Id { get; init; }
+		public string Value { get; init; } = "";
 	}
 
 	sealed class FluentBoundedContext(DbContextOptions<FluentBoundedContext> options) : NorseDbContext(options)
 	{
-		public DbSet<FluentBoundedEntity> Entities => Set<FluentBoundedEntity>();
+		public DbSet<FluentBoundedEntity> Entities =>
+			Set<FluentBoundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
 			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
@@ -168,33 +159,33 @@ public sealed class RequireExplicitLengthConventionTests
 		}
 	}
 
-	sealed class ExplicitUnboundedEntity
+	sealed record ExplicitUnboundedEntity
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
-		[UnboundedLength]
-		public string Value { get; set; } = "";
+		[UnboundedLength] public string Value { get; init; } = "";
 	}
 
 	sealed class ExplicitUnboundedContext(DbContextOptions<ExplicitUnboundedContext> options) : NorseDbContext(options)
 	{
-		public DbSet<ExplicitUnboundedEntity> Entities => Set<ExplicitUnboundedEntity>();
+		public DbSet<ExplicitUnboundedEntity> Entities =>
+			Set<ExplicitUnboundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
 			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
 	}
 
-	sealed class FixedLengthEntity
+	sealed record FixedLengthEntity
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
-		[FixedLength(10)]
-		public string Value { get; set; } = "";
+		[FixedLength(10)] public string Value { get; init; } = "";
 	}
 
 	sealed class FixedLengthContext(DbContextOptions<FixedLengthContext> options) : NorseDbContext(options)
 	{
-		public DbSet<FixedLengthEntity> Entities => Set<FixedLengthEntity>();
+		public DbSet<FixedLengthEntity> Entities =>
+			Set<FixedLengthEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
 		{
@@ -203,15 +194,16 @@ public sealed class RequireExplicitLengthConventionTests
 		}
 	}
 
-	sealed class ConvertedEntity
+	sealed record ConvertedEntity
 	{
-		public int Id { get; set; }
-		public string Value { get; set; } = "";
+		public int Id { get; init; }
+		public string Value { get; init; } = "";
 	}
 
 	sealed class ConvertedContext(DbContextOptions<ConvertedContext> options) : NorseDbContext(options)
 	{
-		public DbSet<ConvertedEntity> Entities => Set<ConvertedEntity>();
+		public DbSet<ConvertedEntity> Entities =>
+			Set<ConvertedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
 			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
@@ -224,20 +216,21 @@ public sealed class RequireExplicitLengthConventionTests
 		}
 	}
 
-	sealed class JsonOwnedEntity
+	sealed record JsonOwnedEntity
 	{
-		public int Id { get; set; }
-		public JsonOwnedDetail Detail { get; set; } = new();
+		public int Id { get; init; }
+		public JsonOwnedDetail Detail { get; init; } = new();
 	}
 
-	sealed class JsonOwnedDetail
+	sealed record JsonOwnedDetail
 	{
 		public string Value { get; set; } = "";
 	}
 
 	sealed class JsonOwnedContext(DbContextOptions<JsonOwnedContext> options) : NorseDbContext(options)
 	{
-		public DbSet<JsonOwnedEntity> Entities => Set<JsonOwnedEntity>();
+		public DbSet<JsonOwnedEntity> Entities =>
+			Set<JsonOwnedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
 			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));
@@ -249,16 +242,17 @@ public sealed class RequireExplicitLengthConventionTests
 		}
 	}
 
-	sealed class MultiUnboundedEntity
+	sealed record MultiUnboundedEntity
 	{
-		public int Id { get; set; }
-		public string First { get; set; } = "";
-		public string Second { get; set; } = "";
+		public int Id { get; init; }
+		public string First { get; init; } = "";
+		public string Second { get; init; } = "";
 	}
 
 	sealed class MultiUnboundedContext(DbContextOptions<MultiUnboundedContext> options) : NorseDbContext(options)
 	{
-		public DbSet<MultiUnboundedEntity> Entities => Set<MultiUnboundedEntity>();
+		public DbSet<MultiUnboundedEntity> Entities =>
+			Set<MultiUnboundedEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
 			configurationBuilder.Conventions.Add(static _ => new RequireExplicitLengthConvention(false));

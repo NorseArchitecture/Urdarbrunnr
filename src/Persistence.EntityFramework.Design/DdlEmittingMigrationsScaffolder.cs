@@ -35,6 +35,8 @@ sealed class DdlEmittingMigrationsScaffolder(
 	public MigrationFiles Save(string projectDir, ScaffoldedMigration migration, string? outputDir, bool dryRun = false) =>
 		inner.Save(projectDir, migration, outputDir, dryRun);
 
+	static readonly UTF8Encoding _utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+
 	void EmitDdl()
 	{
 		var directory = Path.GetDirectoryName(outputFilePath);
@@ -52,6 +54,6 @@ sealed class DdlEmittingMigrationsScaffolder(
 			""");
 		sb.Append(currentContext.Context.Database.GenerateCreateScript());
 
-		File.WriteAllText(outputFilePath, sb.ToString(), Encoding.UTF8);
+		File.WriteAllText(outputFilePath, sb.ToString(), _utf8NoBom);
 	}
 }

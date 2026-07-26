@@ -19,10 +19,9 @@ static class DesignTimeSchemaPath
 		// so a trailing-slash input and a non-trailing-slash input resolve identically.
 		var trimmedBaseDirectory = outputBaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-		var projectRoot = Up(Up(Up(trimmedBaseDirectory)))
-			?? throw new InvalidOperationException(
-				$"Could not resolve a project root three directory levels above '{outputBaseDirectory}'. " +
-				"Expected a standard bin/{Configuration}/{TargetFramework} build output layout.");
+		var projectRoot = Up(Up(Up(trimmedBaseDirectory))) ??
+			throw new InvalidOperationException(
+				$"Could not resolve a project root three directory levels above '{outputBaseDirectory}'. Expected a standard bin/{{Configuration}}/{{TargetFramework}} build output layout.");
 
 		return Path.Combine(projectRoot, "schema", $"{databaseName}.sql");
 	}

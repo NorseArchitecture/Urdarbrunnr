@@ -1,5 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Extensions.DependencyInjection;
+using Norse.Abstractions.Migrations;
+using Norse.Abstractions.Migrations.Seeding;
 
 namespace Norse.Persistence.EntityFramework.Design.PostgreSQL.Generator.Tests;
 
@@ -8,7 +11,7 @@ public sealed class MigrationContributorGeneratorTests
 	[Fact]
 	void Generator_produces_AddNorseMigrations_method()
 	{
-		var source = """
+		const string Source = """
 			using Norse.Persistence.EntityFramework;
 			using Norse.Persistence.EntityFramework.Design;
 			using Microsoft.EntityFrameworkCore;
@@ -22,8 +25,8 @@ public sealed class MigrationContributorGeneratorTests
 			sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
 			""";
 
-		var compilation = CreateCompilation(source);
-		var generator = new MigrationContributorGenerator();
+		var compilation = CreateCompilation(Source);
+		MigrationContributorGenerator generator = new();
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
@@ -42,7 +45,7 @@ public sealed class MigrationContributorGeneratorTests
 	void Generator_emits_no_source_when_no_contributors_found()
 	{
 		var compilation = CreateCompilation("// empty");
-		var generator = new MigrationContributorGenerator();
+		MigrationContributorGenerator generator = new();
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
@@ -53,7 +56,7 @@ public sealed class MigrationContributorGeneratorTests
 	[Fact]
 	void Generator_discovers_seed_contributors_and_emits_registration()
 	{
-		var source = """
+		const string Source = """
 			using Microsoft.Extensions.DependencyInjection;
 			using Norse.Abstractions.Migrations.Seeding;
 
@@ -65,8 +68,8 @@ public sealed class MigrationContributorGeneratorTests
 			}
 			""";
 
-		var compilation = CreateCompilation(source);
-		var generator = new MigrationContributorGenerator();
+		var compilation = CreateCompilation(Source);
+		MigrationContributorGenerator generator = new();
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
@@ -92,7 +95,7 @@ public sealed class MigrationContributorGeneratorTests
 		// original source (plus a minimal stand-in for Midgard's runner extensions, which Urðarbrunnr
 		// cannot reference directly — it sits below Midgard in the platform's dependency chain) and
 		// asserts there are zero error diagnostics.
-		var source = """
+		const string Source = """
 			using System.Threading;
 			using System.Threading.Tasks;
 			using Norse.Persistence.EntityFramework;
@@ -140,8 +143,8 @@ public sealed class MigrationContributorGeneratorTests
 			}
 			""";
 
-		var compilation = CreateCompilation(source);
-		var generator = new MigrationContributorGenerator();
+		var compilation = CreateCompilation(Source);
+		MigrationContributorGenerator generator = new();
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
@@ -156,16 +159,15 @@ public sealed class MigrationContributorGeneratorTests
 		var recompiled = CSharpCompilation.Create(
 			"TestAssembly.Recompiled",
 			[
-				CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken),
+				CSharpSyntaxTree.ParseText(Source, cancellationToken: TestContext.Current.CancellationToken),
 				CSharpSyntaxTree.ParseText(InfrastructureStub, cancellationToken: TestContext.Current.CancellationToken),
 				result.GeneratedTrees[0],
 			],
 			references,
-			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+			new(OutputKind.DynamicallyLinkedLibrary));
 
-		var errors = recompiled.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(d => d.Severity == DiagnosticSeverity.Error)
-			.ToList();
+		IList<Diagnostic> errors = [.. recompiled.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(d => d.Severity == DiagnosticSeverity.Error)];
 
 		errors.ShouldBeEmpty();
 	}
@@ -173,7 +175,7 @@ public sealed class MigrationContributorGeneratorTests
 	[Fact]
 	void Generator_produces_AddNorseSeedingRunner_call_even_with_zero_seed_contributors()
 	{
-		var source = """
+		const string Source = """
 			using Norse.Persistence.EntityFramework;
 			using Norse.Persistence.EntityFramework.Design;
 			using Microsoft.EntityFrameworkCore;
@@ -187,8 +189,8 @@ public sealed class MigrationContributorGeneratorTests
 			sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
 			""";
 
-		var compilation = CreateCompilation(source);
-		var generator = new MigrationContributorGenerator();
+		var compilation = CreateCompilation(Source);
+		MigrationContributorGenerator generator = new();
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
@@ -202,29 +204,28 @@ public sealed class MigrationContributorGeneratorTests
 			"TestAssembly",
 			[CSharpSyntaxTree.ParseText(source)],
 			ReferenceAssemblies(),
-			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+			new(OutputKind.DynamicallyLinkedLibrary));
 
-	static List<MetadataReference> ReferenceAssemblies()
+	static IList<MetadataReference> ReferenceAssemblies()
 	{
 		// Build metadata references from explicit assembly locations — AppDomain.GetAssemblies()
 		// is unreliable in .NET 11 due to metadata pre-sharing; typeof().Assembly.Location is stable.
 		// In .NET 5+ the public Attribute/Object surface lives in System.Runtime.dll (a facade), not
 		// System.Private.CoreLib — both must be present for Roslyn to bind attribute constructors.
-		var runtimeDir = System.IO.Path.GetDirectoryName(typeof(object).Assembly.Location)!;
-		var references = new[]
+		var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+		IList<MetadataReference> references = [.. new[]
 		{
 			typeof(object),
-			typeof(Norse.Persistence.EntityFramework.Design.MigrationConnectionStringAttribute),
-			typeof(Norse.Persistence.EntityFramework.NorseDbContext),
-			typeof(Norse.Abstractions.Migrations.IMigrationContributor),
-			typeof(Norse.Abstractions.Migrations.Seeding.ISeedContributor),
-			typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection),
+			typeof(MigrationConnectionStringAttribute),
+			typeof(NorseDbContext),
+			typeof(IMigrationContributor),
+			typeof(ISeedContributor),
+			typeof(IServiceCollection),
 			typeof(Microsoft.EntityFrameworkCore.DbContext),
 		}
 		.Select(t => MetadataReference.CreateFromFile(t.Assembly.Location))
 		.Cast<MetadataReference>()
-		.Append(MetadataReference.CreateFromFile(System.IO.Path.Combine(runtimeDir, "System.Runtime.dll")))
-		.ToList();
+		.Append(MetadataReference.CreateFromFile(Path.Combine(runtimeDir, "System.Runtime.dll")))];
 
 		return references;
 	}

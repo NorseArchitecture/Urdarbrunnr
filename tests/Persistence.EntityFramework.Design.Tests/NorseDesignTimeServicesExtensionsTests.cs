@@ -14,10 +14,10 @@ public sealed class NorseDesignTimeServicesExtensionsTests
 		using var ctx = CreateContext();
 		ServiceCollection services = new();
 		FakeMigrationsScaffolder efScaffolder = new();
-		services.AddSingleton<IMigrationsScaffolder>(efScaffolder);
-		services.AddSingleton(CurrentDbContext(ctx));
-
-		services.AddNorseDesignTimeServices("test-db");
+		services
+			.AddSingleton<IMigrationsScaffolder>(efScaffolder)
+			.AddSingleton(CurrentDbContext(ctx))
+			.AddNorseDesignTimeServices("test-db");
 		using var provider = services.BuildServiceProvider();
 
 		var scaffolder = provider.GetRequiredService<IMigrationsScaffolder>();
@@ -31,10 +31,10 @@ public sealed class NorseDesignTimeServicesExtensionsTests
 		using var ctx = CreateContext();
 		ServiceCollection services = new();
 		FakeMigrationsScaffolder efScaffolder = new();
-		services.AddSingleton<IMigrationsScaffolder>(efScaffolder);
-		services.AddSingleton(CurrentDbContext(ctx));
-
-		services.AddNorseDesignTimeServices("test-db");
+		services
+			.AddSingleton<IMigrationsScaffolder>(efScaffolder)
+			.AddSingleton(CurrentDbContext(ctx))
+			.AddNorseDesignTimeServices("test-db");
 		using var provider = services.BuildServiceProvider();
 		var scaffolder = provider.GetRequiredService<IMigrationsScaffolder>();
 
@@ -62,9 +62,9 @@ public sealed class NorseDesignTimeServicesExtensionsTests
 	{
 		using var ctx = CreateContext();
 		ServiceCollection services = new();
-		services.AddSingleton(CurrentDbContext(ctx));
-
-		services.AddNorseDesignTimeServices("test-db");
+		services
+			.AddSingleton(CurrentDbContext(ctx))
+			.AddNorseDesignTimeServices("test-db");
 		using var provider = services.BuildServiceProvider();
 
 		Should.Throw<InvalidOperationException>(provider.GetRequiredService<IMigrationsScaffolder>);
@@ -81,9 +81,9 @@ public sealed class NorseDesignTimeServicesExtensionsTests
 		public DbSet<StubEntity> StubEntities => Set<StubEntity>();
 	}
 
-	sealed class StubEntity : INorseEntity<StubEntity>
+	sealed record StubEntity : INorseEntity<StubEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
 		public static void Configure(EntityTypeBuilder<StubEntity> builder)
 		{

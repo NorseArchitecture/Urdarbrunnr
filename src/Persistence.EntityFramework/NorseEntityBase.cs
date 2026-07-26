@@ -13,5 +13,5 @@ namespace Norse.Persistence.EntityFramework;
 /// interface to <c>TSelf</c> for free. Omitting the interface fails to build with <c>CS0311</c>;
 /// omitting <c>Configure</c> fails with <c>CS0535</c>.
 /// </remarks>
-public abstract class NorseEntityBase<TSelf>
+public abstract record NorseEntityBase<TSelf>
 	where TSelf : NorseEntityBase<TSelf>, INorseEntity<TSelf>;

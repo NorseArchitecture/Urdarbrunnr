@@ -6,10 +6,8 @@ namespace Norse.Persistence.EntityFramework.Tests;
 public sealed class RequireEntityConfigurationConventionTests
 {
 	[Fact]
-	void Tier1_entity_via_NorseEntityBase_must_implement_Configure()
-	{
+	void Tier1_entity_via_NorseEntityBase_must_implement_Configure() =>
 		typeof(INorseEntity<Tier1Entity>).IsAssignableFrom(typeof(Tier1Entity)).ShouldBeTrue();
-	}
 
 	[Fact]
 	void Entity_not_implementing_INorseEntity_throws_on_model_build()
@@ -21,10 +19,8 @@ public sealed class RequireEntityConfigurationConventionTests
 	}
 
 	[Fact]
-	void Entity_implementing_INorseEntity_directly_satisfies_the_convention()
-	{
+	void Entity_implementing_INorseEntity_directly_satisfies_the_convention() =>
 		Should.NotThrow(BuildModel<DirectImplementationContext>);
-	}
 
 	static void BuildModel<TContext>() where TContext : DbContext
 	{
@@ -33,22 +29,23 @@ public sealed class RequireEntityConfigurationConventionTests
 		_ = ctx.Model;
 	}
 
-	sealed class Tier1Entity : NorseEntityBase<Tier1Entity>, INorseEntity<Tier1Entity>
+	sealed record Tier1Entity : NorseEntityBase<Tier1Entity>, INorseEntity<Tier1Entity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
 		public static void Configure(EntityTypeBuilder<Tier1Entity> builder) =>
 			builder.Property(e => e.Id);
 	}
 
-	sealed class PlainEntity
+	sealed record PlainEntity
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 	}
 
 	sealed class PlainContext(DbContextOptions<PlainContext> options) : NorseDbContext(options)
 	{
-		public DbSet<PlainEntity> Entities => Set<PlainEntity>();
+		public DbSet<PlainEntity> Entities =>
+			Set<PlainEntity>();
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -57,19 +54,20 @@ public sealed class RequireEntityConfigurationConventionTests
 		}
 	}
 
-	sealed class DirectImplementationEntity : INorseEntity<DirectImplementationEntity>
+	sealed record DirectImplementationEntity : INorseEntity<DirectImplementationEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
 		public static void Configure(
-			Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<DirectImplementationEntity> builder) =>
+			EntityTypeBuilder<DirectImplementationEntity> builder) =>
 			builder.Property(e => e.Id);
 	}
 
 	sealed class DirectImplementationContext(DbContextOptions<DirectImplementationContext> options)
 		: NorseDbContext(options)
 	{
-		public DbSet<DirectImplementationEntity> Entities => Set<DirectImplementationEntity>();
+		public DbSet<DirectImplementationEntity> Entities =>
+			Set<DirectImplementationEntity>();
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
