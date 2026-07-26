@@ -3,8 +3,17 @@
 		<Description>Norse.Persistence.EntityFramework.Design.PostgreSQL.Generator: the Roslyn IIncrementalGenerator that discovers EfMigrationContributor&lt;TContext&gt; implementations at compile time and emits AddNorseMigrations() with Npgsql connection wiring.</Description>
 	</PropertyGroup>
 	<ItemGroup>
+		<NorseRef Include="Abstractions.Emit">
+			<Repo>Asgard</Repo>
+		</NorseRef>
 		<Compile Include="../Persistence.EntityFramework.Design.Generator.Shared/MigrationContributorDiscovery.cs" Link="Shared/MigrationContributorDiscovery.cs" />
-		<Compile Include="../Persistence.EntityFramework.Design.Generator.Shared/CSharpEmit.cs" Link="Shared/CSharpEmit.cs" />
-		<Compile Include="../Persistence.EntityFramework.Design.Generator.Shared/StringSyntaxAttribute.cs" Link="Shared/StringSyntaxAttribute.cs" />
 	</ItemGroup>
+	<PropertyGroup>
+		<GetTargetPathDependsOn>$(GetTargetPathDependsOn);_NorseIncludeEmitDependencyTargetPath</GetTargetPathDependsOn>
+	</PropertyGroup>
+	<Target Name="_NorseIncludeEmitDependencyTargetPath">
+		<ItemGroup>
+			<TargetPathWithTargetPlatformMoniker Include="@(ReferenceCopyLocalPaths->WithMetadataValue('Filename', 'Norse.Abstractions.Emit')->WithMetadataValue('Extension', '.dll'))" IncludeRuntimeDependency="false" />
+		</ItemGroup>
+	</Target>
 </Project>

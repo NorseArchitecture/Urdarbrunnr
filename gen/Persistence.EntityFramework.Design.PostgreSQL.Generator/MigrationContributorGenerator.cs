@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Norse.Abstractions.Emit;
 using Norse.Persistence.EntityFramework.Design.Generator.Shared;
 
 namespace Norse.Persistence.EntityFramework.Design.PostgreSQL.Generator;
@@ -25,7 +26,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 				return;
 
 			var source = BuildSource(list, seedList);
-			ctx.AddSource("NorseMigrationsExtensions.g.cs", SourceText.From(source, Encoding.UTF8));
+			ctx.AddSource("NorseMigrationsExtensions.g.cs", SourceText.From(source, Utf8NoBom.Encoding));
 		});
 	}
 
