@@ -27,8 +27,10 @@ public static class NorseModelConventions
 	/// <param name="sequentialGuidOrder">
 	/// Which <see cref="GuidByteOrder"/> the model-wide <see cref="SequentialGuid"/> converter expects
 	/// for this provider — <see cref="GuidByteOrder.SqlServer"/> selects
-	/// <see cref="SqlServerSequentialGuidValueConverter"/>, anything else selects
-	/// <see cref="Rfc9562SequentialGuidValueConverter"/>. Deliberately independent of
+	/// <see cref="SqlServerSequentialGuidValueConverter"/>, <see cref="GuidByteOrder.Rfc9562"/> selects
+	/// <see cref="Rfc9562SequentialGuidValueConverter"/>, and anything else — including
+	/// <see cref="GuidByteOrder.Unspecified"/> — throws <see cref="ArgumentOutOfRangeException"/>; there is
+	/// no fallback converter. Deliberately independent of
 	/// <paramref name="applyFixedLength"/>: both happen to be driven by the same provider check today,
 	/// but they are unrelated facts (a general storage-engine question vs. a SQL-Server-specific
 	/// comparison quirk) — a future provider could decouple them, and folding both into one flag would
@@ -49,6 +51,7 @@ public static class NorseModelConventions
 				"GuidByteOrder.Unspecified (or any other unhandled value) is never a valid argument.")
 		};
 		configurationBuilder.Properties<SequentialGuid>().HaveConversion(converterType);
+		configurationBuilder.Properties<DeterministicGuid>().HaveConversion<DeterministicGuidValueConverter>();
 		return configurationBuilder;
 	}
 }

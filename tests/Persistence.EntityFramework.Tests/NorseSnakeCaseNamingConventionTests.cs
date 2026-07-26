@@ -23,6 +23,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		// ConfigureConventions additions never reach.
 		var optionsBuilder = new DbContextOptionsBuilder<HistoryTestContext>().UseSqlite("Data Source=:memory:");
 		optionsBuilder.ApplyNorseConventions();
+		optionsBuilder.ApplyNorseTrackingBehavior();
 		using HistoryTestContext ctx = new(optionsBuilder.Options);
 		var historyRepository = ctx.GetService<IHistoryRepository>();
 
@@ -135,8 +136,10 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		IList<string> invokedEntityClrNames = [];
 		Func<string, string>? capturedRewrite = null;
 
+		var optionsBuilder = new DbContextOptionsBuilder<InjectedActionContext>().UseSqlite("Data Source=:memory:");
+		optionsBuilder.ApplyNorseTrackingBehavior();
 		using InjectedActionContext ctx = new(
-			new DbContextOptionsBuilder<InjectedActionContext>().UseSqlite("Data Source=:memory:").Options,
+			optionsBuilder.Options,
 			(entity, rewrite) =>
 			{
 				invokedEntityClrNames.Add(entity.ClrType.Name);
@@ -150,9 +153,12 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		capturedRewrite!("CustomerId").ShouldBe("customer_id");
 	}
 
-	static TContext CreateContext<TContext>() where TContext : DbContext =>
-		(TContext)Activator.CreateInstance(typeof(TContext),
-			new DbContextOptionsBuilder<TContext>().UseSqlite("Data Source=:memory:").Options)!;
+	static TContext CreateContext<TContext>() where TContext : DbContext
+	{
+		var optionsBuilder = new DbContextOptionsBuilder<TContext>().UseSqlite("Data Source=:memory:");
+		optionsBuilder.ApplyNorseTrackingBehavior();
+		return (TContext)Activator.CreateInstance(typeof(TContext), optionsBuilder.Options)!;
+	}
 
 	sealed record RewriteTestEntity(int Id, string CustomerName = "");
 

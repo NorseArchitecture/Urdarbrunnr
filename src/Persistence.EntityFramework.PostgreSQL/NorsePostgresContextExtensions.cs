@@ -6,7 +6,9 @@ using Microsoft.Extensions.Hosting;
 namespace Norse.Persistence.EntityFramework.PostgreSQL;
 
 /// <summary>
-/// Aspire-wired registration extensions for Norse EF Postgres contexts.
+/// Aspire-wired registration extensions for Norse EF Postgres contexts. Every context registered here gets
+/// <see cref="NorseDbContextOptionsExtensions.ApplyNorseTrackingBehavior"/> applied unconditionally — see
+/// that method for the platform-wide "no change tracking" rationale.
 /// </summary>
 public static class NorsePostgresContextExtensions
 {
@@ -36,6 +38,7 @@ public static class NorsePostgresContextExtensions
 			builder.AddNpgsqlDbContext<TContext>(connectionStringName,
 				configureDbContextOptions: opts =>
 				{
+					opts.ApplyNorseTrackingBehavior();
 					if (useSnakeCaseNaming)
 						opts.ApplyNorseConventions();
 				});
@@ -73,6 +76,7 @@ public static class NorsePostgresContextExtensions
 			builder.Services.AddDbContext<TContext>(opts =>
 			{
 				opts.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(migrationsAssemblyName));
+				opts.ApplyNorseTrackingBehavior();
 				if (useSnakeCaseNaming)
 					opts.ApplyNorseConventions();
 			});

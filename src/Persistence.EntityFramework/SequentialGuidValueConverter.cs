@@ -15,13 +15,18 @@ namespace Norse.Persistence.EntityFramework;
 abstract class SequentialGuidValueConverter(GuidByteOrder expectedOrder) :
 	ValueConverter<SequentialGuid, Guid>(
 		guid => Guard(guid, expectedOrder),
-		value => new SequentialGuid(value, expectedOrder))
+		value => new(value, expectedOrder))
 {
-	static Guid Guard(SequentialGuid guid, GuidByteOrder expectedOrder) =>
-		guid.Order == expectedOrder
-			? guid.Value
-			: throw new InvalidOperationException(
-				$"SequentialGuid is in {guid.Order} byte order but this provider requires {expectedOrder}. " +
-				$"Call {(expectedOrder == GuidByteOrder.SqlServer ? "ToSqlOrder()" : "ToRfcOrder()")} explicitly " +
-				"before assigning -- this converter never silently reshuffles.");
+	static Guid Guard(SequentialGuid guid, GuidByteOrder expectedOrder)
+	{
+		if (guid.Order == expectedOrder)
+			return guid.Value;
+
+		if (guid.Order == GuidByteOrder.Unspecified)
+			throw new InvalidOperationException(
+				"SequentialGuid is default (uninitialized) — assign a real value via `new SequentialGuid()` or by wrapping an existing one, not a default/unset property.");
+
+		throw new InvalidOperationException(
+			$"SequentialGuid is in {guid.Order} byte order but this provider requires {expectedOrder}. Call {(expectedOrder == GuidByteOrder.SqlServer ? "ToSqlOrder()" : "ToRfcOrder()")} explicitly before assigning — this converter never silently reshuffles.");
+	}
 }

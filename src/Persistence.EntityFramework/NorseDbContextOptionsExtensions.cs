@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Norse.Persistence.EntityFramework;
 
 /// <summary>
-/// Options-builder extensions that apply Norse platform naming conventions.
+/// Options-builder extensions that apply Norse platform-wide EF conventions: naming and, separately,
+/// query tracking behavior.
 /// </summary>
 public static class NorseDbContextOptionsExtensions
 {
@@ -42,5 +43,21 @@ public static class NorseDbContextOptionsExtensions
 				.AddOrUpdateExtension(new NorseSnakeCaseNamingOptionsExtension(applyProviderSpecificRenames));
 			return optionsBuilder;
 		}
+
+		/// <summary>
+		/// Forces <see cref="QueryTrackingBehavior.NoTracking"/> platform-wide. Norse Architecture's stance:
+		/// change tracking and lazy loading are legacy features with no place in an event-driven, CQRS-shaped
+		/// query side — a tracked query also can't project an owned entity without its owner in the result
+		/// (EF Core throws at query time), so there is no scenario on this platform where tracking is the
+		/// right default. Called unconditionally by every provider's registration extension (see
+		/// <c>Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions</c> and its SQL
+		/// Server counterpart) — unlike <see cref="ApplyNorseConventions"/>, this is platform law, not a
+		/// provider decision, so it is never gated behind an opt-out parameter. Any context built directly
+		/// (a hand-rolled <see cref="DbContextOptionsBuilder"/> in a test, for example) must call this too;
+		/// a handler that genuinely needs a tracked graph opts back in per-query via <c>AsTracking()</c>.
+		/// </summary>
+		/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
+		public DbContextOptionsBuilder ApplyNorseTrackingBehavior() =>
+			optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 	}
 }
