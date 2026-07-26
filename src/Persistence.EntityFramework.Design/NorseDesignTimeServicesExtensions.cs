@@ -22,27 +22,30 @@ namespace Norse.Persistence.EntityFramework.Design;
 public static class NorseDesignTimeServicesExtensions
 {
 	/// <param name="services">The design-time service collection EFs tooling supplies.</param>
-	/// <param name="databaseName">
-	/// The realm's database name (e.g. <c>"norse_reference"</c>) -- names the emitted schema
-	/// file (<c>schema/{databaseName}.sql</c>, resolved via <see cref="DesignTimeSchemaPath"/>).
-	/// </param>
-	/// <returns>The same <paramref name="services"/> for chaining.</returns>
-	public static IServiceCollection AddNorseDesignTimeServices(this IServiceCollection services, string databaseName)
+	extension(IServiceCollection services)
 	{
-		var outputFilePath = DesignTimeSchemaPath.Resolve(AppContext.BaseDirectory, databaseName);
-		var efDescriptor = services.LastOrDefault(d => d.ServiceType == typeof(IMigrationsScaffolder));
-
-		return services.AddSingleton<IMigrationsScaffolder>(sp =>
+		/// <param name="databaseName">
+		/// The realm's database name (e.g. <c>"norse_reference"</c>) -- names the emitted schema
+		/// file (<c>schema/{databaseName}.sql</c>, resolved via <see cref="DesignTimeSchemaPath"/>).
+		/// </param>
+		/// <returns>The same <paramref name="services"/> for chaining.</returns>
+		public IServiceCollection AddNorseDesignTimeServices(string databaseName)
 		{
-			var inner = efDescriptor switch
+			var outputFilePath = DesignTimeSchemaPath.Resolve(AppContext.BaseDirectory, databaseName);
+			var efDescriptor = services.LastOrDefault(d => d.ServiceType == typeof(IMigrationsScaffolder));
+
+			return services.AddSingleton<IMigrationsScaffolder>(sp =>
 			{
-				{ ImplementationType: not null } => (IMigrationsScaffolder)ActivatorUtilities.CreateInstance(sp, efDescriptor.ImplementationType),
-				{ ImplementationFactory: not null } => (IMigrationsScaffolder)efDescriptor.ImplementationFactory(sp),
-				{ ImplementationInstance: not null } => (IMigrationsScaffolder)efDescriptor.ImplementationInstance,
-				_ => throw new InvalidOperationException(
-					"Could not locate Entity Framework's IMigrationsScaffolder registration. Ensure Microsoft.EntityFrameworkCore.Design is referenced correctly.")
-			};
-			return new DdlEmittingMigrationsScaffolder(inner, sp.GetRequiredService<ICurrentDbContext>(), outputFilePath);
-		});
+				var inner = efDescriptor switch
+				{
+					{ ImplementationType: not null } => (IMigrationsScaffolder)ActivatorUtilities.CreateInstance(sp, efDescriptor.ImplementationType),
+					{ ImplementationFactory: not null } => (IMigrationsScaffolder)efDescriptor.ImplementationFactory(sp),
+					{ ImplementationInstance: not null } => (IMigrationsScaffolder)efDescriptor.ImplementationInstance,
+					_ => throw new InvalidOperationException(
+						"Could not locate Entity Framework's IMigrationsScaffolder registration. Ensure Microsoft.EntityFrameworkCore.Design is referenced correctly.")
+				};
+				return new DdlEmittingMigrationsScaffolder(inner, sp.GetRequiredService<ICurrentDbContext>(), outputFilePath);
+			});
+		}
 	}
 }
