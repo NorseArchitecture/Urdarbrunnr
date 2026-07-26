@@ -75,4 +75,30 @@ public sealed class SequentialGuidValueConverterTests
 		result.Order.ShouldBe(GuidByteOrder.SqlServer);
 		result.Value.ShouldBe(source.Value);
 	}
+
+	[Fact]
+	void Rfc9562_converter_throws_a_distinct_message_for_a_default_value()
+	{
+		var guid = default(SequentialGuid);
+		Rfc9562SequentialGuidValueConverter converter = new();
+
+		var act = () => converter.ConvertToProvider(guid);
+
+		var ex = act.ShouldThrow<InvalidOperationException>();
+		ex.Message.ShouldContain("default");
+		ex.Message.ShouldContain("uninitialized");
+	}
+
+	[Fact]
+	void SqlServer_converter_throws_a_distinct_message_for_a_default_value()
+	{
+		var guid = default(SequentialGuid);
+		SqlServerSequentialGuidValueConverter converter = new();
+
+		var act = () => converter.ConvertToProvider(guid);
+
+		var ex = act.ShouldThrow<InvalidOperationException>();
+		ex.Message.ShouldContain("default");
+		ex.Message.ShouldContain("uninitialized");
+	}
 }
