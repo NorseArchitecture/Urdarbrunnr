@@ -7,10 +7,8 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL;
 
 /// <summary>
 /// Aspire-wired registration extensions for Norse EF Postgres contexts. Every context registered here gets
-/// <see cref="QueryTrackingBehavior.NoTracking"/> forced unconditionally (not an opt-in) — the platform's
-/// CQRS query side never mutates through a tracked graph, and tracking an owned-entity projection without
-/// its owner throws at query time regardless, so there is no scenario where tracking is the right default.
-/// A handler that genuinely needs a tracked entity opts back in per-query via <c>AsTracking()</c>.
+/// <see cref="NorseDbContextOptionsExtensions.ApplyNorseTrackingBehavior"/> applied unconditionally — see
+/// that method for the platform-wide "no change tracking" rationale.
 /// </summary>
 public static class NorsePostgresContextExtensions
 {
@@ -40,7 +38,7 @@ public static class NorsePostgresContextExtensions
 			builder.AddNpgsqlDbContext<TContext>(connectionStringName,
 				configureDbContextOptions: opts =>
 				{
-					opts.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+					opts.ApplyNorseTrackingBehavior();
 					if (useSnakeCaseNaming)
 						opts.ApplyNorseConventions();
 				});
@@ -78,7 +76,7 @@ public static class NorsePostgresContextExtensions
 			builder.Services.AddDbContext<TContext>(opts =>
 			{
 				opts.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(migrationsAssemblyName));
-				opts.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+				opts.ApplyNorseTrackingBehavior();
 				if (useSnakeCaseNaming)
 					opts.ApplyNorseConventions();
 			});
