@@ -64,9 +64,9 @@ public sealed class NorseSqlServerDesignTimeDbContextFactoryTests
 		public DbSet<StubEntity> StubEntities => Set<StubEntity>();
 	}
 
-	sealed class StubEntity : INorseEntity<StubEntity>
+	sealed record StubEntity : INorseEntity<StubEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
 		public static void Configure(EntityTypeBuilder<StubEntity> builder)
 		{
@@ -77,7 +77,8 @@ public sealed class NorseSqlServerDesignTimeDbContextFactoryTests
 	{
 		protected override string DatabaseName => "stub_db";
 
-		protected override StubContext CreateContext(DbContextOptions<StubContext> options) => new(options);
+		protected override StubContext CreateContext(DbContextOptions<StubContext> options) =>
+			new(options);
 	}
 
 	sealed class OverridingStubFactory : NorseSqlServerDesignTimeDbContextFactory<StubContext>
@@ -92,6 +93,7 @@ public sealed class NorseSqlServerDesignTimeDbContextFactoryTests
 			ExtraConfigurationRan = true;
 		}
 
-		protected override StubContext CreateContext(DbContextOptions<StubContext> options) => new(options);
+		protected override StubContext CreateContext(DbContextOptions<StubContext> options) =>
+			new(options);
 	}
 }

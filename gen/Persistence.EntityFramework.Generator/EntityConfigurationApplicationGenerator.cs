@@ -16,16 +16,17 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
 		var entityDeclarations = context.SyntaxProvider.CreateSyntaxProvider(
-			static (node, _) => node is ClassDeclarationSyntax { TypeParameterList: null },
-			static (ctx, _) => (ClassDeclarationSyntax)ctx.Node);
+			static (node, _) => node is TypeDeclarationSyntax { TypeParameterList: null } typeDeclaration &&
+				(typeDeclaration.IsKind(SyntaxKind.ClassDeclaration) || typeDeclaration.IsKind(SyntaxKind.RecordDeclaration)),
+			static (ctx, _) => (TypeDeclarationSyntax)ctx.Node);
 
-		var compilationAndClasses = context.CompilationProvider.Combine(entityDeclarations.Collect());
+		var compilationAndDeclarations = context.CompilationProvider.Combine(entityDeclarations.Collect());
 
-		context.RegisterSourceOutput(compilationAndClasses, static (ctx, source) =>
+		context.RegisterSourceOutput(compilationAndDeclarations, static (ctx, source) =>
 		{
-			var (compilation, classes) = source;
-			var entities = FindEntities(compilation, classes);
-			var tier1Context = FindPartialTier1Context(compilation, classes);
+			var (compilation, typeDeclarations) = source;
+			var entities = FindEntities(compilation, typeDeclarations);
+			var tier1Context = FindPartialTier1Context(compilation, typeDeclarations);
 
 			if (entities.Count == 0 && tier1Context is null)
 				return;
@@ -35,14 +36,14 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 		});
 	}
 
-	static IList<string> FindEntities(Compilation compilation, IList<ClassDeclarationSyntax> classes)
+	static IList<string> FindEntities(Compilation compilation, IList<TypeDeclarationSyntax> typeDeclarations)
 	{
 		IList<string> results = [];
 
-		foreach (var classDeclaration in classes)
+		foreach (var typeDeclaration in typeDeclarations)
 		{
-			var model = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-			if (model.GetDeclaredSymbol(classDeclaration) is not INamedTypeSymbol type)
+			var model = compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
+			if (model.GetDeclaredSymbol(typeDeclaration) is not INamedTypeSymbol type)
 				continue;
 
 			if (type.IsAbstract)
@@ -61,15 +62,15 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 		return results;
 	}
 
-	static INamedTypeSymbol? FindPartialTier1Context(Compilation compilation, IList<ClassDeclarationSyntax> classes)
+	static INamedTypeSymbol? FindPartialTier1Context(Compilation compilation, IList<TypeDeclarationSyntax> typeDeclarations)
 	{
-		foreach (var classDeclaration in classes)
+		foreach (var typeDeclaration in typeDeclarations)
 		{
-			if (!classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword))
+			if (!typeDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword))
 				continue;
 
-			var model = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-			if (model.GetDeclaredSymbol(classDeclaration) is not INamedTypeSymbol type)
+			var model = compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
+			if (model.GetDeclaredSymbol(typeDeclaration) is not INamedTypeSymbol type)
 				continue;
 
 			if (InheritsNorseDbContext(type))

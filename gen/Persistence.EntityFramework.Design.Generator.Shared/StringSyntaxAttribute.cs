@@ -6,7 +6,7 @@
 namespace System.Diagnostics.CodeAnalysis;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 
-[AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property)]
 sealed class StringSyntaxAttribute(string syntax) : Attribute
 {
 	public string Syntax { get; } = syntax;

@@ -53,6 +53,28 @@ public sealed class DdlEmittingMigrationsScaffolderTests
 	}
 
 	[Fact]
+	void ScaffoldMigration_writes_the_ddl_file_as_utf8_without_a_bom()
+	{
+		FakeMigrationsScaffolder inner = new();
+		using var ctx = CreateContext();
+		var outputPath = TempFilePath();
+		DdlEmittingMigrationsScaffolder sut = new(inner, CurrentDbContext(ctx), outputPath);
+
+		try
+		{
+			sut.ScaffoldMigration("Initial", "MyNamespace");
+
+			byte[] bom = [0xEF, 0xBB, 0xBF];
+			var bytes = File.ReadAllBytes(outputPath);
+			bytes.Take(3).ShouldNotBe(bom);
+		}
+		finally
+		{
+			File.Delete(outputPath);
+		}
+	}
+
+	[Fact]
 	void ScaffoldMigration_creates_the_output_directory_when_it_does_not_exist()
 	{
 		FakeMigrationsScaffolder inner = new();
@@ -124,9 +146,9 @@ public sealed class DdlEmittingMigrationsScaffolderTests
 		public DbSet<StubEntity> StubEntities => Set<StubEntity>();
 	}
 
-	sealed class StubEntity : INorseEntity<StubEntity>
+	sealed record StubEntity : INorseEntity<StubEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
 		public static void Configure(EntityTypeBuilder<StubEntity> builder)
 		{

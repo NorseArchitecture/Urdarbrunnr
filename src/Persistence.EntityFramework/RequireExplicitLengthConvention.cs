@@ -10,7 +10,7 @@ sealed class RequireExplicitLengthConvention(bool applyFixedLength) : IModelFina
 {
 	public void ProcessModelFinalizing(IConventionModelBuilder builder, IConventionContext<IConventionModelBuilder> context)
 	{
-		List<string> violations = [];
+		IList<string> violations = [];
 
 		foreach (var property in builder.Metadata.GetEntityTypes().SelectMany(static t => t.GetProperties()))
 		{

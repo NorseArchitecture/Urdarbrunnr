@@ -10,7 +10,8 @@ namespace Norse.Persistence.EntityFramework.SqlServer.Tests;
 
 public sealed class NorseSqlServerContextExtensionsTests
 {
-	const string ConnectionString = "Server=localhost;Database=test;Trusted_Connection=True;TrustServerCertificate=True;";
+	const string ConnectionString =
+		"Server=localhost;Database=test;Trusted_Connection=True;TrustServerCertificate=True;";
 
 	[Fact]
 	void AddNorseSqlServerContext_registers_TContext_in_DI()
@@ -33,7 +34,8 @@ public sealed class NorseSqlServerContextExtensionsTests
 		builder.Configuration.AddInMemoryCollection(
 			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = ConnectionString });
 
-		builder.AddNorseSqlServerMigrationContext<TestContext>("test-db", "Norse.Persistence.EntityFramework.SqlServer.Tests");
+		builder.AddNorseSqlServerMigrationContext<TestContext>("test-db",
+			"Norse.Persistence.EntityFramework.SqlServer.Tests");
 
 		var descriptor = builder.Services
 			.FirstOrDefault(d => d.ServiceType == typeof(TestContext));
@@ -54,7 +56,8 @@ public sealed class NorseSqlServerContextExtensionsTests
 		builder.Configuration.AddInMemoryCollection(
 			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = ConnectionString });
 
-		builder.AddNorseSqlServerMigrationContext<TestContext>("test-db", "Norse.Persistence.EntityFramework.SqlServer.Tests");
+		builder.AddNorseSqlServerMigrationContext<TestContext>("test-db",
+			"Norse.Persistence.EntityFramework.SqlServer.Tests");
 
 		using var host = builder.Build();
 		using var scope = host.Services.CreateScope();
@@ -70,7 +73,8 @@ public sealed class NorseSqlServerContextExtensionsTests
 		builder.Configuration.AddInMemoryCollection(
 			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = ConnectionString });
 
-		builder.AddNorseSqlServerMigrationContext<TestContext>("test-db", "Norse.Persistence.EntityFramework.SqlServer.Tests");
+		builder.AddNorseSqlServerMigrationContext<TestContext>("test-db",
+			"Norse.Persistence.EntityFramework.SqlServer.Tests");
 
 		using var host = builder.Build();
 		using var scope = host.Services.CreateScope();
@@ -107,8 +111,8 @@ public sealed class NorseSqlServerContextExtensionsTests
 		builder.Configuration.AddInMemoryCollection(
 			new Dictionary<string, string?> { ["ConnectionStrings:test-db"] = ConnectionString });
 
-		builder.AddNorseSqlServerMigrationContext<TemporalTestContext>(
-			"test-db", "Norse.Persistence.EntityFramework.SqlServer.Tests", useSnakeCaseNaming: true);
+		builder.AddNorseSqlServerMigrationContext<TemporalTestContext>("test-db",
+			"Norse.Persistence.EntityFramework.SqlServer.Tests", useSnakeCaseNaming: true);
 
 		using var host = builder.Build();
 		using var scope = host.Services.CreateScope();
@@ -125,29 +129,28 @@ public sealed class NorseSqlServerContextExtensionsTests
 		public DbSet<TestEntity> TestEntities => Set<TestEntity>();
 	}
 
-	sealed class TestEntity : INorseEntity<TestEntity>
+	sealed record TestEntity : INorseEntity<TestEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; set; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
 		public static void Configure(EntityTypeBuilder<TestEntity> builder) { }
 	}
 
-	sealed class TemporalTestEntity : INorseEntity<TemporalTestEntity>
+	sealed record TemporalTestEntity : INorseEntity<TemporalTestEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Value { get; set; } = "";
+		[MaxLength(100)] public string Value { get; init; } = "";
 
 		public static void Configure(EntityTypeBuilder<TemporalTestEntity> builder) { }
 	}
 
 	sealed class TemporalTestContext(DbContextOptions<TemporalTestContext> options) : NorseDbContext(options)
 	{
-		public DbSet<TemporalTestEntity> TemporalTestEntities => Set<TemporalTestEntity>();
+		public DbSet<TemporalTestEntity> TemporalTestEntities =>
+			Set<TemporalTestEntity>();
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{

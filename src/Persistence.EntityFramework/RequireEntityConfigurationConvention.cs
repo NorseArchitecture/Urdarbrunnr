@@ -10,28 +10,23 @@ sealed class RequireEntityConfigurationConvention : IModelFinalizingConvention
 		IConventionModelBuilder builder, IConventionContext<IConventionModelBuilder> context)
 	{
 		List<string> violations = [];
-
-		foreach (var entityType in builder.Metadata.GetEntityTypes())
-		{
-			if (entityType.IsMappedToJson())
-				continue;
-
-			var clrType = entityType.ClrType;
-			var implementsSelf = clrType.GetInterfaces().Any(i =>
-				i.IsGenericType &&
-				i.GetGenericTypeDefinition() == typeof(INorseEntity<>) &&
-				i.GetGenericArguments()[0] == clrType);
-
-			if (!implementsSelf)
-				violations.Add(clrType.FullName!);
-		}
+		violations.AddRange(builder.Metadata.GetEntityTypes()
+			.Where(entityType => !entityType.IsMappedToJson())
+			.Select(entityType => entityType.ClrType)
+			.Select(clrType => new
+			{
+				clrType,
+				implementsSelf = clrType
+					.GetInterfaces()
+					.Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(INorseEntity<>) && i.GetGenericArguments()[0] == clrType)
+			})
+			.Where(@t => !@t.implementsSelf)
+			.Select(@t => @t.clrType.FullName!));
 
 		if (violations.Count == 0)
 			return;
 
 		throw new InvalidOperationException(
-			$"{violations.Count} entit{(violations.Count == 1 ? "y does" : "ies do")} not implement " +
-			"INorseEntity<TSelf>. Every Norse entity is its own configuration:\n  - " +
-			string.Join("\n  - ", violations));
+			$"{violations.Count} entit{(violations.Count == 1 ? "y does" : "ies do")} not implement INorseEntity<TSelf>. Every Norse entity is its own configuration:\n  - {string.Join("\n  - ", violations)}");
 	}
 }

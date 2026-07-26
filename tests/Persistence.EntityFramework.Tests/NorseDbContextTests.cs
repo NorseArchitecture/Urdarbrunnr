@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Norse.Persistence.EntityFramework.Tests;
 
@@ -19,14 +20,12 @@ public sealed class NorseDbContextTests
 		act.ShouldThrow<InvalidOperationException>();
 	}
 
-	sealed class PlainEntity
-	{
-		public int Id { get; set; }
-	}
+	sealed record PlainEntity(int Id);
 
 	sealed class UnconfiguredContext(DbContextOptions<UnconfiguredContext> options) : NorseDbContext(options)
 	{
-		public DbSet<PlainEntity> Entities => Set<PlainEntity>();
+		public DbSet<PlainEntity> Entities =>
+			Set<PlainEntity>();
 	}
 
 	[Fact]
@@ -41,12 +40,10 @@ public sealed class NorseDbContextTests
 		ctx.HookInvoked.ShouldBeTrue();
 	}
 
-	sealed class HookEntity : NorseEntityBase<HookEntity>, INorseEntity<HookEntity>
+	sealed record HookEntity(int Id) : NorseEntityBase<HookEntity>, INorseEntity<HookEntity>
 	{
-		public int Id { get; set; }
-
 		public static void Configure(
-			Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<HookEntity> builder) =>
+			EntityTypeBuilder<HookEntity> builder) =>
 			builder.Property(e => e.Id);
 	}
 

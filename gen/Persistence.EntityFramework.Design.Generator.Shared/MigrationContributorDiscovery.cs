@@ -33,8 +33,7 @@ static class MigrationContributorDiscovery
 			if (attr is null || attr.ConstructorArguments.Length == 0)
 				continue;
 
-			var connectionStringName = attr.ConstructorArguments[0].Value as string;
-			if (connectionStringName is null)
+			if (attr.ConstructorArguments[0].Value is not String connectionStringName)
 				continue;
 
 			var dbContextType = FindEfContextType(type);
@@ -55,9 +54,8 @@ static class MigrationContributorDiscovery
 	// test scenarios (contributor defined in compilation source trees).
 	static IEnumerable<INamedTypeSymbol> AllTypes(Compilation compilation)
 	{
-		foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
-			foreach (var type in GetAllTypes(assembly.GlobalNamespace))
-				yield return type;
+		foreach (var type in compilation.SourceModule.ReferencedAssemblySymbols.SelectMany(assembly => GetAllTypes(assembly.GlobalNamespace)))
+			yield return type;
 
 		foreach (var type in GetAllTypes(compilation.Assembly.GlobalNamespace))
 			yield return type;
@@ -73,8 +71,8 @@ static class MigrationContributorDiscovery
 		var current = type.BaseType;
 		while (current is not null)
 		{
-			if (current.OriginalDefinition?.MetadataName == "EfMigrationContributor`1" &&
-				current.OriginalDefinition?.ContainingNamespace?.ToDisplayString() == "Norse.Persistence.EntityFramework.Design" &&
+			if (current.OriginalDefinition.MetadataName == "EfMigrationContributor`1" &&
+				current.OriginalDefinition.ContainingNamespace?.ToDisplayString() == "Norse.Persistence.EntityFramework.Design" &&
 				current.TypeArguments.Length == 1)
 			{
 				return current.TypeArguments[0] as INamedTypeSymbol;
@@ -122,29 +120,19 @@ static class MigrationContributorDiscovery
 		type.AllInterfaces.Any(i => i.ToDisplayString() == SeedContributorInterfaceMetadataName);
 }
 
-readonly struct ContributorInfo
+readonly struct ContributorInfo(
+	string contributorType,
+	string contextType,
+	string connectionStringName,
+	string migrationsAssemblyName)
 {
-	public ContributorInfo(
-		string contributorType,
-		string contextType,
-		string connectionStringName,
-		string migrationsAssemblyName)
-	{
-		ContributorType = contributorType;
-		ContextType = contextType;
-		ConnectionStringName = connectionStringName;
-		MigrationsAssemblyName = migrationsAssemblyName;
-	}
-
-	public string ContributorType { get; }
-	public string ContextType { get; }
-	public string ConnectionStringName { get; }
-	public string MigrationsAssemblyName { get; }
+	public string ContributorType { get; } = contributorType;
+	public string ContextType { get; } = contextType;
+	public string ConnectionStringName { get; } = connectionStringName;
+	public string MigrationsAssemblyName { get; } = migrationsAssemblyName;
 }
 
-readonly struct SeedContributorInfo
+readonly struct SeedContributorInfo(string contributorType)
 {
-	public SeedContributorInfo(string contributorType) => ContributorType = contributorType;
-
-	public string ContributorType { get; }
+	public string ContributorType { get; } = contributorType;
 }

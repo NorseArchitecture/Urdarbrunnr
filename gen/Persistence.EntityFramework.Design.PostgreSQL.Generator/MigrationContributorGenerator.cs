@@ -83,9 +83,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 				""");
 
 		sb.AppendCSharp(
-			"""
-			}
-			""");
+			"}");
 
 		return sb.ToString();
 	}

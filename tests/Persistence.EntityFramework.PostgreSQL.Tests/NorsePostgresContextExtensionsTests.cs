@@ -101,12 +101,12 @@ public sealed class NorsePostgresContextExtensionsTests
 		public DbSet<TestEntity> TestEntities => Set<TestEntity>();
 	}
 
-	sealed class TestEntity : INorseEntity<TestEntity>
+	sealed record TestEntity : INorseEntity<TestEntity>
 	{
-		public int Id { get; set; }
+		public int Id { get; init; }
 
 		[MaxLength(100)]
-		public string Name { get; set; } = "";
+		public string Name { get; init; } = "";
 
 		public static void Configure(EntityTypeBuilder<TestEntity> builder) { }
 	}
