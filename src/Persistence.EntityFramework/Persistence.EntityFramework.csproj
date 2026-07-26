@@ -20,6 +20,10 @@
 				Pack="true"
 				PackagePath="analyzers/dotnet/cs/"
 				Visible="false" />
+			<None Include="../../gen/Persistence.EntityFramework.Generator/bin/$(Configuration)/netstandard2.0/Norse.Abstractions.Emit.dll"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs/"
+				Visible="false" />
 		</ItemGroup>
 	</Target>
 </Project>

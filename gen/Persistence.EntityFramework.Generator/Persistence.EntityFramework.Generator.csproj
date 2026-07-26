@@ -2,4 +2,17 @@
 	<PropertyGroup>
 		<Description>Norse.Persistence.EntityFramework.Generator: the Roslyn IIncrementalGenerator that discovers INorseEntity&lt;TSelf&gt; implementations in the compiling project's own syntax tree and emits ApplyNorseConfigurations(), plus a Tier-1 partial-class ConfigureNorseEntities override when a partial NorseDbContext subclass is present.</Description>
 	</PropertyGroup>
+	<ItemGroup>
+		<NorseRef Include="Abstractions.Emit">
+			<Repo>Asgard</Repo>
+		</NorseRef>
+	</ItemGroup>
+	<PropertyGroup>
+		<GetTargetPathDependsOn>$(GetTargetPathDependsOn);_NorseIncludeEmitDependencyTargetPath</GetTargetPathDependsOn>
+	</PropertyGroup>
+	<Target Name="_NorseIncludeEmitDependencyTargetPath">
+		<ItemGroup>
+			<TargetPathWithTargetPlatformMoniker Include="@(ReferenceCopyLocalPaths->WithMetadataValue('Filename', 'Norse.Abstractions.Emit')->WithMetadataValue('Extension', '.dll'))" IncludeRuntimeDependency="false" />
+		</ItemGroup>
+	</Target>
 </Project>
