@@ -7,7 +7,11 @@ using Microsoft.Extensions.Hosting;
 namespace Norse.Persistence.EntityFramework.SqlServer;
 
 /// <summary>
-/// Aspire-wired registration extensions for Norse EF SQL Server contexts.
+/// Aspire-wired registration extensions for Norse EF SQL Server contexts. Every context registered here gets
+/// <see cref="QueryTrackingBehavior.NoTracking"/> forced unconditionally (not an opt-in) — the platform's
+/// CQRS query side never mutates through a tracked graph, and tracking an owned-entity projection without
+/// its owner throws at query time regardless, so there is no scenario where tracking is the right default.
+/// A handler that genuinely needs a tracked entity opts back in per-query via <c>AsTracking()</c>.
 /// </summary>
 public static class NorseSqlServerContextExtensions
 {
@@ -54,6 +58,7 @@ public static class NorseSqlServerContextExtensions
 				configureDbContextOptions: opts =>
 				{
 					opts.UseSqlServer(sql => sql.UseCompatibilityLevel(SqlServerCompatibilityLevel));
+					opts.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 					if (useSnakeCaseNaming)
 						opts.ApplyNorseConventions(RenameTemporalHistoryTable);
 				});
@@ -94,6 +99,7 @@ public static class NorseSqlServerContextExtensions
 				opts.UseSqlServer(connectionString, sql => sql
 					.MigrationsAssembly(migrationsAssemblyName)
 					.UseCompatibilityLevel(SqlServerCompatibilityLevel));
+				opts.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 				if (useSnakeCaseNaming)
 					opts.ApplyNorseConventions(RenameTemporalHistoryTable);
 			});
