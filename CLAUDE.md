@@ -18,7 +18,12 @@ A SQL Server-parallel trio (`Norse.Persistence.EntityFramework.SqlServer`, `.Des
 now only translates to `.IsFixedLength()` on SQL Server (Postgres's own docs say `character(n)` has no
 storage/performance benefit over `character varying(n)` there), and snake_case naming is an explicit,
 overridable opt-in/opt-out on every provider's registration extension rather than baked into
-`NorseDbContext`:
+`NorseDbContext`. A third provider-aware convention landed 2026-07-26
+(`../Glitnir/docs/Urdarbrunnr/specs/2026-07-26-sequentialguid-provider-aware-ef-converter-design.md`):
+`NorseModelConventions.Apply()` now registers the provider-correct `SequentialGuid` byte-order
+converter — `SqlServerSequentialGuidValueConverter` on SQL Server, `Rfc9562SequentialGuidValueConverter`
+everywhere else — this realm's first real code dependency on Svartálfheim's `Norse.Primitives`
+(`SequentialGuid`/`GuidByteOrder`):
 
 - `Norse.Persistence.EntityFramework` — the `INorseDbContext` marker interface, the abstract `NorseDbContext` base, and the snake_case naming conventions every Norse context inherits.
 - `Norse.Persistence.EntityFramework.PostgreSQL` — `AddNorsePostgresContext<TContext>()`, the canonical Aspire-wired Postgres registration for runtime contexts.
