@@ -27,7 +27,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		var driver = CSharpGeneratorDriver.Create(generator);
+		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -55,7 +55,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		var driver = CSharpGeneratorDriver.Create(generator);
+		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -85,7 +85,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		var driver = CSharpGeneratorDriver.Create(generator);
+		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -115,7 +115,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		var driver = CSharpGeneratorDriver.Create(generator);
+		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -139,7 +139,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 	{
 		var compilation = CreateCompilation("// empty");
 		EntityConfigurationApplicationGenerator generator = new();
-		var driver = CSharpGeneratorDriver.Create(generator);
+		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -161,7 +161,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		var driver = CSharpGeneratorDriver.Create(generator);
+		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
