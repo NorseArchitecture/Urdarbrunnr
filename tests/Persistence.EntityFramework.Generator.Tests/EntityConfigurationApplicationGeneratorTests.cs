@@ -27,7 +27,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+		var driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -54,14 +54,44 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 			""";
 
 		var compilation = CreateCompilation(Source);
-		var generator = new EntityConfigurationApplicationGenerator();
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+		EntityConfigurationApplicationGenerator generator = new();
+		var driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
 		var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
 		generated.ShouldContain("partial class MyContext");
 		generated.ShouldContain("ConfigureNorseEntities");
+	}
+
+	[Fact]
+	void Generator_suppresses_CS1591_around_the_partial_override_so_consumers_never_carry_the_NoWarn_themselves()
+	{
+		// ConfigureNorseEntities is protected on a public partial NorseDbContext subclass — publicly
+		// visible with no XML doc comment. CS1591 must be suppressed here, in the generator, not
+		// worked around via <NoWarn> in every consuming .csproj.
+		const string Source = """
+			using Microsoft.EntityFrameworkCore;
+			using Microsoft.EntityFrameworkCore.Metadata.Builders;
+			using Norse.Persistence.EntityFramework;
+
+			sealed record Tier1Entity : NorseEntityBase<Tier1Entity>, INorseEntity<Tier1Entity>
+			{
+				public static void Configure(EntityTypeBuilder<Tier1Entity> builder) { }
+			}
+
+			partial class MyContext(DbContextOptions<MyContext> options) : NorseDbContext(options);
+			""";
+
+		var compilation = CreateCompilation(Source);
+		EntityConfigurationApplicationGenerator generator = new();
+		var driver = CSharpGeneratorDriver.Create(generator);
+		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
+		var result = driver.GetRunResult();
+
+		var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+		generated.ShouldContain("#pragma warning disable CS1591");
+		generated.ShouldContain("#pragma warning restore CS1591");
 	}
 
 	[Fact]
@@ -85,7 +115,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+		var driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -109,7 +139,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 	{
 		var compilation = CreateCompilation("// empty");
 		EntityConfigurationApplicationGenerator generator = new();
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+		var driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 
@@ -131,7 +161,7 @@ public sealed class EntityConfigurationApplicationGeneratorTests
 
 		var compilation = CreateCompilation(Source);
 		EntityConfigurationApplicationGenerator generator = new();
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+		var driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
 

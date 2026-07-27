@@ -121,9 +121,13 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 			var ns = tier1Context.ContainingNamespace;
 			var name = tier1Context.Name;
 
+			// ConfigureNorseEntities is protected on the consumer's public partial NorseDbContext
+			// subclass — publicly visible with no XML doc comment. Suppress here, in the generator,
+			// so consumers never need to carry the NoWarn in their own .csproj.
 			if (ns.IsGlobalNamespace)
 				sb.AppendCSharp($$"""
 
+					#pragma warning disable CS1591
 					partial class {{name}}
 					{
 						protected override void ConfigureNorseEntities(ModelBuilder builder)
@@ -132,12 +136,14 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 							builder.ApplyNorseConfigurations();
 						}
 					}
+					#pragma warning restore CS1591
 					""");
 			else
 				sb.AppendCSharp($$"""
 
 					namespace {{ns.ToDisplayString()}}
 					{
+						#pragma warning disable CS1591
 						partial class {{name}}
 						{
 							protected override void ConfigureNorseEntities(ModelBuilder builder)
@@ -146,6 +152,7 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 								builder.ApplyNorseConfigurations();
 							}
 						}
+						#pragma warning restore CS1591
 					}
 					""");
 		}
