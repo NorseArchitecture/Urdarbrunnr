@@ -29,7 +29,7 @@ public sealed class MigrationContributorGeneratorTests
 			""";
 
 		var compilation = CreateCompilation(Source);
-		var generator = new MigrationContributorGenerator();
+		MigrationContributorGenerator generator = new();
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
@@ -48,7 +48,7 @@ public sealed class MigrationContributorGeneratorTests
 	void Generator_emits_no_source_when_no_contributors_found()
 	{
 		var compilation = CreateCompilation("// empty");
-		var generator = new MigrationContributorGenerator();
+		MigrationContributorGenerator generator = new();
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, TestContext.Current.CancellationToken);
 		var result = driver.GetRunResult();
@@ -154,9 +154,12 @@ public sealed class MigrationContributorGeneratorTests
 
 		result.GeneratedTrees.Length.ShouldBe(1);
 
-		List<MetadataReference> references = [.. ReferenceAssemblies()
-			.Append(MetadataReference.CreateFromFile(typeof(IHostApplicationBuilder).Assembly.Location))
-			.Append(MetadataReference.CreateFromFile(typeof(NorseSqlServerContextExtensions).Assembly.Location))];
+		List<MetadataReference> references =
+		[
+			.. ReferenceAssemblies(),
+			MetadataReference.CreateFromFile(typeof(IHostApplicationBuilder).Assembly.Location),
+			MetadataReference.CreateFromFile(typeof(NorseSqlServerContextExtensions).Assembly.Location),
+		];
 
 		var recompiled = CSharpCompilation.Create(
 			"TestAssembly.Recompiled",
@@ -215,20 +218,20 @@ public sealed class MigrationContributorGeneratorTests
 		// In .NET 5+ the public Attribute/Object surface lives in System.Runtime.dll (a facade), not
 		// System.Private.CoreLib — both must be present for Roslyn to bind attribute constructors.
 		var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
-		IList<MetadataReference> references = [.. new[]
-		{
+		Type[] anchors =
+		[
 			typeof(object),
 			typeof(MigrationConnectionStringAttribute),
 			typeof(NorseDbContext),
 			typeof(IMigrationContributor),
 			typeof(ISeedContributor),
 			typeof(IServiceCollection),
-			typeof(DbContext)
-		}
-		.Select(t => MetadataReference.CreateFromFile(t.Assembly.Location))
-		.Cast<MetadataReference>()
-		.Append(MetadataReference.CreateFromFile(Path.Combine(runtimeDir, "System.Runtime.dll")))];
-
-		return references;
+			typeof(DbContext),
+		];
+		return
+		[
+			.. anchors.Select(t => MetadataReference.CreateFromFile(t.Assembly.Location)),
+			MetadataReference.CreateFromFile(Path.Combine(runtimeDir, "System.Runtime.dll")),
+		];
 	}
 }

@@ -1,8 +1,11 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Norse.Abstractions.Migrations;
 using Norse.Abstractions.Migrations.Seeding;
+using Norse.Persistence.EntityFramework.PostgreSQL;
 
 namespace Norse.Persistence.EntityFramework.Design.PostgreSQL.Generator.Tests;
 
@@ -151,10 +154,12 @@ public sealed class MigrationContributorGeneratorTests
 
 		result.GeneratedTrees.Length.ShouldBe(1);
 
-		var references = ReferenceAssemblies()
-			.Append(MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.Hosting.IHostApplicationBuilder).Assembly.Location))
-			.Append(MetadataReference.CreateFromFile(typeof(Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions).Assembly.Location))
-			.ToList();
+		List<MetadataReference> references =
+		[
+			.. ReferenceAssemblies(),
+			MetadataReference.CreateFromFile(typeof(IHostApplicationBuilder).Assembly.Location),
+			MetadataReference.CreateFromFile(typeof(NorsePostgresContextExtensions).Assembly.Location),
+		];
 
 		var recompiled = CSharpCompilation.Create(
 			"TestAssembly.Recompiled",
@@ -213,20 +218,20 @@ public sealed class MigrationContributorGeneratorTests
 		// In .NET 5+ the public Attribute/Object surface lives in System.Runtime.dll (a facade), not
 		// System.Private.CoreLib — both must be present for Roslyn to bind attribute constructors.
 		var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
-		IList<MetadataReference> references = [.. new[]
-		{
+		Type[] anchors =
+		[
 			typeof(object),
 			typeof(MigrationConnectionStringAttribute),
 			typeof(NorseDbContext),
 			typeof(IMigrationContributor),
 			typeof(ISeedContributor),
 			typeof(IServiceCollection),
-			typeof(Microsoft.EntityFrameworkCore.DbContext),
-		}
-		.Select(t => MetadataReference.CreateFromFile(t.Assembly.Location))
-		.Cast<MetadataReference>()
-		.Append(MetadataReference.CreateFromFile(Path.Combine(runtimeDir, "System.Runtime.dll")))];
-
-		return references;
+			typeof(DbContext),
+		];
+		return
+		[
+			.. anchors.Select(t => MetadataReference.CreateFromFile(t.Assembly.Location)),
+			MetadataReference.CreateFromFile(Path.Combine(runtimeDir, "System.Runtime.dll")),
+		];
 	}
 }

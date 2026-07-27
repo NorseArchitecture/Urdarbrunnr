@@ -35,7 +35,7 @@ static class SnakeCaseNameRewriter
 					if (previousCategory == UnicodeCategory.SpaceSeparator ||
 						previousCategory == UnicodeCategory.LowercaseLetter ||
 						previousCategory != UnicodeCategory.DecimalDigitNumber &&
-						previousCategory != null &&
+						previousCategory.HasValue &&
 						currentIndex > 0 &&
 						currentIndex + 1 < name.Length &&
 						char.IsLower(name[currentIndex + 1]))
@@ -55,7 +55,7 @@ static class SnakeCaseNameRewriter
 					break;
 
 				default:
-					if (previousCategory != null)
+					if (previousCategory.HasValue)
 					{
 						previousCategory = UnicodeCategory.SpaceSeparator;
 					}
