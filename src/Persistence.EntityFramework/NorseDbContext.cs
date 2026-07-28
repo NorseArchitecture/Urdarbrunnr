@@ -5,10 +5,11 @@ namespace Norse.Persistence.EntityFramework;
 
 /// <summary>
 /// Abstract <see cref="DbContext"/> base for all non-auth Norse EF contexts. Naming conventions are
-/// decided by the provider registration extension used to register a context (see
-/// <c>Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions</c> and its SQL Server
-/// counterpart), never here — this base stays provider-neutral. Auth contexts inherit
-/// <c>IdentityDbContext</c> instead of this class and replicate its conventions manually.
+/// binding data, not a decision this base makes — each provider binding's
+/// <see cref="INorseEfProvider.NameRewriter"/> supplies (or withholds) the rewrite delegate, wired into
+/// the context by <see cref="NorseDbContextOptionsExtensions.ApplyNorseProviderOptions"/>, never here —
+/// this base stays provider-neutral. Auth contexts inherit <c>IdentityDbContext</c> instead of this
+/// class and replicate its conventions manually.
 /// </summary>
 /// <param name="options">The options for this context.</param>
 public abstract class NorseDbContext(DbContextOptions options) : DbContext(options), INorseDbContext

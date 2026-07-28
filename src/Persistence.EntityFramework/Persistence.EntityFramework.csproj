@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>Norse.Persistence.EntityFramework: the INorseDbContext marker interface, the abstract NorseDbContext base, snake_case naming conventions, explicit-length and colocated-entity-configuration enforcement, and the Roslyn generator that discovers INorseEntity&lt;TSelf&gt; implementations — provider-agnostic EF foundation shared by all Norse contexts regardless of RDBMS.</Description>
+		<Description>Norse.Persistence.EntityFramework: the INorseDbContext marker interface, the abstract NorseDbContext base, snake_case naming conventions, explicit-length and colocated-entity-configuration enforcement, the Roslyn generator that discovers INorseEntity&lt;TSelf&gt; implementations, and the provider seam itself — INorseEfProvider/INorseEfMigrationProvider, NorseNameRewriters, AddNorseContext (pooled runtime registration), and ApplyNorseProviderOptions (wires a provider's Configure/NameRewriter/EntityRenameHook into the context) — provider-agnostic EF foundation shared by all Norse contexts regardless of RDBMS.</Description>
 		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>

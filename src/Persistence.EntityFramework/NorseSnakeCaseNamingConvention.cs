@@ -40,9 +40,10 @@ namespace Norse.Persistence.EntityFramework;
 /// <paramref name="rewriteName"/> delegate to whatever the registering provider supplied via
 /// <see cref="NorseDbContextOptionsExtensions.ApplyNorseConventions"/>, or nothing at all.
 /// SQL Server temporal history table renaming is supplied this way from
-/// <c>Norse.Persistence.EntityFramework.SqlServer</c> — see that project's
-/// <c>NorseSqlServerContextExtensions</c> — because <c>IsTemporal()</c>/<c>GetHistoryTableName()</c> are
-/// SQL-Server-only EF APIs this provider-neutral project must never reference directly.
+/// <c>Norse.Persistence.EntityFramework.SqlServer</c>'s provider binding — see
+/// <c>NorseSqlServerEfProvider.EntityRenameHook</c> — because
+/// <c>IsTemporal()</c>/<c>GetHistoryTableName()</c> are SQL-Server-only EF APIs this provider-neutral
+/// project must never reference directly.
 /// </param>
 sealed class NorseSnakeCaseNamingConvention(
 	Func<string, string> rewriteName,

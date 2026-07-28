@@ -27,9 +27,9 @@ public sealed class NorseDbContextOptionsExtensionsTests
 		using TestContext ctx = new(options);
 		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
 
-		// EF Core's own default: the DbSet property name, untouched. Naming is now decided
-		// exclusively by the provider registration extension used to register a context — see
-		// Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions.
+		// EF Core's own default: the DbSet property name, untouched. Naming is now binding data,
+		// supplied by the registering provider's INorseEfProvider.NameRewriter and wired in by
+		// ApplyNorseProviderOptions — never applied by NorseDbContext on its own.
 		tableName.ShouldBe("TestEntities");
 	}
 

@@ -14,9 +14,10 @@ public sealed class NorseSqlServerEfProvider : INorseEfMigrationProvider
 {
 	/// <summary>
 	/// SQL Server 2025's compatibility level -- the platform's floor for every SqlServer-backed context,
-	/// forced unconditionally (not an opt-in, unlike <c>useSnakeCaseNaming</c>) so EF Core maps
-	/// JSON-mapped properties (<c>ComplexProperty&lt;T&gt;().ToJson()</c>, <c>OwnsOne(...).ToJson()</c>)
-	/// to the native <c>json</c> column type instead of <c>nvarchar(max)</c>. Client-side only -- EF Core
+	/// forced unconditionally in <see cref="Configure"/> — a floor, not a lever, so no caller can opt out
+	/// of it — so EF Core maps JSON-mapped properties (<c>ComplexProperty&lt;T&gt;().ToJson()</c>,
+	/// <c>OwnsOne(...).ToJson()</c>) to the native <c>json</c> column type instead of
+	/// <c>nvarchar(max)</c>. Client-side only -- EF Core
 	/// never emits <c>ALTER DATABASE ... SET COMPATIBILITY_LEVEL</c>, so the target instance must
 	/// genuinely be SQL Server 2025+ (or Azure SQL, which already defaults its own compatibility level to
 	/// 170) or the generated DDL fails to apply.
