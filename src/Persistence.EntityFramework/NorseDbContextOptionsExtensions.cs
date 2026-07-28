@@ -67,5 +67,26 @@ public static class NorseDbContextOptionsExtensions
 		/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
 		public DbContextOptionsBuilder ApplyNorseTrackingBehavior() =>
 			optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+
+		/// <summary>
+		/// The single provider-options choreography: the binding's <see cref="INorseEfProvider.Configure"/>
+		/// call, the unconditional platform no-tracking law, and binding-derived naming. Consumed by the
+		/// runtime registration (<c>AddNorseContext</c>), the migration-host registration
+		/// (<c>AddNorseMigrationContext</c>), and the design-time factory — one copy, three consumers, so
+		/// runtime/design-time drift is unrepresentable.
+		/// </summary>
+		/// <param name="provider">The provider binding.</param>
+		/// <param name="connectionString">The already-resolved (or design-time placeholder) connection string.</param>
+		/// <param name="migrationsAssemblyName">The migrations assembly, when this registration runs migrations.</param>
+		/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
+		public DbContextOptionsBuilder ApplyNorseProviderOptions(INorseEfProvider provider,
+			string connectionString, string? migrationsAssemblyName)
+		{
+			provider.Configure(optionsBuilder, connectionString, migrationsAssemblyName);
+			optionsBuilder.ApplyNorseTrackingBehavior();
+			if (provider.NameRewriter is not null)
+				optionsBuilder.ApplyNorseConventions(provider.NameRewriter, provider.EntityRenameHook);
+			return optionsBuilder;
+		}
 	}
 }
