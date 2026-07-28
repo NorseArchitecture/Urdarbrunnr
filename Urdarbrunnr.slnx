@@ -27,6 +27,7 @@
 		<Project Path="gen/Persistence.EntityFramework.Design.PostgreSQL.Generator/Persistence.EntityFramework.Design.PostgreSQL.Generator.csproj" />
 		<Project Path="gen/Persistence.EntityFramework.Design.SqlServer.Generator/Persistence.EntityFramework.Design.SqlServer.Generator.csproj" />
 		<Project Path="gen/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj" />
+		<Project Path="gen/Persistence.EntityFramework.Migrations.Generator/Persistence.EntityFramework.Migrations.Generator.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
 		<File Path="tests/Directory.Build.props" />
@@ -41,5 +42,6 @@
 		<Project Path="tests/Persistence.EntityFramework.Design.SqlServer.Generator.Tests/Persistence.EntityFramework.Design.SqlServer.Generator.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.Generator.Tests/Persistence.EntityFramework.Generator.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.Migrations.Tests/Persistence.EntityFramework.Migrations.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.Migrations.Generator.Tests/Persistence.EntityFramework.Migrations.Generator.Tests.csproj" />
 	</Folder>
 </Solution>
