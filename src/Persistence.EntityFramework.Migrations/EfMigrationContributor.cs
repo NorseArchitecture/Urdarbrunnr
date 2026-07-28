@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Norse.Abstractions.Migrations;
 
-namespace Norse.Persistence.EntityFramework.Design;
+namespace Norse.Persistence.EntityFramework.Migrations;
 
 /// <summary>
 /// Provider-agnostic abstract base for EF Core migration contributors. Subclasses are discovered

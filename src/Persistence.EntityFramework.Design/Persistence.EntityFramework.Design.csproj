@@ -5,9 +5,6 @@
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
 	<ItemGroup>
-		<NorseRef Include="Abstractions.Migrations">
-			<Repo>Asgard</Repo>
-		</NorseRef>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.*-*">
 			<IncludeAssets>compile</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.Persistence.EntityFramework.Migrations: EfMigrationContributor&lt;TContext&gt;, MigrationConnectionStringAttribute, and the provider-neutral AddNorseMigrationContext migration-host choreography. Ships the provider-agnostic Roslyn generator that discovers contributors, seed contributors, and the single provider binding in the compilation and emits AddNorseMigrations(). Reference this one package (Generator="true") from your migrations service.</Description>
+		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
+		<IsAotCompatible>false</IsAotCompatible>
+	</PropertyGroup>
+	<ItemGroup>
+		<NorseRef Include="Abstractions.Migrations">
+			<Repo>Asgard</Repo>
+		</NorseRef>
+		<ProjectReference Include="../Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
+	</ItemGroup>
+</Project>

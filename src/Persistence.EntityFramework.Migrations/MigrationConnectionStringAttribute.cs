@@ -1,4 +1,4 @@
-namespace Norse.Persistence.EntityFramework.Design;
+namespace Norse.Persistence.EntityFramework.Migrations;
 
 /// <summary>
 /// Annotates an <see cref="EfMigrationContributor{TContext}"/> subclass with the Aspire connection
