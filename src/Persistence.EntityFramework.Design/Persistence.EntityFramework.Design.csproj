@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>Norse.Persistence.EntityFramework.Design: EfMigrationContributor&lt;TContext&gt; base class, the MigrationConnectionStringAttribute, DdlEmittingMigrationsScaffolder, and AddNorseDesignTimeServices() — referenced only by migrations service and realm *.Migrations projects; never by runtime containers.</Description>
+		<Description>Norse.Persistence.EntityFramework.Design: DdlEmittingMigrationsScaffolder, AddNorseDesignTimeServices(), and the provider-neutral NorseDesignTimeDbContextFactory base — referenced only by realm *.Migrations.{Provider} projects; never by runtime containers; never connects to a database.</Description>
 		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
