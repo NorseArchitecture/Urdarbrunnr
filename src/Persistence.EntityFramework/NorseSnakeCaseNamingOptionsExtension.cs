@@ -15,15 +15,18 @@ namespace Norse.Persistence.EntityFramework;
 /// additive composition.
 /// </summary>
 sealed class NorseSnakeCaseNamingOptionsExtension(
+	Func<string, string> rewriteName,
 	Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames) : IDbContextOptionsExtension
 {
 	// A primary-constructor-captured parameter is only resolvable as a bare identifier inside this
 	// class's own instance members -- it is not a real member reachable via instance.parameterName,
 	// even from a nested class after a cast. ExtensionInfo needs a genuine named member to read.
+	internal Func<string, string> RewriteName { get; } = rewriteName;
+
 	internal Action<IConventionEntityType, Func<string, string>>? ApplyProviderSpecificRenames { get; } = applyProviderSpecificRenames;
 
 	public void ApplyServices(IServiceCollection services) =>
-		services.AddSingleton<IConventionSetPlugin>(new NorseSnakeCaseConventionSetPlugin(ApplyProviderSpecificRenames));
+		services.AddSingleton<IConventionSetPlugin>(new NorseSnakeCaseConventionSetPlugin(RewriteName, ApplyProviderSpecificRenames));
 
 	public IDbContextOptionsExtension ApplyDefaults(IDbContextOptions options) => this;
 
@@ -41,10 +44,16 @@ sealed class NorseSnakeCaseNamingOptionsExtension(
 		public override string LogFragment => "using Norse snake_case naming";
 
 		public override int GetServiceProviderHashCode() =>
-			((NorseSnakeCaseNamingOptionsExtension)Extension).ApplyProviderSpecificRenames?.GetHashCode() ?? 0;
+			HashCode.Combine(
+				((NorseSnakeCaseNamingOptionsExtension)Extension).RewriteName,
+				((NorseSnakeCaseNamingOptionsExtension)Extension).ApplyProviderSpecificRenames);
 
 		public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other) =>
-			other is ExtensionInfo otherInfo && Equals(
+			other is ExtensionInfo otherInfo &&
+			Equals(
+				((NorseSnakeCaseNamingOptionsExtension)Extension).RewriteName,
+				((NorseSnakeCaseNamingOptionsExtension)otherInfo.Extension).RewriteName) &&
+			Equals(
 				((NorseSnakeCaseNamingOptionsExtension)Extension).ApplyProviderSpecificRenames,
 				((NorseSnakeCaseNamingOptionsExtension)otherInfo.Extension).ApplyProviderSpecificRenames);
 

@@ -9,7 +9,7 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	void ApplyNorseConventions_applies_snake_case_naming()
 	{
 		var optionsBuilder = new DbContextOptionsBuilder<TestContext>().UseSqlite("Data Source=:memory:");
-		optionsBuilder.ApplyNorseConventions();
+		optionsBuilder.ApplyNorseConventions(NorseNameRewriters.LowerSnakeCase);
 
 		using TestContext ctx = new(optionsBuilder.Options);
 		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
@@ -49,7 +49,7 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	void ApplyNorseConventions_renames_foreign_key_and_index_names()
 	{
 		var optionsBuilder = new DbContextOptionsBuilder<RelatedEntitiesContext>().UseSqlite("Data Source=:memory:");
-		optionsBuilder.ApplyNorseConventions();
+		optionsBuilder.ApplyNorseConventions(NorseNameRewriters.LowerSnakeCase);
 
 		using RelatedEntitiesContext ctx = new(optionsBuilder.Options);
 		var childEntity = ctx.Model.FindEntityType(typeof(ChildEntity))!;

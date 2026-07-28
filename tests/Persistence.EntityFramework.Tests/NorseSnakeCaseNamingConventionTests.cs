@@ -22,7 +22,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		// its own separate model via the DI-resolved convention set, which per-context
 		// ConfigureConventions additions never reach.
 		var optionsBuilder = new DbContextOptionsBuilder<HistoryTestContext>().UseSqlite("Data Source=:memory:");
-		optionsBuilder.ApplyNorseConventions();
+		optionsBuilder.ApplyNorseConventions(NorseNameRewriters.LowerSnakeCase);
 		optionsBuilder.ApplyNorseTrackingBehavior();
 		using HistoryTestContext ctx = new(optionsBuilder.Options);
 		var historyRepository = ctx.GetService<IHistoryRepository>();
@@ -40,6 +40,24 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		var tableName = ctx.Model.FindEntityType(typeof(RewriteTestEntity))!.GetTableName();
 
 		tableName.ShouldBe("rewrite_test_entities");
+	}
+
+	[Fact]
+	void Applies_UPPER_SNAKE_naming_when_the_upper_rewriter_is_supplied()
+	{
+		// HistoryTestContext (not RewriteTestContext) is the mirror here: RewriteTestContext hardcodes
+		// NorseSnakeCaseNamingConvention with a fixed rewriter via ConfigureConventions, so it can never
+		// observe a rewriter supplied through ApplyNorseConventions. HistoryTestContext takes the real,
+		// unmodified NorseDbContext.ConfigureConventions and relies solely on the ApplyNorseConventions
+		// extension for naming -- the only fixture already in this file that actually exercises a
+		// caller-supplied rewrite delegate end to end.
+		var optionsBuilder = new DbContextOptionsBuilder<HistoryTestContext>().UseSqlite("Data Source=:memory:");
+		optionsBuilder.ApplyNorseConventions(NorseNameRewriters.UpperSnakeCase);
+		using HistoryTestContext ctx = new(optionsBuilder.Options);
+
+		var entityType = ctx.Model.FindEntityType(typeof(HistoryTestEntity));
+		entityType.ShouldNotBeNull();
+		entityType.GetTableName().ShouldBe("HISTORY_TEST_ENTITIES");
 	}
 
 	[Fact]
@@ -168,7 +186,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<RewriteTestEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(null));
+			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 	}
 
 	// No string properties, unlike RewriteTestEntity -- keeps this out of reach of
@@ -203,7 +221,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<JsonMappedOwner>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(null));
+			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -235,7 +253,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<NestedJsonMappedOwner>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(null));
+			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -265,7 +283,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<ComplexJsonMappedOwner>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(null));
+			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -282,6 +300,6 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<RewriteTestEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(_ => new NorseSnakeCaseNamingConvention(applyProviderSpecificRenames));
+			configurationBuilder.Conventions.Add(_ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, applyProviderSpecificRenames));
 	}
 }

@@ -30,6 +30,12 @@ public static class NorseDbContextOptionsExtensions
 		/// counterpart) — never unconditionally by a context itself, since whether snake_case is the right
 		/// default is a provider decision, not a Norse-wide one.
 		/// </summary>
+		/// <param name="rewriteName">
+		/// The identifier rewrite delegate to apply — provider-binding data, not a realm choice. Every
+		/// caller supplies one, typically <see cref="NorseNameRewriters.LowerSnakeCase"/> or
+		/// <see cref="NorseNameRewriters.UpperSnakeCase"/> selected by the registering provider binding
+		/// for its engine-native style.
+		/// </param>
 		/// <param name="applyProviderSpecificRenames">
 		/// Optional provider-specific rename hook, invoked once per entity in addition to this method's own
 		/// renames. Used by <c>Norse.Persistence.EntityFramework.SqlServer</c> to rename temporal history tables — an
@@ -37,10 +43,12 @@ public static class NorseDbContextOptionsExtensions
 		/// <see cref="NorseSnakeCaseNamingConvention"/>'s remarks for the full rationale.
 		/// </param>
 		/// <returns>The same <paramref name="optionsBuilder"/> for chaining.</returns>
-		public DbContextOptionsBuilder ApplyNorseConventions(Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames = null)
+		public DbContextOptionsBuilder ApplyNorseConventions(
+			Func<string, string> rewriteName,
+			Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames = null)
 		{
 			((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
-				.AddOrUpdateExtension(new NorseSnakeCaseNamingOptionsExtension(applyProviderSpecificRenames));
+				.AddOrUpdateExtension(new NorseSnakeCaseNamingOptionsExtension(rewriteName, applyProviderSpecificRenames));
 			return optionsBuilder;
 		}
 
