@@ -26,6 +26,7 @@ static class MigrationContributorDiscovery
 	public static IList<ContributorInfo> FindContributors(Compilation compilation)
 	{
 		IList<ContributorInfo> results = [];
+		var snapshotAssemblies = FindSnapshotAssembliesByContext(compilation);
 
 		foreach (var type in AllTypes(compilation))
 		{
@@ -48,11 +49,13 @@ static class MigrationContributorDiscovery
 			if (dbContextType is null)
 				continue;
 
+			var contextDisplay = dbContextType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
 			results.Add(new ContributorInfo(
 				type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-				dbContextType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+				contextDisplay,
 				connectionStringName,
-				FindMigrationsAssemblyName(compilation, dbContextType)));
+				snapshotAssemblies.TryGetValue(contextDisplay, out var assemblies) ? assemblies : []));
 		}
 
 		return results;
@@ -96,10 +99,15 @@ static class MigrationContributorDiscovery
 
 	// The 2026-07-25 AppHost failure, fixed structurally: the migrations assembly is wherever the
 	// context's ModelSnapshot actually compiles — never the contributor's own assembly, which the
-	// shared-contributor/provider-split project shape made wrong.
-	static string? FindMigrationsAssemblyName(Compilation compilation, INamedTypeSymbol contextType)
+	// shared-contributor/provider-split project shape made wrong. Every match is collected, never
+	// just the first: a compilation that can see both a realm's *.Migrations.PostgreSQL and its
+	// *.Migrations.SqlServer has two snapshots for one context, and letting reference order pick the
+	// winner would be exactly the silent wrong answer this generator exists to kill (NORSE034).
+	// One walk of the reference closure for the whole compilation, not one per contributor.
+	static Dictionary<string, IList<string>> FindSnapshotAssembliesByContext(Compilation compilation)
 	{
-		var contextDisplay = contextType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+		// Default string equality is already ordinal; no comparer to state.
+		Dictionary<string, IList<string>> results = [];
 
 		foreach (var type in AllTypes(compilation))
 		{
@@ -114,12 +122,21 @@ static class MigrationContributorDiscovery
 			if (attr is null || attr.ConstructorArguments.Length != 1)
 				continue;
 
-			if (attr.ConstructorArguments[0].Value is INamedTypeSymbol snapshotContext &&
-				snapshotContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == contextDisplay)
-				return type.ContainingAssembly.Name;
+			if (attr.ConstructorArguments[0].Value is not INamedTypeSymbol snapshotContext)
+				continue;
+
+			var contextDisplay = snapshotContext.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+			if (!results.TryGetValue(contextDisplay, out var assemblies))
+				results[contextDisplay] = assemblies = [];
+
+			// Deduplicated by assembly, not by snapshot type: several snapshots for one context inside
+			// a single assembly still answer the migrations-assembly question unambiguously.
+			var assemblyName = type.ContainingAssembly.Name;
+			if (!assemblies.Contains(assemblyName))
+				assemblies.Add(assemblyName);
 		}
 
-		return null;
+		return results;
 	}
 
 	// Display-string matching, not SymbolEqualityComparer -- same cross-layer symbol-identity
@@ -142,7 +159,11 @@ static class MigrationContributorDiscovery
 
 		foreach (var type in AllTypes(compilation))
 		{
-			if (type.IsAbstract || type.TypeKind != TypeKind.Class)
+			// Public-only, matching the Instance check below: a binding the generated code cannot name
+			// is not a binding this compilation has, and counting it would either emit an
+			// inaccessible `global::X.Instance` (CS0122) or raise a phantom NORSE031.
+			if (type.IsAbstract || type.TypeKind != TypeKind.Class ||
+				type.DeclaredAccessibility != Accessibility.Public)
 				continue;
 
 			if (!type.AllInterfaces.Any(i =>
@@ -199,12 +220,15 @@ readonly struct ContributorInfo(
 	string contributorType,
 	string contextType,
 	string connectionStringName,
-	string? migrationsAssemblyName)
+	IList<string> migrationsAssemblyNames)
 {
 	public string ContributorType { get; } = contributorType;
 	public string ContextType { get; } = contextType;
 	public string ConnectionStringName { get; } = connectionStringName;
-	public string? MigrationsAssemblyName { get; } = migrationsAssemblyName;
+
+	// Every assembly carrying a ModelSnapshot for this contributor's context. Zero is NORSE032,
+	// more than one is NORSE034; exactly one is the migrations assembly.
+	public IList<string> MigrationsAssemblyNames { get; } = migrationsAssemblyNames;
 }
 
 readonly struct SeedContributorInfo(string contributorType)

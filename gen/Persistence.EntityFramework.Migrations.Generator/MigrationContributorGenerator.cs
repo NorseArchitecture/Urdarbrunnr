@@ -31,6 +31,11 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 		"No ModelSnapshot annotated with [DbContext(typeof({0}))] is visible to this compilation — the migrations assembly cannot be derived; reference the realm's *.Migrations.{{Provider}} project", "Norse.Migrations",
 		DiagnosticSeverity.Error, isEnabledByDefault: true);
 
+	static readonly DiagnosticDescriptor _ambiguousSnapshot = new(
+		"NORSE034", "Multiple ModelSnapshots for context",
+		"More than one assembly visible to this compilation carries a ModelSnapshot annotated with [DbContext(typeof({0}))] — the migrations assembly is ambiguous and reference order must never decide it; reference exactly one provider's *.Migrations.{{Provider}} project; candidates: {1}", "Norse.Migrations",
+		DiagnosticSeverity.Error, isEnabledByDefault: true);
+
 	static readonly DiagnosticDescriptor _noInstance = new(
 		"NORSE033", "Provider binding missing Instance",
 		"Provider binding '{0}' must expose a public static Instance property — the generated AddNorseMigrations() consumes the binding through it", "Norse.Migrations",
@@ -49,7 +54,10 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 			if (model.Contributors.Count == 0 && model.SeedContributors.Count == 0)
 				return;
 
-			ProviderInfo provider = default;
+			// Null exactly when this compilation has no migration contributors — the seed-only case,
+			// which needs no binding at all. The type carries the invariant so BuildSource cannot
+			// silently emit `.Instance` off a default-constructed ProviderInfo.
+			ProviderInfo? provider = null;
 			if (model.Contributors.Count > 0)
 			{
 				if (model.Providers.Count == 0)
@@ -65,21 +73,30 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 					return;
 				}
 
-				provider = model.Providers[0];
-				if (!provider.HasInstance)
+				var binding = model.Providers[0];
+				if (!binding.HasInstance)
 				{
 					ctx.ReportDiagnostic(Diagnostic.Create(_noInstance, Location.None,
-						provider.TypeDisplayName));
+						binding.TypeDisplayName));
 					return;
 				}
 
+				provider = binding;
+
 				var missingSnapshots = model.Contributors
-					.Where(c => c.MigrationsAssemblyName is null).ToList();
-				if (missingSnapshots.Count > 0)
+					.Where(c => c.MigrationsAssemblyNames.Count == 0).ToList();
+				var ambiguousSnapshots = model.Contributors
+					.Where(c => c.MigrationsAssemblyNames.Count > 1).ToList();
+				if (missingSnapshots.Count > 0 || ambiguousSnapshots.Count > 0)
 				{
 					foreach (var c in missingSnapshots)
 						ctx.ReportDiagnostic(Diagnostic.Create(_noSnapshot, Location.None,
 							c.ContextType));
+
+					foreach (var c in ambiguousSnapshots)
+						ctx.ReportDiagnostic(Diagnostic.Create(_ambiguousSnapshot, Location.None,
+							c.ContextType, string.Join(", ", c.MigrationsAssemblyNames)));
+
 					return;
 				}
 			}
@@ -90,8 +107,16 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 	}
 
 	static string BuildSource(IList<ContributorInfo> contributors,
-		IList<SeedContributorInfo> seedContributors, ProviderInfo provider)
+		IList<SeedContributorInfo> seedContributors, ProviderInfo? provider)
 	{
+		// The binding is null exactly in the seed-only case, which emits no contributor registrations
+		// and therefore never names it. Resolved once, here, so the invariant lives in one place —
+		// and throws loudly if it ever stops holding, rather than emitting `.Instance` off nothing.
+		string? providerTypeName = null;
+		if (contributors.Count > 0)
+			providerTypeName = (provider ?? throw new InvalidOperationException(
+				"Migration contributors reached emission without a resolved provider binding.")).TypeDisplayName;
+
 		StringBuilder sb = new();
 
 		sb.AppendCSharp(
@@ -116,7 +141,7 @@ public sealed class MigrationContributorGenerator : IIncrementalGenerator
 		foreach (var c in contributors)
 			sb.AppendCSharp(
 				$"""
-						builder.AddNorseMigrationContext<{c.ContextType}>({provider.TypeDisplayName}.Instance, "{c.ConnectionStringName}", "{c.MigrationsAssemblyName}");
+						builder.AddNorseMigrationContext<{c.ContextType}>({providerTypeName}.Instance, "{c.ConnectionStringName}", "{c.MigrationsAssemblyNames[0]}");
 						builder.Services.AddTransient<global::Norse.Abstractions.Migrations.IMigrationContributor, {c.ContributorType}>();
 				""");
 

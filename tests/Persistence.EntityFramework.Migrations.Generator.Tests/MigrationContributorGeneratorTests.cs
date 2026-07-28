@@ -40,6 +40,39 @@ public sealed class MigrationContributorGeneratorTests
 		sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
 		""";
 
+	// The real split shape the 2026-07-25 AppHost failure exposed: the context ships in the realm's
+	// data assembly, its ModelSnapshot in a per-provider migrations assembly, and the contributor in
+	// the migrations service.
+	const string ContextAssemblySource = """
+		using Microsoft.EntityFrameworkCore;
+		using Norse.Persistence.EntityFramework;
+
+		public sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
+		""";
+
+	const string SnapshotAssemblySource = """
+		using Microsoft.EntityFrameworkCore;
+		using Microsoft.EntityFrameworkCore.Infrastructure;
+
+		[DbContext(typeof(TestContext))]
+		public sealed class TestContextModelSnapshot : ModelSnapshot
+		{
+			protected override void BuildModel(ModelBuilder modelBuilder)
+			{
+			}
+		}
+		""";
+
+	const string ExternalContextContributorSource = """
+		using Norse.Persistence.EntityFramework.Migrations;
+
+		[MigrationConnectionString("test-db")]
+		sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
+		{
+			public override string Name => "Test";
+		}
+		""";
+
 	[Fact]
 	void Generator_emits_the_discovered_provider_binding_and_neutral_choreography()
 	{
@@ -58,40 +91,13 @@ public sealed class MigrationContributorGeneratorTests
 	[Fact]
 	void Generator_derives_the_migrations_assembly_from_the_snapshots_assembly_not_the_contributors()
 	{
-		// The real shape the 2026-07-25 AppHost failure exposed: the context ships in the realm's data
-		// assembly, its ModelSnapshot in a per-provider migrations assembly, and the contributor in the
-		// migrations service. Only the snapshot's assembly is a correct answer.
-		var data = CreateReferencedAssembly("TestAssembly.Data", """
-			using Microsoft.EntityFrameworkCore;
-			using Norse.Persistence.EntityFramework;
+		// Only the snapshot's assembly is a correct answer — never the contributor's own.
+		var data = CreateReferencedAssembly("TestAssembly.Data", ContextAssemblySource);
+		var migrations = CreateReferencedAssembly("TestAssembly.Data.Migrations.PostgreSQL",
+			SnapshotAssemblySource, data);
 
-			public sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
-			""");
-
-		var migrations = CreateReferencedAssembly("TestAssembly.Data.Migrations.PostgreSQL", """
-			using Microsoft.EntityFrameworkCore;
-			using Microsoft.EntityFrameworkCore.Infrastructure;
-
-			[DbContext(typeof(TestContext))]
-			public sealed class TestContextModelSnapshot : ModelSnapshot
-			{
-				protected override void BuildModel(ModelBuilder modelBuilder)
-				{
-				}
-			}
-			""", data);
-
-		const string Source = """
-			using Norse.Persistence.EntityFramework.Migrations;
-
-			[MigrationConnectionString("test-db")]
-			sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
-			{
-				public override string Name => "Test";
-			}
-			""";
-
-		var compilation = CreateCompilation(Source, PostgresBinding(), data, migrations);
+		var compilation = CreateCompilation(ExternalContextContributorSource, PostgresBinding(), data,
+			migrations);
 		var result = Run(compilation);
 
 		result.GeneratedTrees.Length.ShouldBe(1);
@@ -138,6 +144,33 @@ public sealed class MigrationContributorGeneratorTests
 		diagnostic.Id.ShouldBe("NORSE032");
 		diagnostic.Severity.ShouldBe(DiagnosticSeverity.Error);
 		diagnostic.GetMessage(CultureInfo.InvariantCulture).ShouldContain("TestContext");
+		result.GeneratedTrees.ShouldBeEmpty();
+	}
+
+	[Fact]
+	void Generator_reports_NORSE034_when_two_assemblies_carry_a_ModelSnapshot_for_the_same_context()
+	{
+		// A migrations service that can see both of a realm's per-provider migrations assemblies has
+		// two [DbContext(typeof(TestContext))] snapshots. Picking the first one found would let
+		// reference order silently choose the migrations assembly — the same failure family as the
+		// production bug this generator exists to kill.
+		var data = CreateReferencedAssembly("TestAssembly.Data", ContextAssemblySource);
+		var postgresMigrations = CreateReferencedAssembly("TestAssembly.Data.Migrations.PostgreSQL",
+			SnapshotAssemblySource, data);
+		var sqlServerMigrations = CreateReferencedAssembly("TestAssembly.Data.Migrations.SqlServer",
+			SnapshotAssemblySource, data);
+
+		var compilation = CreateCompilation(ExternalContextContributorSource, PostgresBinding(), data,
+			postgresMigrations, sqlServerMigrations);
+		var result = Run(compilation);
+
+		var diagnostic = result.Diagnostics.ShouldHaveSingleItem();
+		diagnostic.Id.ShouldBe("NORSE034");
+		diagnostic.Severity.ShouldBe(DiagnosticSeverity.Error);
+		var message = diagnostic.GetMessage(CultureInfo.InvariantCulture);
+		message.ShouldContain("TestContext");
+		message.ShouldContain("TestAssembly.Data.Migrations.PostgreSQL");
+		message.ShouldContain("TestAssembly.Data.Migrations.SqlServer");
 		result.GeneratedTrees.ShouldBeEmpty();
 	}
 
@@ -324,7 +357,7 @@ public sealed class MigrationContributorGeneratorTests
 	static Compilation CreateCompilation(string source, params MetadataReference[] extraReferences) =>
 		CSharpCompilation.Create(
 			"TestAssembly",
-			[CSharpSyntaxTree.ParseText(source)],
+			[CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
 			[.. StandardReferences, .. extraReferences],
 			new(OutputKind.DynamicallyLinkedLibrary));
 
@@ -332,11 +365,11 @@ public sealed class MigrationContributorGeneratorTests
 		params MetadataReference[] extraReferences)
 	{
 		var compilation = CSharpCompilation.Create(assemblyName,
-			[CSharpSyntaxTree.ParseText(source)],
+			[CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
 			[.. StandardReferences, .. extraReferences],
 			new(OutputKind.DynamicallyLinkedLibrary));
 		using MemoryStream stream = new();
-		var emit = compilation.Emit(stream);
+		var emit = compilation.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
 		emit.Success.ShouldBeTrue(string.Join(Environment.NewLine, emit.Diagnostics));
 		stream.Position = 0;
 		return MetadataReference.CreateFromStream(stream);
