@@ -68,7 +68,7 @@ sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<s
 
 				var containerColumnName = entity.GetContainerColumnName();
 				if (!string.IsNullOrWhiteSpace(containerColumnName))
-					entity.SetContainerColumnName(SnakeCaseNameRewriter.RewriteName(containerColumnName));
+					entity.SetContainerColumnName(SnakeCaseNameRewriter.RewriteName(containerColumnName, uppercase: false));
 				continue;
 			}
 
@@ -76,23 +76,23 @@ sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<s
 			if (string.IsNullOrWhiteSpace(tableName))
 				continue;
 
-			entity.SetTableName(SnakeCaseNameRewriter.RewriteName(tableName));
+			entity.SetTableName(SnakeCaseNameRewriter.RewriteName(tableName, uppercase: false));
 
 			var primaryKey = entity.FindPrimaryKey();
 			if (primaryKey is not null)
 			{
 				var primaryKeyName = primaryKey.GetName();
 				if (!string.IsNullOrWhiteSpace(primaryKeyName))
-					primaryKey.SetName(SnakeCaseNameRewriter.RewriteName(primaryKeyName));
+					primaryKey.SetName(SnakeCaseNameRewriter.RewriteName(primaryKeyName, uppercase: false));
 			}
 
 			foreach (var property in entity.GetProperties())
 			{
-				property.SetColumnName(SnakeCaseNameRewriter.RewriteName(property.GetColumnName()));
+				property.SetColumnName(SnakeCaseNameRewriter.RewriteName(property.GetColumnName(), uppercase: false));
 
 				var defaultConstraintName = property.GetDefaultConstraintName();
 				if (!string.IsNullOrWhiteSpace(defaultConstraintName))
-					property.SetDefaultConstraintName(SnakeCaseNameRewriter.RewriteName(defaultConstraintName));
+					property.SetDefaultConstraintName(SnakeCaseNameRewriter.RewriteName(defaultConstraintName, uppercase: false));
 			}
 
 			foreach (var complexProperty in entity.GetComplexProperties())
@@ -102,24 +102,24 @@ sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<s
 			{
 				var keyName = key.GetName();
 				if (!string.IsNullOrWhiteSpace(keyName))
-					key.SetName(SnakeCaseNameRewriter.RewriteName(keyName));
+					key.SetName(SnakeCaseNameRewriter.RewriteName(keyName, uppercase: false));
 			}
 
 			foreach (var foreignKey in entity.GetForeignKeys())
 			{
 				var constraintName = foreignKey.GetConstraintName();
 				if (!string.IsNullOrWhiteSpace(constraintName))
-					foreignKey.SetConstraintName(SnakeCaseNameRewriter.RewriteName(constraintName));
+					foreignKey.SetConstraintName(SnakeCaseNameRewriter.RewriteName(constraintName, uppercase: false));
 			}
 
 			foreach (var index in entity.GetIndexes())
 			{
 				var databaseName = index.GetDatabaseName();
 				if (!string.IsNullOrWhiteSpace(databaseName))
-					index.SetDatabaseName(SnakeCaseNameRewriter.RewriteName(databaseName));
+					index.SetDatabaseName(SnakeCaseNameRewriter.RewriteName(databaseName, uppercase: false));
 			}
 
-			applyProviderSpecificRenames?.Invoke(entity, SnakeCaseNameRewriter.RewriteName);
+			applyProviderSpecificRenames?.Invoke(entity, name => SnakeCaseNameRewriter.RewriteName(name, uppercase: false));
 		}
 	}
 
@@ -138,12 +138,12 @@ sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<s
 		var containerColumnName = complexType.GetContainerColumnName();
 		if (!string.IsNullOrWhiteSpace(containerColumnName))
 		{
-			complexType.SetContainerColumnName(SnakeCaseNameRewriter.RewriteName(containerColumnName));
+			complexType.SetContainerColumnName(SnakeCaseNameRewriter.RewriteName(containerColumnName, uppercase: false));
 			return;
 		}
 
 		foreach (var property in complexType.GetProperties())
-			property.SetColumnName(SnakeCaseNameRewriter.RewriteName(property.GetColumnName()));
+			property.SetColumnName(SnakeCaseNameRewriter.RewriteName(property.GetColumnName(), uppercase: false));
 
 		foreach (var nestedComplexProperty in complexType.GetComplexProperties())
 			RenameComplexType(nestedComplexProperty.ComplexType);
