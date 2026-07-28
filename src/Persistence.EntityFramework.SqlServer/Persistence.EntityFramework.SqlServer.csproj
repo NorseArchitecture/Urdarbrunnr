@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Description>Norse.Persistence.EntityFramework.SqlServer: canonical Aspire-wired SQL Server context registration via AddNorseSqlServerContext&lt;TContext&gt;. Referenced by web server and worker hosts; pulled in transitively by Norse.Persistence.EntityFramework.Design.SqlServer for the migrations service.</Description>
+		<Description>Norse.Persistence.EntityFramework.SqlServer: the SQL Server provider binding (NorseSqlServerEfProvider) — UseSqlServer wiring with the 2025 compatibility-level floor, Aspire enrichment, the temporal history-table rename hook, and the inert design-time placeholder. One sealed class; reference from any host or migrations project targeting SQL Server.</Description>
 		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
 		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
