@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.Persistence.EntityFramework.Migrations: EfMigrationContributor&lt;TContext&gt;, MigrationConnectionStringAttribute, and the provider-neutral AddNorseMigrationContext migration-host choreography. Ships the provider-agnostic Roslyn generator that discovers contributors, seed contributors, and the single provider binding in the compilation and emits AddNorseMigrations(). Reference this one package (Generator="true") from your migrations service.</Description>
+		<!-- EF Core is not AOT/trim-compatible; override the src-level default. -->
+		<IsAotCompatible>false</IsAotCompatible>
+	</PropertyGroup>
+	<ItemGroup>
+		<NorseRef Include="Abstractions.Migrations">
+			<Repo>Asgard</Repo>
+		</NorseRef>
+		<ProjectReference Include="../Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
+		<ProjectReference
+			Include="../../gen/Persistence.EntityFramework.Migrations.Generator/Persistence.EntityFramework.Migrations.Generator.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false" />
+	</ItemGroup>
+	<Target Name="IncludeGeneratorInPackage" BeforeTargets="_GetPackageFiles">
+		<MSBuild Projects="../../gen/Persistence.EntityFramework.Migrations.Generator/Persistence.EntityFramework.Migrations.Generator.csproj"
+			Targets="Build"
+			Properties="Configuration=$(Configuration)" />
+		<ItemGroup>
+			<None Include="../../gen/Persistence.EntityFramework.Migrations.Generator/bin/$(Configuration)/netstandard2.0/Norse.Persistence.EntityFramework.Migrations.Generator.dll"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs/"
+				Visible="false" />
+			<None Include="../../gen/Persistence.EntityFramework.Migrations.Generator/bin/$(Configuration)/netstandard2.0/Norse.Abstractions.Emit.dll"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs/"
+				Visible="false" />
+		</ItemGroup>
+	</Target>
+</Project>

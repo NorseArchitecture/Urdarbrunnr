@@ -9,7 +9,7 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	void ApplyNorseConventions_applies_snake_case_naming()
 	{
 		var optionsBuilder = new DbContextOptionsBuilder<TestContext>().UseSqlite("Data Source=:memory:");
-		optionsBuilder.ApplyNorseConventions();
+		optionsBuilder.ApplyNorseConventions(NorseNameRewriters.LowerSnakeCase);
 
 		using TestContext ctx = new(optionsBuilder.Options);
 		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
@@ -27,9 +27,9 @@ public sealed class NorseDbContextOptionsExtensionsTests
 		using TestContext ctx = new(options);
 		var tableName = ctx.Model.FindEntityType(typeof(TestEntity))!.GetTableName();
 
-		// EF Core's own default: the DbSet property name, untouched. Naming is now decided
-		// exclusively by the provider registration extension used to register a context — see
-		// Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresContextExtensions.
+		// EF Core's own default: the DbSet property name, untouched. Naming is now binding data,
+		// supplied by the registering provider's INorseEfProvider.NameRewriter and wired in by
+		// ApplyNorseProviderOptions — never applied by NorseDbContext on its own.
 		tableName.ShouldBe("TestEntities");
 	}
 
@@ -49,7 +49,7 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	void ApplyNorseConventions_renames_foreign_key_and_index_names()
 	{
 		var optionsBuilder = new DbContextOptionsBuilder<RelatedEntitiesContext>().UseSqlite("Data Source=:memory:");
-		optionsBuilder.ApplyNorseConventions();
+		optionsBuilder.ApplyNorseConventions(NorseNameRewriters.LowerSnakeCase);
 
 		using RelatedEntitiesContext ctx = new(optionsBuilder.Options);
 		var childEntity = ctx.Model.FindEntityType(typeof(ChildEntity))!;

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Norse.Persistence.EntityFramework.Migrations.Generator: the provider-agnostic Roslyn IIncrementalGenerator that discovers EfMigrationContributor&lt;TContext&gt; implementations, ISeedContributor implementations, and the single INorseEfMigrationProvider binding in the compilation, derives each context's migrations assembly from its ModelSnapshot, and emits AddNorseMigrations().</Description>
+	</PropertyGroup>
+	<ItemGroup>
+		<NorseRef Include="Abstractions.Emit">
+			<Repo>Asgard</Repo>
+		</NorseRef>
+	</ItemGroup>
+</Project>

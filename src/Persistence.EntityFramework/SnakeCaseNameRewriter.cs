@@ -12,7 +12,7 @@ namespace Norse.Persistence.EntityFramework;
 /// </summary>
 static class SnakeCaseNameRewriter
 {
-	internal static string RewriteName(string name)
+	internal static string RewriteName(string name, bool uppercase)
 	{
 		StringBuilder builder = new(name.Length + Math.Min(2, name.Length / 5));
 		var previousCategory = default(UnicodeCategory?);
@@ -43,7 +43,9 @@ static class SnakeCaseNameRewriter
 						builder.Append('_');
 					}
 
-					currentChar = char.ToLower(currentChar, CultureInfo.InvariantCulture);
+					currentChar = uppercase ?
+						char.ToUpper(currentChar, CultureInfo.InvariantCulture) :
+						char.ToLower(currentChar, CultureInfo.InvariantCulture);
 					break;
 
 				case UnicodeCategory.LowercaseLetter:
@@ -52,6 +54,10 @@ static class SnakeCaseNameRewriter
 					{
 						builder.Append('_');
 					}
+
+					currentChar = uppercase ?
+						char.ToUpper(currentChar, CultureInfo.InvariantCulture) :
+						char.ToLower(currentChar, CultureInfo.InvariantCulture);
 					break;
 
 				default:

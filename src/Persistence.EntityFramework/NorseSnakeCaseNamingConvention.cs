@@ -29,17 +29,25 @@ namespace Norse.Persistence.EntityFramework;
 /// name EF's own internals use to query/lock it, a live 42P01 "relation does not exist" bug this
 /// exclusion exists to prevent.
 /// </summary>
+/// <param name="rewriteName">
+/// The caller-supplied identifier rewrite delegate — one of <see cref="NorseNameRewriters"/>'s
+/// engine-native styles, or any other <see cref="Func{T, TResult}"/> the registering provider binding
+/// chooses. This convention has no naming opinion of its own; it applies whatever function it's given.
+/// </param>
 /// <param name="applyProviderSpecificRenames">
 /// Optional provider-specific extension point, invoked once per entity after this convention's own
-/// renames. This convention has no idea what it does — it only hands the entity and its own
-/// <see cref="SnakeCaseNameRewriter.RewriteName"/> function to whatever the registering provider
-/// supplied via <see cref="NorseDbContextOptionsExtensions.ApplyNorseConventions"/>, or nothing at all.
+/// renames. This convention has no idea what it does — it only hands the entity and the caller-supplied
+/// <paramref name="rewriteName"/> delegate to whatever the registering provider supplied via
+/// <see cref="NorseDbContextOptionsExtensions.ApplyNorseConventions"/>, or nothing at all.
 /// SQL Server temporal history table renaming is supplied this way from
-/// <c>Norse.Persistence.EntityFramework.SqlServer</c> — see that project's
-/// <c>NorseSqlServerContextExtensions</c> — because <c>IsTemporal()</c>/<c>GetHistoryTableName()</c> are
-/// SQL-Server-only EF APIs this provider-neutral project must never reference directly.
+/// <c>Norse.Persistence.EntityFramework.SqlServer</c>'s provider binding — see
+/// <c>NorseSqlServerEfProvider.EntityRenameHook</c> — because
+/// <c>IsTemporal()</c>/<c>GetHistoryTableName()</c> are SQL-Server-only EF APIs this provider-neutral
+/// project must never reference directly.
 /// </param>
-sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames) :
+sealed class NorseSnakeCaseNamingConvention(
+	Func<string, string> rewriteName,
+	Action<IConventionEntityType, Func<string, string>>? applyProviderSpecificRenames) :
 	IModelFinalizingConvention
 {
 	public void ProcessModelFinalizing(
@@ -68,7 +76,7 @@ sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<s
 
 				var containerColumnName = entity.GetContainerColumnName();
 				if (!string.IsNullOrWhiteSpace(containerColumnName))
-					entity.SetContainerColumnName(SnakeCaseNameRewriter.RewriteName(containerColumnName));
+					entity.SetContainerColumnName(rewriteName(containerColumnName));
 				continue;
 			}
 
@@ -76,50 +84,50 @@ sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<s
 			if (string.IsNullOrWhiteSpace(tableName))
 				continue;
 
-			entity.SetTableName(SnakeCaseNameRewriter.RewriteName(tableName));
+			entity.SetTableName(rewriteName(tableName));
 
 			var primaryKey = entity.FindPrimaryKey();
 			if (primaryKey is not null)
 			{
 				var primaryKeyName = primaryKey.GetName();
 				if (!string.IsNullOrWhiteSpace(primaryKeyName))
-					primaryKey.SetName(SnakeCaseNameRewriter.RewriteName(primaryKeyName));
+					primaryKey.SetName(rewriteName(primaryKeyName));
 			}
 
 			foreach (var property in entity.GetProperties())
 			{
-				property.SetColumnName(SnakeCaseNameRewriter.RewriteName(property.GetColumnName()));
+				property.SetColumnName(rewriteName(property.GetColumnName()));
 
 				var defaultConstraintName = property.GetDefaultConstraintName();
 				if (!string.IsNullOrWhiteSpace(defaultConstraintName))
-					property.SetDefaultConstraintName(SnakeCaseNameRewriter.RewriteName(defaultConstraintName));
+					property.SetDefaultConstraintName(rewriteName(defaultConstraintName));
 			}
 
 			foreach (var complexProperty in entity.GetComplexProperties())
-				RenameComplexType(complexProperty.ComplexType);
+				RenameComplexType(complexProperty.ComplexType, rewriteName);
 
 			foreach (var key in entity.GetKeys())
 			{
 				var keyName = key.GetName();
 				if (!string.IsNullOrWhiteSpace(keyName))
-					key.SetName(SnakeCaseNameRewriter.RewriteName(keyName));
+					key.SetName(rewriteName(keyName));
 			}
 
 			foreach (var foreignKey in entity.GetForeignKeys())
 			{
 				var constraintName = foreignKey.GetConstraintName();
 				if (!string.IsNullOrWhiteSpace(constraintName))
-					foreignKey.SetConstraintName(SnakeCaseNameRewriter.RewriteName(constraintName));
+					foreignKey.SetConstraintName(rewriteName(constraintName));
 			}
 
 			foreach (var index in entity.GetIndexes())
 			{
 				var databaseName = index.GetDatabaseName();
 				if (!string.IsNullOrWhiteSpace(databaseName))
-					index.SetDatabaseName(SnakeCaseNameRewriter.RewriteName(databaseName));
+					index.SetDatabaseName(rewriteName(databaseName));
 			}
 
-			applyProviderSpecificRenames?.Invoke(entity, SnakeCaseNameRewriter.RewriteName);
+			applyProviderSpecificRenames?.Invoke(entity, rewriteName);
 		}
 	}
 
@@ -133,19 +141,19 @@ sealed class NorseSnakeCaseNamingConvention(Action<IConventionEntityType, Func<s
 	/// that same physical column rather than owning one of its own, so renaming it would hit the identical
 	/// shaper corruption the root-vs-nested JSON entity exclusion above exists to prevent.
 	/// </summary>
-	static void RenameComplexType(IConventionComplexType complexType)
+	static void RenameComplexType(IConventionComplexType complexType, Func<string, string> rewriteName)
 	{
 		var containerColumnName = complexType.GetContainerColumnName();
 		if (!string.IsNullOrWhiteSpace(containerColumnName))
 		{
-			complexType.SetContainerColumnName(SnakeCaseNameRewriter.RewriteName(containerColumnName));
+			complexType.SetContainerColumnName(rewriteName(containerColumnName));
 			return;
 		}
 
 		foreach (var property in complexType.GetProperties())
-			property.SetColumnName(SnakeCaseNameRewriter.RewriteName(property.GetColumnName()));
+			property.SetColumnName(rewriteName(property.GetColumnName()));
 
 		foreach (var nestedComplexProperty in complexType.GetComplexProperties())
-			RenameComplexType(nestedComplexProperty.ComplexType);
+			RenameComplexType(nestedComplexProperty.ComplexType, rewriteName);
 	}
 }
