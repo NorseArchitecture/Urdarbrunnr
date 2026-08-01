@@ -43,5 +43,32 @@ public static class NorseContextExtensions
 
 			return builder;
 		}
+
+		/// <summary>
+		/// Registers <typeparamref name="TContext"/> as a pooled <see cref="IDbContextFactory{TContext}"/> —
+		/// the runtime DI shape Midgard's generic well repository needs (create-execute-dispose per
+		/// operation), as opposed to <see cref="AddNorseContext{TContext}"/>'s directly-injectable pooled
+		/// context (the shape ASP.NET Core Identity's built-in stores require instead). Same provider seam,
+		/// same enrichment, same fail-fast-on-missing-connection-string behavior as its sibling — the DI
+		/// registration call is the only thing that differs.
+		/// </summary>
+		/// <param name="provider">The provider binding.</param>
+		/// <param name="connectionStringName">The configuration key under <c>ConnectionStrings</c>.</param>
+		/// <returns>The same <paramref name="builder"/> for chaining.</returns>
+		/// <exception cref="InvalidOperationException"><paramref name="connectionStringName"/> is not configured.</exception>
+		public IHostApplicationBuilder AddNorseContextFactory<TContext>(INorseEfProvider provider,
+			string connectionStringName)
+			where TContext : DbContext, INorseDbContext
+		{
+			var connectionString = builder.Configuration.GetConnectionString(connectionStringName) ??
+				throw new InvalidOperationException(
+					$"Connection string '{connectionStringName}' was not found.");
+
+			builder.Services.AddPooledDbContextFactory<TContext>(opts =>
+				opts.ApplyNorseProviderOptions(provider, connectionString, migrationsAssemblyName: null));
+			provider.Enrich<TContext>(builder);
+
+			return builder;
+		}
 	}
 }
