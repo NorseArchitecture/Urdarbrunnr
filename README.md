@@ -2,7 +2,9 @@
 
 > The Well of Urð, beneath Yggdrasil's roots, where the Norns draw the water that keeps the tree alive — the record of all that has become.
 
-![Urðarbrunnr — the Well of Urð beneath Yggdrasil's roots, where the Norns weave fate and keep the record of all that has become](https://github.com/user-attachments/assets/35eb22b3-233c-4eb4-ac31-92002ce0077c "Urðarbrunnr — the record of all that has become")
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/35eb22b3-233c-4eb4-ac31-92002ce0077c" alt="Urðarbrunnr — the Well of Urð beneath Yggdrasil's roots, where the Norns weave fate and keep the record of all that has become" title="Urðarbrunnr — the record of all that has become" />
+</p>
 
 *Image credit: [@norsemythologyclips](https://www.instagram.com/norsemythologyclips/) — go follow them.*
 
