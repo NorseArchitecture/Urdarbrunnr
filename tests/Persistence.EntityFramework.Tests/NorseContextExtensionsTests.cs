@@ -99,5 +99,26 @@ public sealed class NorseContextExtensionsTests
 		provider.EnrichCalls.ShouldBe(1);
 	}
 
+	[Fact]
+	void AddNorseContextFactory_registers_a_resolvable_IDbContextFactory()
+	{
+		var builder = CreateBuilder();
+
+		builder.AddNorseContextFactory<TestContext>(new FakeEfProvider(), "test-db");
+		using var host = builder.Build();
+
+		var factory = host.Services.GetRequiredService<IDbContextFactory<TestContext>>();
+		factory.ShouldNotBeNull();
+	}
+
+	[Fact]
+	void AddNorseContextFactory_throws_when_the_connection_string_is_missing()
+	{
+		var builder = CreateBuilder(connectionString: null);
+
+		Should.Throw<InvalidOperationException>(() =>
+			builder.AddNorseContextFactory<TestContext>(new FakeEfProvider(), "test-db"));
+	}
+
 	sealed class TestContext(DbContextOptions<TestContext> options) : NorseDbContext(options);
 }
