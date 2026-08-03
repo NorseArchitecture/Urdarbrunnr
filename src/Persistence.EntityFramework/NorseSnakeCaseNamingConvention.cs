@@ -8,8 +8,13 @@ namespace Norse.Persistence.EntityFramework;
 
 /// <summary>
 /// Model-finalizing convention that renames every relational EF metadata object to snake_case: table
-/// names, primary key names, column names, default-constraint names, key names, foreign key constraint
-/// names, and index names. JSON-mapped entities are skipped except for the root entity's own container
+/// names (including entity-splitting fragment tables, which are re-created under the rewritten
+/// <see cref="StoreObjectIdentifier"/> with their property overrides migrated), primary key names,
+/// column names, default-constraint names, key names, foreign key constraint names, and index names.
+/// The one deliberate exception: fragment-bearing entities keep EF's per-table default key names —
+/// an explicit key name is a single global annotation, so rewriting it would stamp the same
+/// constraint name onto every fragment table and 42P07 on Postgres at migrate time (see the inline
+/// remarks at the key-renaming site). JSON-mapped entities are skipped except for the root entity's own container
 /// column name, which is the only relational identity a JSON structure actually owns — a nested entity
 /// (owned by an already-JSON-mapped parent) shares that same container, so renaming it too corrupts the
 /// shaper EF Core 11 preview6 compiles for the query (see the exclusion's own remarks below). Confirmed
@@ -86,8 +91,50 @@ sealed class NorseSnakeCaseNamingConvention(
 
 			entity.SetTableName(rewriteName(tableName));
 
+			// Entity-splitting fragments (SplitToTable) are keyed by StoreObjectIdentifier, not by the
+			// table-name annotation the SetTableName call above rewrites, so each one is renamed by
+			// re-creation: a new fragment under the rewritten identifier, per-store property overrides
+			// (which are what record fragment column membership) migrated across, then the stale
+			// fragment removed. Skipping the migration step would silently fold the split columns back
+			// into the main table.
+			var hasMappingFragments = false;
+			foreach (var fragment in entity.GetMappingFragments(StoreObjectType.Table).ToList())
+			{
+				hasMappingFragments = true;
+				var storeObject = fragment.StoreObject;
+				var rewrittenName = rewriteName(storeObject.Name);
+				if (rewrittenName == storeObject.Name)
+					continue;
+
+				var renamed = StoreObjectIdentifier.Table(rewrittenName, storeObject.Schema);
+				var renamedFragment = entity.GetOrCreateMappingFragment(renamed);
+				if (fragment.IsTableExcludedFromMigrations is not null)
+					renamedFragment.SetIsTableExcludedFromMigrations(fragment.IsTableExcludedFromMigrations);
+
+				foreach (var property in entity.GetProperties())
+				{
+					var overrides = property.FindOverrides(storeObject);
+					if (overrides is null)
+						continue;
+
+					var renamedOverrides = property.GetOrCreateOverrides(renamed);
+					if (overrides.IsColumnNameOverridden)
+						renamedOverrides.SetColumnName(rewriteName(overrides.ColumnName!));
+					property.RemoveOverrides(storeObject);
+				}
+
+				entity.RemoveMappingFragment(storeObject);
+			}
+
+			// An explicit key name (RelationalAnnotationNames.Name) is GLOBAL per key -- EF has no
+			// per-store-object override, so on a split entity one rewritten name would stamp the PK
+			// constraint of the main table AND every fragment table identically. Postgres backs PK
+			// constraints with schema-scoped relations, making that duplicate a hard 42P07 at migrate
+			// time. Fragment-bearing entities therefore keep EF's per-table default names
+			// ("PK_" + each table's already-rewritten name) -- the PascalCase "PK_" prefix on exactly
+			// those constraints is the accepted cost until EF grows per-store-object key naming.
 			var primaryKey = entity.FindPrimaryKey();
-			if (primaryKey is not null)
+			if (primaryKey is not null && !hasMappingFragments)
 			{
 				var primaryKeyName = primaryKey.GetName();
 				if (!string.IsNullOrWhiteSpace(primaryKeyName))
@@ -106,15 +153,31 @@ sealed class NorseSnakeCaseNamingConvention(
 			foreach (var complexProperty in entity.GetComplexProperties())
 				RenameComplexType(complexProperty.ComplexType, rewriteName);
 
-			foreach (var key in entity.GetKeys())
-			{
-				var keyName = key.GetName();
-				if (!string.IsNullOrWhiteSpace(keyName))
-					key.SetName(rewriteName(keyName));
-			}
+			// Same global-annotation hazard as the primary key above: skip explicit key names entirely
+			// on fragment-bearing entities.
+			if (!hasMappingFragments)
+				foreach (var key in entity.GetKeys())
+				{
+					var keyName = key.GetName();
+					if (!string.IsNullOrWhiteSpace(keyName))
+						key.SetName(rewriteName(keyName));
+				}
 
 			foreach (var foreignKey in entity.GetForeignKeys())
 			{
+				// The row-internal linking FK EF synthesizes for entity splitting (self-referencing,
+				// PK-to-PK) maps to one constraint PER fragment table, and its no-arg
+				// GetConstraintName() default derives from the entity's MAIN table on both sides --
+				// so pinning that as the single global explicit name would misname every fragment's
+				// linking constraint (no fragment table in the name) and collide across multiple
+				// fragments on engines with schema-scoped constraint names. EF's per-store defaults
+				// already name each linking constraint for its own fragment table; leave them alone.
+				if (hasMappingFragments
+					&& foreignKey.PrincipalEntityType == entity
+					&& entity.FindPrimaryKey() is { } splitKey
+					&& foreignKey.Properties.SequenceEqual(splitKey.Properties))
+					continue;
+
 				var constraintName = foreignKey.GetConstraintName();
 				if (!string.IsNullOrWhiteSpace(constraintName))
 					foreignKey.SetConstraintName(rewriteName(constraintName));
