@@ -16,6 +16,18 @@ public sealed class ProtectedPiiValueConverterTests
 			throw new InvalidOperationException("Not protected.");
 	}
 
+	// A distinct, unrelated exception type — never InvalidOperationException — so a test asserting
+	// pass-through can't accidentally pass against the converter's own parse-failure exception.
+	sealed class SentinelException : Exception;
+
+	// A protector whose Unprotect always fails with something other than unparseable data, standing
+	// in for a real subject-keyed protector's own exception types (e.g. a future KeyDestroyedException).
+	sealed class ThrowingProtector : IPersonalDataProtector
+	{
+		public string? Protect(string? data) => data;
+		public string? Unprotect(string? data) => throw new SentinelException();
+	}
+
 	[Fact]
 	void To_provider_protects_the_wire_value()
 	{
@@ -40,6 +52,13 @@ public sealed class ProtectedPiiValueConverterTests
 	}
 
 	[Fact]
+	void From_provider_lets_a_non_parse_protector_exception_pass_through_undistorted()
+	{
+		ProtectedPiiValueConverter<EmailAddress> converter = new(new ThrowingProtector());
+		Should.Throw<SentinelException>(() => converter.ConvertFromProvider("anything"));
+	}
+
+	[Fact]
 	void Protect_pii_scalars_assigns_the_converter_to_direct_pii_properties()
 	{
 		// Model-level: a minimal context whose entity carries an EmailAddress scalar. This project
@@ -52,11 +71,22 @@ public sealed class ProtectedPiiValueConverterTests
 		using PiiFixtureContext context = new(options, new FakeProtector());
 		var property = context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.Email))!;
 		property.GetValueConverter().ShouldBeOfType<ProtectedPiiValueConverter<EmailAddress>>();
+
+		// Nullable branch: ProtectPiiScalars unwraps Nullable<T> before checking IMaskedValue, so an
+		// EmailAddress? property must get the same converter as a non-nullable EmailAddress property.
+		var secondaryEmailProperty = context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.SecondaryEmail))!;
+		secondaryEmailProperty.GetValueConverter().ShouldBeOfType<ProtectedPiiValueConverter<EmailAddress>>();
+
+		// Negative case: a plain non-PII scalar must never receive a PII converter — proves the guard
+		// has a working false side, not just a working true side.
+		var idProperty = context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.Id))!;
+		idProperty.GetValueConverter().ShouldBeNull();
 	}
 
 	sealed record PiiFixtureEntity(
 		Guid Id,
-		[property: MaxLength(400)][property: RetentionPolicy(RetentionBasis.SubjectKey)] EmailAddress Email) :
+		[property: MaxLength(400)][property: RetentionPolicy(RetentionBasis.SubjectKey)] EmailAddress Email,
+		[property: MaxLength(400)][property: RetentionPolicy(RetentionBasis.SubjectKey)] EmailAddress? SecondaryEmail) :
 		NorseEntityBase<PiiFixtureEntity>, INorseEntity<PiiFixtureEntity>
 	{
 		// EmailAddress carries no default EF type mapping, so without this explicit .Property call
@@ -68,6 +98,7 @@ public sealed class ProtectedPiiValueConverterTests
 		{
 			builder.HasKey(e => e.Id);
 			builder.Property(e => e.Email);
+			builder.Property(e => e.SecondaryEmail);
 		}
 	}
 
