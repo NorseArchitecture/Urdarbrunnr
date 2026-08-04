@@ -9,6 +9,10 @@
 			<Repo>Svartalfheim</Repo>
 		</NorseRef>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="11.*-*" />
+		<!-- Featherweight — carries only IPersonalDataProtector for ProtectedPiiValueConverter.
+		     Noted explicitly since transitive-first would otherwise flag it as an unexpected direct
+		     reference: this project takes no other dependency on ASP.NET Core Identity. -->
+		<PackageReference Include="Microsoft.Extensions.Identity.Core" Version="11.*-*" />
 		<ProjectReference
 			Include="../../gen/Persistence.EntityFramework.Generator/Persistence.EntityFramework.Generator.csproj"
 			OutputItemType="Analyzer"
