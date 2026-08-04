@@ -54,7 +54,9 @@ public sealed class ProtectedPiiValueConverterTests
 		property.GetValueConverter().ShouldBeOfType<ProtectedPiiValueConverter<EmailAddress>>();
 	}
 
-	sealed record PiiFixtureEntity(Guid Id, [property: MaxLength(400)] EmailAddress Email) :
+	sealed record PiiFixtureEntity(
+		Guid Id,
+		[property: MaxLength(400)][property: RetentionPolicy(RetentionBasis.SubjectKey)] EmailAddress Email) :
 		NorseEntityBase<PiiFixtureEntity>, INorseEntity<PiiFixtureEntity>
 	{
 		// EmailAddress carries no default EF type mapping, so without this explicit .Property call
