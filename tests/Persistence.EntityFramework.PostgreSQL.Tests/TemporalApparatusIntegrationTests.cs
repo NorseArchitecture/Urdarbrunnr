@@ -49,6 +49,7 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 		(await live.TriggerBindingsAsync(Widgets)).ShouldBe(
 		[
 			$"{Widgets}_versioning_delete -> {Widgets}_versioning",
+			$"{Widgets}_versioning_insert -> {Widgets}_versioning",
 			$"{Widgets}_versioning_update -> {Widgets}_versioning"
 		]);
 		// The split fragment is a table like any other: no period column, no history, no triggers (§2.3).
@@ -60,6 +61,7 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 	async Task An_insert_opens_a_current_version_and_writes_no_history()
 	{
 		await using var live = await StartWidgetsAsync("temporal_insert");
+		var before = DateTimeOffset.UtcNow;
 
 		var id = await SeedWidgetAsync(live, "before");
 
@@ -67,7 +69,33 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 		current.Name.ShouldBe("before");
 		current.IsClosed.ShouldBeFalse("an insert opens a version, it does not close one");
 		current.IsEmpty.ShouldBeFalse();
+		// The trigger-assigned open bound is fresh wall clock at the row, not a caller-chosen or
+		// long-stale timestamp — the INSERT branch reads clock_timestamp() the same as the UPDATE
+		// closure clamp does (§3.2 amendment, 2026-08-05).
+		current.Lower.ShouldBeGreaterThanOrEqualTo(before);
+		current.Lower.ShouldBeLessThanOrEqualTo(DateTimeOffset.UtcNow);
 		(await live.HistoryAsync(Widgets, id)).ShouldBeEmpty();
+	}
+
+	[Fact]
+	async Task A_raw_insert_supplying_an_explicit_system_period_is_rejected()
+	{
+		// Codex remand (2026-08-05): system_period is database-owned on every verb, not UPDATE alone. A
+		// raw INSERT naming the column can override the trigger-assigned open bound and fabricate a
+		// backdated one — the next legitimate UPDATE would then mint a history row covering an era the
+		// row never existed. The guard has to fire before the row lands.
+		await using var live = await StartWidgetsAsync("temporal_insert_system_period");
+
+		var exception = await Should.ThrowAsync<PostgresException>(() => live.ExecuteAsync(
+			$"""
+			INSERT INTO public.{Widgets} (name, system_period)
+			VALUES ('smuggled', tstzrange('1990-01-01T00:00:00Z'::timestamptz, 'infinity'))
+			"""));
+
+		exception.MessageText.ShouldContain("system_period");
+		exception.MessageText.ShouldContain("database-owned");
+		(await live.CountAsync($"{Widgets} WHERE name = 'smuggled'")).ShouldBe(0,
+			"the rejected insert must not land");
 	}
 
 	[Fact]
@@ -172,6 +200,46 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 
 		(await live.HistoryAsync(Widgets, id)).ShouldBeEmpty();
 		(await live.SystemPeriodTextAsync(Widgets, id)).ShouldBe(before);
+	}
+
+	[Fact]
+	async Task A_raw_update_of_system_period_alone_is_rejected()
+	{
+		// Codex P1: system_period is database-owned (§3.2). Raw SQL setting only that column, with no
+		// application-column change, must not sail through the no-op guard and persist a caller-chosen
+		// period — the trigger has to reject the write before it ever reaches that comparison.
+		await using var live = await StartWidgetsAsync("temporal_system_period_direct");
+		var id = await SeedWidgetAsync(live, "stable");
+		var before = await live.SystemPeriodTextAsync(Widgets, id);
+
+		var exception = await Should.ThrowAsync<PostgresException>(() => live.ExecuteAsync(
+			$"UPDATE public.{Widgets} SET system_period = tstzrange(clock_timestamp(), 'infinity') WHERE id = $1",
+			id));
+
+		exception.MessageText.ShouldContain("system_period");
+		exception.MessageText.ShouldContain("database-owned");
+		(await live.SystemPeriodTextAsync(Widgets, id)).ShouldBe(before, "the rejected write must not land");
+	}
+
+	[Fact]
+	async Task A_raw_update_of_an_application_column_together_with_system_period_is_rejected()
+	{
+		// The guard has to fire even when a legitimate application-column change rides along: the caller
+		// cannot buy a smuggled system_period write by pairing it with real data.
+		await using var live = await StartWidgetsAsync("temporal_system_period_with_column");
+		var id = await SeedWidgetAsync(live, "before");
+		var beforePeriod = await live.SystemPeriodTextAsync(Widgets, id);
+
+		var exception = await Should.ThrowAsync<PostgresException>(() => live.ExecuteAsync(
+			$"""
+			UPDATE public.{Widgets} SET name = 'tampered', system_period = tstzrange(clock_timestamp(), 'infinity')
+			WHERE id = $1
+			""", id));
+
+		exception.MessageText.ShouldContain("system_period");
+		exception.MessageText.ShouldContain("database-owned");
+		(await live.CurrentAsync(Widgets, id)).Name.ShouldBe("before", "the smuggled write must not land either");
+		(await live.SystemPeriodTextAsync(Widgets, id)).ShouldBe(beforePeriod);
 	}
 
 	[Fact]
@@ -285,10 +353,11 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 
 		var script = context.Database.GenerateCreateScript();
 
-		script.ShouldContain("system_period tstzrange NOT NULL DEFAULT tstzrange(clock_timestamp(), 'infinity')");
+		script.ShouldContain("""ADD COLUMN system_period tstzrange NOT NULL;""");
 		script.ShouldContain($"CREATE TABLE \"public\".\"{Widgets}_history\"");
 		script.ShouldContain("PRIMARY KEY (\"id\", \"system_period\" WITHOUT OVERLAPS)");
 		script.ShouldContain($"CREATE FUNCTION \"public\".\"{Widgets}_versioning\"()");
+		script.ShouldContain($"CREATE TRIGGER \"{Widgets}_versioning_insert\"");
 		script.ShouldContain($"CREATE TRIGGER \"{Widgets}_versioning_update\"");
 		script.ShouldContain($"CREATE TRIGGER \"{Widgets}_versioning_delete\"");
 		script.ShouldContain($"CREATE VIEW \"public\".\"{Widgets}_timeline\"");

@@ -19,6 +19,17 @@ public static class NorseDbContextOptionsExtensions
 	/// </summary>
 	public const string SqlServerProviderName = "Microsoft.EntityFrameworkCore.SqlServer";
 
+	/// <summary>
+	/// Retrieves the temporal realization hook a provider binding supplied via
+	/// <see cref="ApplyNorseProviderOptions"/>, or <see langword="null"/> when the provider realizes
+	/// temporality elsewhere. Exposed so contexts that cannot inherit <see cref="NorseDbContext"/> (auth
+	/// contexts inheriting <c>IdentityDbContext</c>) can replicate its field-initializer read without
+	/// referencing the internal <c>NorseTemporalRealizationOptionsExtension</c> carrier directly.
+	/// </summary>
+	/// <param name="options">The constructed options a context received.</param>
+	public static Action<IConventionEntityType>? GetTemporalRealizationHook(this DbContextOptions options) =>
+		options.FindExtension<NorseTemporalRealizationOptionsExtension>()?.TemporalRealizationHook;
+
 	/// <param name="optionsBuilder">The options builder to configure.</param>
 	extension(DbContextOptionsBuilder optionsBuilder)
 	{

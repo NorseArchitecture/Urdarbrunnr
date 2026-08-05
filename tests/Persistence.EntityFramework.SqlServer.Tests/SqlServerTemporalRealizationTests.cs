@@ -21,6 +21,28 @@ public sealed class SqlServerTemporalRealizationTests
 	}
 
 	[Fact]
+	void The_realized_model_carries_the_period_columns_as_shadow_properties()
+	{
+		using var context = SqlServerTestContext.Create<TemporalOrder>();
+		// Period configuration is not stored in the runtime read-optimized model.
+		var entity = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(TemporalOrder))!;
+
+		entity.FindProperty("SystemPeriodStart").ShouldNotBeNull();
+		entity.FindProperty("SystemPeriodEnd").ShouldNotBeNull();
+	}
+
+	[Fact]
+	void The_scaffolded_ddl_carries_native_system_versioning_against_the_history_table()
+	{
+		using var context = SqlServerTestContext.Create<TemporalOrder>();
+
+		var script = context.Database.GenerateCreateScript();
+
+		script.ShouldContain("SYSTEM_VERSIONING = ON");
+		script.ShouldContain("TemporalOrderHistory");
+	}
+
+	[Fact]
 	void A_marked_split_entity_without_the_park_declaration_throws_at_model_finalize()
 	{
 		var act = () => SqlServerTestContext.Create<SplitTemporalUser>().Model;

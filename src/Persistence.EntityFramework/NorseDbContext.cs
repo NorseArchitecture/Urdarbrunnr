@@ -17,8 +17,7 @@ public abstract class NorseDbContext(DbContextOptions options) : DbContext(optio
 {
 	// Field initializer, not a captured primary-ctor parameter (CS9107): the options are read once at
 	// construction, and the hook is the only fact this base needs from them.
-	readonly Action<IConventionEntityType>? _temporalRealizationHook =
-		options.FindExtension<NorseTemporalRealizationOptionsExtension>()?.TemporalRealizationHook;
+	readonly Action<IConventionEntityType>? _temporalRealizationHook = options.GetTemporalRealizationHook();
 
 	/// <inheritdoc />
 	protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

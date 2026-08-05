@@ -47,18 +47,23 @@ public sealed class TemporalTransitionSqlTests
 		var sql = EnableSql();
 
 		// One capture, one UPDATE — never clock_timestamp() read per row.
-		Occurrences(sql, "clock_timestamp()").ShouldBe(3, "one capture, one column default, one closure clamp");
+		Occurrences(sql, "clock_timestamp()").ShouldBe(3,
+			"one capture, one INSERT-branch assignment, one closure clamp");
 		Occurrences(sql, "UPDATE \"public\".\"transition_widget\" SET system_period").ShouldBe(1);
 		sql.ShouldContain("SET system_period = pg_catalog.tstzrange(ts, 'infinity')");
 		sql.ShouldNotContain("now()");
 	}
 
 	[Fact]
-	void Enabling_restores_the_clock_timestamp_default_after_the_backfill()
+	void Enabling_restores_no_column_default_the_insert_trigger_assigns_the_period()
 	{
+		// A column default cannot be told apart from a client-supplied value once applied (§3.2
+		// amendment, 2026-08-05): the BEFORE INSERT trigger — created moments later in this same
+		// transition — assigns the period for every row inserted from here on.
 		var sql = EnableSql();
 
-		sql.ShouldContain("SET DEFAULT tstzrange(clock_timestamp(), 'infinity')");
+		sql.ShouldNotContain("SET DEFAULT");
+		sql.ShouldContain("CREATE TRIGGER \"transition_widget_versioning_insert\" BEFORE INSERT");
 	}
 
 	[Fact]
@@ -78,6 +83,7 @@ public sealed class TemporalTransitionSqlTests
 
 		sql.ShouldContain("CREATE TABLE \"public\".\"transition_widget_history\"");
 		sql.ShouldContain("CREATE FUNCTION \"public\".\"transition_widget_versioning\"()");
+		sql.ShouldContain("CREATE TRIGGER \"transition_widget_versioning_insert\"");
 		sql.ShouldContain("CREATE TRIGGER \"transition_widget_versioning_update\"");
 		sql.ShouldContain("CREATE TRIGGER \"transition_widget_versioning_delete\"");
 		sql.ShouldContain("CREATE VIEW \"public\".\"transition_widget_timeline\"");
@@ -104,6 +110,7 @@ public sealed class TemporalTransitionSqlTests
 
 		var order = (string[])
 		[
+			"DROP TRIGGER \"transition_widget_versioning_insert\" ON \"public\".\"transition_widget\"",
 			"DROP TRIGGER \"transition_widget_versioning_update\" ON \"public\".\"transition_widget\"",
 			"DROP TRIGGER \"transition_widget_versioning_delete\" ON \"public\".\"transition_widget\"",
 			"DROP FUNCTION \"public\".\"transition_widget_versioning\"()",
@@ -205,6 +212,42 @@ public sealed class TemporalTransitionSqlTests
 
 		exception.Message.ShouldContain("disabled on table 'transition_widget'");
 		exception.Message.ShouldContain("DropColumn 'access_count'");
+		exception.Message.ShouldContain("its own migration");
+	}
+
+	[Fact]
+	void Renaming_a_table_while_enabling_temporality_in_the_same_migration_fails_by_name()
+	{
+		// Generate(RenameTableOperation…) keys temporality off the TARGET model, so unguarded this would
+		// fire the rename choreography (DROP VIEW, history-table rename, trigger retirement) against
+		// apparatus that was never built under the old name 'foo' — measured directly against the real
+		// differ before this guard existed: DropPrimaryKeyOperation | RenameTableOperation |
+		// AlterTableOperation | AddPrimaryKeyOperation, and the generator produced two competing
+		// CREATE TABLE "bar_history" statements.
+		using RenameFooUnmarkedContext from = new(Options<RenameFooUnmarkedContext>());
+		using RenameBarMarkedContext to = new(Options<RenameBarMarkedContext>());
+
+		var exception = Should.Throw<InvalidOperationException>(() => TransitionSql(from, to));
+
+		exception.Message.ShouldContain("enabled on table 'bar'");
+		exception.Message.ShouldContain("renames it from 'foo'");
+		exception.Message.ShouldContain("its own migration");
+	}
+
+	[Fact]
+	void Renaming_a_table_while_disabling_temporality_in_the_same_migration_fails_by_name()
+	{
+		// The mirror shape: measured directly against the real differ before this guard existed, the
+		// disable teardown ran under the table's new name 'bar' while the trigger/function/history-table
+		// apparatus was still bound to the old name 'foo' — DROP TRIGGER/FUNCTION/VIEW/TABLE all targeted
+		// names that were never created, and PostgreSQL would refuse every one of them.
+		using RenameFooMarkedContext from = new(Options<RenameFooMarkedContext>());
+		using RenameBarUnmarkedContext to = new(Options<RenameBarUnmarkedContext>());
+
+		var exception = Should.Throw<InvalidOperationException>(() => TransitionSql(from, to));
+
+		exception.Message.ShouldContain("disabled on table 'bar'");
+		exception.Message.ShouldContain("renames it from 'foo'");
 		exception.Message.ShouldContain("its own migration");
 	}
 
@@ -359,5 +402,74 @@ public sealed class TemporalTransitionSqlTests
 		public int AccessCount { get; init; }
 
 		public static void Configure(EntityTypeBuilder<TemporalRowPlus> builder) { }
+	}
+
+	// The differ pairs a rename only when the same CLR entity type maps to both table names (measured:
+	// two different CLR types mapped to two different table names diff as DropTableOperation +
+	// CreateTableOperation, never a rename). But ITemporalEntity is a compile-time trait of the CLR type,
+	// so no pair of ordinarily-built contexts can share one entity type across a rename AND disagree on
+	// temporality. The four contexts below share the single RenameTransitionRow type and set
+	// Norse:Temporal with HasAnnotation directly instead of the marker interface — the same annotation
+	// TemporalEntityConvention stamps in production and the same one NorseNpgsqlAnnotationProvider reads,
+	// so the differ still performs the real rename pairing and the generator still reads the real
+	// annotation; only the stamping mechanism is substituted.
+	sealed class RenameFooUnmarkedContext(DbContextOptions<RenameFooUnmarkedContext> options)
+		: NorseDbContext(options)
+	{
+		public DbSet<RenameTransitionRow> Rows => Set<RenameTransitionRow>();
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<RenameTransitionRow>().ToTable("foo");
+		}
+	}
+
+	sealed class RenameBarMarkedContext(DbContextOptions<RenameBarMarkedContext> options)
+		: NorseDbContext(options)
+	{
+		public DbSet<RenameTransitionRow> Rows => Set<RenameTransitionRow>();
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<RenameTransitionRow>().ToTable("bar")
+				.HasAnnotation(NorseAnnotationNames.Temporal, true);
+		}
+	}
+
+	sealed class RenameFooMarkedContext(DbContextOptions<RenameFooMarkedContext> options)
+		: NorseDbContext(options)
+	{
+		public DbSet<RenameTransitionRow> Rows => Set<RenameTransitionRow>();
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<RenameTransitionRow>().ToTable("foo")
+				.HasAnnotation(NorseAnnotationNames.Temporal, true);
+		}
+	}
+
+	sealed class RenameBarUnmarkedContext(DbContextOptions<RenameBarUnmarkedContext> options)
+		: NorseDbContext(options)
+	{
+		public DbSet<RenameTransitionRow> Rows => Set<RenameTransitionRow>();
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<RenameTransitionRow>().ToTable("bar");
+		}
+	}
+
+	sealed record RenameTransitionRow : INorseEntity<RenameTransitionRow>
+	{
+		public int Id { get; init; }
+
+		[MaxLength(100)]
+		public string Name { get; init; } = "";
+
+		public static void Configure(EntityTypeBuilder<RenameTransitionRow> builder) { }
 	}
 }

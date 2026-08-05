@@ -65,16 +65,19 @@ static class TemporalSqlEmitter
 		""";
 
 	/// <summary>
-	/// Step 2 — the database-owned system period on the main table. The default is
-	/// <c>clock_timestamp()</c>, never <c>now()</c>, so an insert's open bound is wall clock at the
-	/// row, not at the transaction (§3.2). The column is outside the EF model by design, which is why
-	/// it arrives as an <c>ALTER TABLE</c> after the provider's own <c>CREATE TABLE</c>.
+	/// Step 2 — the database-owned system period on the main table. No column default: the BEFORE
+	/// INSERT branch of the versioning function assigns <c>system_period</c> before the row's NOT NULL
+	/// constraint is checked (triggers run before constraint checks), and a column default cannot be
+	/// distinguished from a client-supplied value once applied, which is exactly the gap that let a raw
+	/// INSERT smuggle a backdated period past the create path (§3.2 amendment, 2026-08-05). The column
+	/// is outside the EF model by design, which is why it arrives as an <c>ALTER TABLE</c> after the
+	/// provider's own <c>CREATE TABLE</c>.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
 	public static string SystemPeriodColumn(string schema, string table) =>
 		$"""
-		ALTER TABLE "{schema}"."{table}" ADD COLUMN system_period tstzrange NOT NULL DEFAULT tstzrange(clock_timestamp(), 'infinity');
+		ALTER TABLE "{schema}"."{table}" ADD COLUMN system_period tstzrange NOT NULL;
 		""";
 
 	/// <summary>
@@ -108,12 +111,17 @@ static class TemporalSqlEmitter
 	}
 
 	/// <summary>
-	/// Step 4a — the versioning function. Closure clamps to
+	/// Step 4a — the versioning function. <c>system_period</c> is database-owned on every verb (§3.2
+	/// amendment, 2026-08-05), so the first thing the function does — before UPDATE or DELETE ever enter
+	/// it — is the INSERT branch: reject a client-supplied <c>system_period</c> the same way the UPDATE
+	/// guard does, otherwise assign <c>tstzrange(clock_timestamp(), 'infinity')</c> and return, since a
+	/// column default cannot tell its own applied value apart from one a client wrote (defaults apply
+	/// before BEFORE triggers fire). An UPDATE or DELETE past that guard closure-clamps to
 	/// <c>greatest(clock_timestamp(), lower(OLD.system_period) + 1 microsecond)</c> so every history
 	/// period has strictly positive length regardless of wall-clock behavior, and a no-op UPDATE
-	/// (compared over the explicit application column list) writes no history row at all (§3.2).
-	/// Hardened per the definer checklist: <c>SECURITY DEFINER</c>, <c>search_path</c> pinned to
-	/// <c>pg_catalog</c>, every reference schema-qualified, execute revoked from <c>PUBLIC</c>.
+	/// (compared over the explicit application column list) writes no history row at all. Hardened per
+	/// the definer checklist: <c>SECURITY DEFINER</c>, <c>search_path</c> pinned to <c>pg_catalog</c>,
+	/// every reference schema-qualified, execute revoked from <c>PUBLIC</c>.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -136,6 +144,16 @@ static class TemporalSqlEmitter
 			LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $norse$
 			DECLARE ts timestamptz;
 			BEGIN
+				IF TG_OP = 'INSERT' THEN
+					IF NEW.system_period IS NOT NULL THEN
+						RAISE EXCEPTION 'system_period on "%.%" is database-owned; it cannot be written by clients.', TG_TABLE_SCHEMA, TG_TABLE_NAME;
+					END IF;
+					NEW.system_period := pg_catalog.tstzrange(pg_catalog.clock_timestamp(), 'infinity');
+					RETURN NEW;
+				END IF;
+				IF TG_OP = 'UPDATE' AND NEW.system_period IS DISTINCT FROM OLD.system_period THEN
+					RAISE EXCEPTION 'system_period on "%.%" is database-owned; it cannot be written by clients.', TG_TABLE_SCHEMA, TG_TABLE_NAME;
+				END IF;
 				IF TG_OP = 'UPDATE' AND ROW({{oldColumnList}}) IS NOT DISTINCT FROM ROW({{newColumnList}}) THEN
 					RETURN NEW;
 				END IF;
@@ -153,14 +171,17 @@ static class TemporalSqlEmitter
 	}
 
 	/// <summary>
-	/// Step 4b — the UPDATE and DELETE triggers binding the main table to its versioning function.
-	/// Separate from <see cref="TriggerFunction"/> because evolution regenerates the function with
-	/// <c>CREATE OR REPLACE</c> and leaves the triggers alone (§3.4).
+	/// Step 4b — the INSERT, UPDATE, and DELETE triggers binding the main table to its versioning
+	/// function — <c>system_period</c> is database-owned on every verb (§3.2 amendment, 2026-08-05), not
+	/// UPDATE alone. Separate from <see cref="TriggerFunction"/> because evolution regenerates the
+	/// function with <c>CREATE OR REPLACE</c> and leaves the triggers alone (§3.4).
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
 	public static string Triggers(string schema, string table) =>
 		$"""
+		CREATE TRIGGER "{table}_versioning_insert" BEFORE INSERT ON "{schema}"."{table}"
+			FOR EACH ROW EXECUTE FUNCTION "{schema}"."{table}_versioning"();
 		CREATE TRIGGER "{table}_versioning_update" BEFORE UPDATE ON "{schema}"."{table}"
 			FOR EACH ROW EXECUTE FUNCTION "{schema}"."{table}_versioning"();
 		CREATE TRIGGER "{table}_versioning_delete" BEFORE DELETE ON "{schema}"."{table}"
@@ -190,13 +211,15 @@ static class TemporalSqlEmitter
 	/// The enable transition (§3.3): temporality added to a table that already exists and already holds
 	/// rows. Everything from step 3 on is the create path verbatim — this method composes those same
 	/// emitters — and only the arrival of <c>system_period</c> differs, for one reason: the column
-	/// cannot arrive carrying the create path's volatile default, which would scatter each pre-existing
-	/// row's open bound across the table rewrite. Instead the column arrives nullable, a single
-	/// <c>DO</c> block captures <c>clock_timestamp()</c> <em>once</em> and stamps every existing row
-	/// from that one reading, and only then does the column take <c>NOT NULL</c> and the standing
-	/// default that rows inserted afterwards use. History starts empty: the table's pre-temporal past
-	/// is honestly unrecorded, and every pre-existing row enters the timeline as a current version
-	/// opened at the enable timestamp. Emitted as one block because the nullable window between the
+	/// cannot arrive carrying a volatile per-row default, which would scatter each pre-existing row's
+	/// open bound across the table rewrite. Instead the column arrives nullable, a single <c>DO</c>
+	/// block captures <c>clock_timestamp()</c> <em>once</em> and stamps every existing row from that one
+	/// reading, and only then does the column take <c>NOT NULL</c> — with no column default restored
+	/// afterwards, because the BEFORE INSERT trigger assigns the period for every row inserted from here
+	/// on (§3.2 amendment, 2026-08-05); the backfill itself runs before the triggers exist, so brownfield
+	/// enable cannot trip the INSERT guard. History starts empty: the table's pre-temporal past is
+	/// honestly unrecorded, and every pre-existing row enters the timeline as a current version opened
+	/// at the enable timestamp. Emitted as one block because the nullable window between the
 	/// <c>ADD COLUMN</c> and the <c>SET NOT NULL</c> is choreography, not a sequence of independent
 	/// steps.
 	/// </summary>
@@ -216,7 +239,6 @@ static class TemporalSqlEmitter
 			UPDATE "{schema}"."{table}" SET system_period = pg_catalog.tstzrange(ts, 'infinity') WHERE system_period IS NULL;
 		END $norse$;
 		ALTER TABLE "{schema}"."{table}" ALTER COLUMN system_period SET NOT NULL;
-		ALTER TABLE "{schema}"."{table}" ALTER COLUMN system_period SET DEFAULT tstzrange(clock_timestamp(), 'infinity');
 
 		{HistoryTable(schema, table, columns, pkColumns)}
 
@@ -278,6 +300,7 @@ static class TemporalSqlEmitter
 	/// </param>
 	public static string DropTriggersAndFunction(string schema, string table, string apparatusName) =>
 		$"""
+		DROP TRIGGER "{apparatusName}_versioning_insert" ON "{schema}"."{table}";
 		DROP TRIGGER "{apparatusName}_versioning_update" ON "{schema}"."{table}";
 		DROP TRIGGER "{apparatusName}_versioning_delete" ON "{schema}"."{table}";
 		DROP FUNCTION "{schema}"."{apparatusName}_versioning"();

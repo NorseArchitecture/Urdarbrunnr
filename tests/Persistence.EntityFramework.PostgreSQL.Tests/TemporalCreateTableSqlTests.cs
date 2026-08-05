@@ -33,12 +33,23 @@ public sealed class TemporalCreateTableSqlTests
 	}
 
 	[Fact]
-	void Adds_the_db_owned_system_period_with_the_clock_timestamp_default()
+	void Adds_the_db_owned_system_period_column_with_no_default()
+	{
+		// No column DEFAULT: the BEFORE INSERT trigger assigns the period (§3.2 amendment, 2026-08-05) —
+		// a default cannot be told apart from a client-supplied value once applied.
+		var script = Script<TemporalWidget>();
+
+		script.ShouldContain("""ALTER TABLE "public"."temporal_widget" ADD COLUMN system_period tstzrange NOT NULL;""");
+		script.ShouldNotContain("now()");
+	}
+
+	[Fact]
+	void The_insert_branch_assigns_the_clock_timestamp_period_and_rejects_a_client_supplied_one()
 	{
 		var script = Script<TemporalWidget>();
 
-		script.ShouldContain("system_period tstzrange NOT NULL DEFAULT tstzrange(clock_timestamp(), 'infinity')");
-		script.ShouldNotContain("now()");
+		script.ShouldContain("IF TG_OP = 'INSERT' THEN");
+		script.ShouldContain("NEW.system_period := pg_catalog.tstzrange(pg_catalog.clock_timestamp(), 'infinity');");
 	}
 
 	[Fact]
@@ -72,10 +83,11 @@ public sealed class TemporalCreateTableSqlTests
 	}
 
 	[Fact]
-	void Creates_the_update_and_delete_triggers_on_the_main_table()
+	void Creates_the_insert_update_and_delete_triggers_on_the_main_table()
 	{
 		var script = Script<TemporalWidget>();
 
+		script.ShouldContain("CREATE TRIGGER \"temporal_widget_versioning_insert\" BEFORE INSERT ON \"public\".\"temporal_widget\"");
 		script.ShouldContain("CREATE TRIGGER \"temporal_widget_versioning_update\" BEFORE UPDATE ON \"public\".\"temporal_widget\"");
 		script.ShouldContain("CREATE TRIGGER \"temporal_widget_versioning_delete\" BEFORE DELETE ON \"public\".\"temporal_widget\"");
 	}
@@ -83,6 +95,20 @@ public sealed class TemporalCreateTableSqlTests
 	[Fact]
 	void Creates_the_timeline_view() =>
 		Script<TemporalWidget>().ShouldContain("_timeline");
+
+	[Fact]
+	void Emits_the_prelude_before_the_temporal_table_create()
+	{
+		// In a non-transactional script workflow (GenerateCreateScript, psql without a wrapping
+		// transaction), the floor/schema asserts have to run before the unqualified main table lands —
+		// otherwise a wrong search_path can create the table in the wrong schema before the assert fires.
+		var script = Script<TemporalWidget>();
+
+		var floorAssert = Position(script, "current_setting('server_version_num')::int");
+		var createTable = Position(script, "CREATE TABLE temporal_widget (");
+
+		floorAssert.ShouldBeLessThan(createTable);
+	}
 
 	[Fact]
 	void Emits_the_floor_assert_and_extension_guard_once_per_migration()
@@ -163,6 +189,13 @@ public sealed class TemporalCreateTableSqlTests
 		Script<PlainWidget>().ShouldNotContain("system_period");
 
 	static int Occurrences(string script, string value) => script.Split(value).Length - 1;
+
+	static int Position(string script, string statement)
+	{
+		var position = script.IndexOf(statement, StringComparison.Ordinal);
+		position.ShouldBeGreaterThanOrEqualTo(0, $"'{statement}' should have been emitted");
+		return position;
+	}
 
 	static ITable Table(IRelationalModel relationalModel, string name) =>
 		relationalModel.Tables.Single(table => table.Name == name);

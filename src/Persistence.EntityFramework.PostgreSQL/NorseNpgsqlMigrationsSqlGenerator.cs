@@ -24,8 +24,8 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL;
 /// Dropping the entity reaches neither: the table leaves the target model entirely, and EF builds
 /// <see cref="DropTableOperation"/> from <c>IMigrationsAnnotationProvider.ForRemove</c> instead of
 /// copying the model's annotations, which is why <see cref="NorseNpgsqlMigrationsAnnotationProvider"/>
-/// exists. A marker transition combined with a column change on the same table is rejected by name (see
-/// <c>GuardCombinedTransitions</c>), as are the two evolutions §3.4 refuses outright (see
+/// exists. A marker transition combined with a column change or a table rename on the same table is
+/// rejected by name (see <c>GuardCombinedTransitions</c>), as are the two evolutions §3.4 refuses outright (see
 /// <c>GuardRejectedOperations</c>). Everything else evolves in the fixed drop-view-first order of
 /// ruling 16.
 /// </summary>
@@ -86,9 +86,11 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	protected override void Generate(CreateTableOperation operation, IModel? model,
 		MigrationCommandListBuilder builder, bool terminate = true)
 	{
-		base.Generate(operation, model, builder, terminate);
 		if (!IsTemporal(model, operation.Name, operation.Schema))
+		{
+			base.Generate(operation, model, builder, terminate);
 			return;
+		}
 
 		var schema = SchemaOf(operation.Schema, model);
 		var table = operation.Name;
@@ -97,7 +99,9 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 		var pkColumns = operation.PrimaryKey?.Columns ?? throw new InvalidOperationException(
 			$"Temporal table '{table}' has no primary key; the WITHOUT OVERLAPS history key requires one.");
 
+		// Before base.Generate, not after — see AppendPrelude.
 		AppendPrelude(builder);
+		base.Generate(operation, model, builder, terminate);
 		AppendBlock(builder, TemporalSqlEmitter.SystemPeriodColumn(schema, table));
 		AppendBlock(builder, TemporalSqlEmitter.HistoryTable(schema, table, columns, pkColumns));
 		AppendBlock(builder, TemporalSqlEmitter.TriggerFunction(schema, table, columns, orReplace: false));
@@ -437,6 +441,16 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	// a mirror statement aimed at the wrong schema fails on its own missing relation rather than landing
 	// somewhere plausible — the silent-success risk the create path's schema assert exists to close does
 	// not arise here.
+	//
+	// Both call sites emit this BEFORE the operation it guards, never after. The create path calls this
+	// ahead of base.Generate(CreateTableOperation…): in a non-transactional script workflow
+	// (GenerateCreateScript, psql without a wrapping transaction) the floor/schema asserts have to run
+	// before Npgsql's unqualified main table lands, or a wrong search_path can create it in the wrong
+	// schema before the assert that exists to catch exactly that ever fires. The enable-transition path's
+	// base.Generate(AlterTableOperation…) call runs before AppendPrelude, so it may alter the unqualified
+	// table first (a comment or storage-parameter change) — but a statement aimed at the wrong schema
+	// there fails loudly on a missing relation rather than landing silently, the same risk posture as the
+	// mirror-statement case above, without needing the ordering guarantee the create path relies on.
 	void AppendPrelude(MigrationCommandListBuilder builder)
 	{
 		if (_preludeEmitted)
@@ -456,24 +470,51 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	// below does not relax it: its per-table grouping orders a table's COLUMN operations against each
 	// other, and the marker transition is not one of them — EF is free to sort the AlterTableOperation to
 	// either side of them, so one of the two directions stays wrong however the columns are grouped.
-	static void GuardCombinedTransitions(IReadOnlyList<MigrationOperation> operations)
+	//
+	// A rename collides the same way, and was measured to be worse: the transition operation carries the
+	// table's TARGET name (Generate(RenameTableOperation…) keys temporality off the target model too), so
+	// an unguarded enable-plus-rename fires the full rename choreography — DROP VIEW, history-table
+	// rename, trigger retirement — against apparatus that was never built under the old name, and an
+	// unguarded disable-plus-rename strands teardown against a name the apparatus was never renamed into.
+	// Detecting it needs the batch's rename map (_renames, populated by ScanBatch before either guard
+	// runs), which is why this guard reads instance state instead of staying static.
+	void GuardCombinedTransitions(IReadOnlyList<MigrationOperation> operations)
 	{
 		foreach (var transition in operations.OfType<AlterTableOperation>()
 			.Where(operation => IsMarkedTemporal(operation) != IsMarkedTemporal(operation.OldTable)))
 		{
-			var collision = operations
+			var columnCollision = operations
 				.Select(ColumnOperationTarget)
 				.FirstOrDefault(target => target?.Table == transition.Name && target?.Schema == transition.Schema);
-			if (collision is null)
-				continue;
-			throw new InvalidOperationException(
-				$"Temporality is being {(IsMarkedTemporal(transition) ? "enabled" : "disabled")} on table "
-				+ $"'{transition.Name}' in the same migration as {collision.Value.Description} on that table. "
-				+ "The temporal apparatus mirrors the target column shape, but EF orders the table alteration "
-				+ "and the column operations independently, so one of the two would run against a shape that "
-				+ "does not exist yet. Scaffold the temporality transition as its own migration, separate from "
-				+ "column changes.");
+			if (columnCollision is { } column)
+				throw new InvalidOperationException(
+					$"Temporality is being {(IsMarkedTemporal(transition) ? "enabled" : "disabled")} on table "
+					+ $"'{transition.Name}' in the same migration as {column.Description} on that table. "
+					+ "The temporal apparatus mirrors the target column shape, but EF orders the table "
+					+ "alteration and the column operations independently, so one of the two would run "
+					+ "against a shape that does not exist yet. Scaffold the temporality transition as its "
+					+ "own migration, separate from column changes.");
+
+			if (RenamedFrom(transition.Schema, transition.Name) is { } renamedFrom)
+				throw new InvalidOperationException(
+					$"Temporality is being {(IsMarkedTemporal(transition) ? "enabled" : "disabled")} on table "
+					+ $"'{transition.Name}' in the same migration that renames it from '{renamedFrom.Table}'. "
+					+ "The transition carries the table's target name, so EF orders the rename and the marker "
+					+ "transition independently of what apparatus already exists: enabling would fire the "
+					+ "rename choreography against apparatus that was never built under the old name, and "
+					+ "disabling would strand teardown against a name the apparatus was never renamed into. "
+					+ "Scaffold the temporality transition as its own migration, separate from the rename.");
 		}
+	}
+
+	// The batch's rename map is keyed by old (schema, table); a marker transition's own name is always the
+	// new one, so this is a reverse lookup by value rather than a TryGetValue against the map's own key.
+	(string? Schema, string Table)? RenamedFrom(string? schema, string table)
+	{
+		foreach (var (oldName, newName) in _renames)
+			if (newName == (schema, table))
+				return oldName;
+		return null;
 	}
 
 	static (string Table, string? Schema, string Description)? ColumnOperationTarget(MigrationOperation operation) =>

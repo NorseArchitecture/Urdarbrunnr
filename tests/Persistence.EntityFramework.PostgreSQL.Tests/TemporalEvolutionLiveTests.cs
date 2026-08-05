@@ -103,6 +103,7 @@ public sealed class TemporalEvolutionLiveTests(PostgresContainerFixture fixture)
 		(await TriggerBindingsAsync(context, "renamed_widgets")).ShouldBe(
 		[
 			"renamed_widgets_versioning_delete -> renamed_widgets_versioning",
+			"renamed_widgets_versioning_insert -> renamed_widgets_versioning",
 			"renamed_widgets_versioning_update -> renamed_widgets_versioning"
 		]);
 		// Versioning survives the rename: a further update closes another version into the renamed history.

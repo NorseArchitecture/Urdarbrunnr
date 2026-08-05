@@ -209,8 +209,7 @@ public sealed class TemporalScaffoldRoundTripTests
 		// CreateTableOperation carries no marker; everything here is read off the rebuilt target model.
 		var sql = ReconstructedSql(CreateTable(), RebuiltTargetModel(marked: true));
 
-		sql.ShouldContain(
-			"system_period tstzrange NOT NULL DEFAULT tstzrange(clock_timestamp(), 'infinity')");
+		sql.ShouldContain("""ADD COLUMN system_period tstzrange NOT NULL;""");
 		sql.ShouldContain("""CREATE TABLE "public"."temporal_widgets_history""");
 		sql.ShouldContain("""PRIMARY KEY ("id", "system_period" WITHOUT OVERLAPS)""");
 		sql.ShouldContain("""CREATE VIEW "public"."temporal_widgets_timeline""");
