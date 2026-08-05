@@ -54,6 +54,22 @@ public sealed class NorseSqlServerEfProvider : INorseEfMigrationProvider
 		RenameTemporalHistoryTable;
 
 	/// <inheritdoc />
+	public Action<IConventionEntityType>? TemporalRealizationHook =>
+		static entityType =>
+		{
+			var isSplit = entityType.GetMappingFragments().Any();
+			var isParked = entityType.FindAnnotation(NorseAnnotationNames.TemporalParkedOnSqlServer) is { Value: true };
+			if (isSplit && !isParked)
+				throw new InvalidOperationException($$"""Temporal entity '{{entityType.DisplayName()}}' uses table splitting; EF cannot scope SQL Server temporality per fragment (dotnet/efcore#26457) and migration generation would fail (#30366). Declare TemporalParkedOnSqlServer() in Configure to acknowledge the SQL-Server-only park, or unsplit the entity.""");
+			if (isSplit)
+				return;
+			entityType.SetIsTemporal(true);
+			entityType.SetPeriodStartPropertyName("SystemPeriodStart");
+			entityType.SetPeriodEndPropertyName("SystemPeriodEnd");
+			entityType.SetHistoryTableName($"{entityType.GetTableName()}History");
+		};
+
+	/// <inheritdoc />
 	public string DesignTimePlaceholderConnectionString(string databaseName) =>
 		$"Server=design;Database={databaseName};User Id=design;Password=design;TrustServerCertificate=true";
 

@@ -79,7 +79,8 @@ public sealed class SequentialGuidConversionWiringTests
 		{
 			base.ConfigureConventions(configurationBuilder);
 			NorseModelConventions.Apply(configurationBuilder,
-				applyFixedLength: false, sequentialGuidOrder: GuidByteOrder.Unspecified);
+				applyFixedLength: false, sequentialGuidOrder: GuidByteOrder.Unspecified,
+				temporalRealizationHook: null);
 		}
 	}
 

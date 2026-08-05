@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<ItemGroup>
+		<!-- The scaffold round-trip suite drives EF's real design-time codegen (CSharpMigrationOperationGenerator,
+		     the migrations code generator behind the designer and snapshot files) — the serialization layers
+		     `dotnet ef migrations add` puts between the differ and the SQL generator. -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.*-*" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="11.*-*" />
+		<PackageReference Include="Testcontainers.PostgreSql" Version="*" />
 		<ProjectReference Include="../../src/Persistence.EntityFramework.Migrations/Persistence.EntityFramework.Migrations.csproj" />
 		<ProjectReference Include="../../src/Persistence.EntityFramework.PostgreSQL/Persistence.EntityFramework.PostgreSQL.csproj" />
 	</ItemGroup>

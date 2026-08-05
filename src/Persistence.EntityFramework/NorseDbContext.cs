@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Norse.Primitives.Identifiers;
 
 namespace Norse.Persistence.EntityFramework;
@@ -14,6 +15,11 @@ namespace Norse.Persistence.EntityFramework;
 /// <param name="options">The options for this context.</param>
 public abstract class NorseDbContext(DbContextOptions options) : DbContext(options), INorseDbContext
 {
+	// Field initializer, not a captured primary-ctor parameter (CS9107): the options are read once at
+	// construction, and the hook is the only fact this base needs from them.
+	readonly Action<IConventionEntityType>? _temporalRealizationHook =
+		options.FindExtension<NorseTemporalRealizationOptionsExtension>()?.TemporalRealizationHook;
+
 	/// <inheritdoc />
 	protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
 	{
@@ -25,7 +31,8 @@ public abstract class NorseDbContext(DbContextOptions options) : DbContext(optio
 		var isSqlServer = Database.ProviderName == NorseDbContextOptionsExtensions.SqlServerProviderName;
 		NorseModelConventions.Apply(configurationBuilder,
 			applyFixedLength: isSqlServer,
-			sequentialGuidOrder: isSqlServer ? GuidByteOrder.SqlServer : GuidByteOrder.Rfc9562);
+			sequentialGuidOrder: isSqlServer ? GuidByteOrder.SqlServer : GuidByteOrder.Rfc9562,
+			temporalRealizationHook: _temporalRealizationHook);
 	}
 
 	/// <inheritdoc />

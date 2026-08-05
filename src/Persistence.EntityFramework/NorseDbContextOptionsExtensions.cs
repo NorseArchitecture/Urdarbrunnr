@@ -85,6 +85,9 @@ public static class NorseDbContextOptionsExtensions
 			optionsBuilder.ApplyNorseTrackingBehavior();
 			if (provider.NameRewriter is not null)
 				optionsBuilder.ApplyNorseConventions(provider.NameRewriter, provider.EntityRenameHook);
+			if (provider.TemporalRealizationHook is not null)
+				((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
+					.AddOrUpdateExtension(new NorseTemporalRealizationOptionsExtension(provider.TemporalRealizationHook));
 			return optionsBuilder;
 		}
 	}

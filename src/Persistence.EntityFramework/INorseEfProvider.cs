@@ -55,6 +55,16 @@ public interface INorseEfProvider
 	Action<IConventionEntityType, Func<string, string>>? EntityRenameHook { get; }
 
 	/// <summary>
+	/// Invoked by <c>TemporalEntityConvention</c> once per validated temporal entity at model
+	/// finalize, immediately after its <see cref="NorseAnnotationNames.Temporal"/> stamp (SQL Server:
+	/// native <c>IsTemporal</c>, period/history naming, and the split-table park guard).
+	/// <see langword="null"/> when the provider realizes temporality outside the model (Postgres:
+	/// migration SQL generation). No default: like <see cref="EntityRenameHook"/>, every binding
+	/// states its posture rather than silently inheriting a no-op.
+	/// </summary>
+	Action<IConventionEntityType>? TemporalRealizationHook { get; }
+
+	/// <summary>
 	/// A syntactically valid, semantically inert connection string for offline design-time model
 	/// building (<c>dotnet ef migrations add</c>/<c>remove</c> never open a connection). Points at
 	/// nothing; design tooling must never dial infrastructure.

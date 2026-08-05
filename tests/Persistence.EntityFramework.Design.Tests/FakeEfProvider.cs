@@ -15,6 +15,8 @@ sealed class FakeEfProvider : INorseEfMigrationProvider
 
 	public Action<IConventionEntityType, Func<string, string>>? EntityRenameHook { get; init; }
 
+	public Action<IConventionEntityType>? TemporalRealizationHook { get; init; }
+
 	public void Configure(DbContextOptionsBuilder optionsBuilder, string connectionString,
 		string? migrationsAssemblyName)
 	{
