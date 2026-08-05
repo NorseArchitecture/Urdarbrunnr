@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Norse.Primitives.Identifiers;
 
 namespace Norse.Persistence.EntityFramework;
@@ -7,13 +8,14 @@ namespace Norse.Persistence.EntityFramework;
 /// Registers the model-finalizing conventions and provider-aware value conversions every Norse EF
 /// context is guaranteed to enforce: explicit string/byte[] length
 /// (<see cref="RequireExplicitLengthConvention"/>), mandatory entity self-configuration
-/// (<see cref="RequireEntityConfigurationConvention"/>), and the correct <see cref="SequentialGuid"/>
+/// (<see cref="RequireEntityConfigurationConvention"/>), temporal entity validation
+/// (<see cref="TemporalEntityConvention"/>), and the correct <see cref="SequentialGuid"/>
 /// byte-order converter for the destination provider.
 /// </summary>
 public static class NorseModelConventions
 {
 	/// <summary>
-	/// Adds both Norse model-finalizing conventions, and the provider-correct
+	/// Adds the Norse model-finalizing conventions, and the provider-correct
 	/// <see cref="SequentialGuid"/> converter, to <paramref name="configurationBuilder"/>.
 	/// </summary>
 	/// <param name="configurationBuilder">The configuration builder to register conventions on.</param>
@@ -37,12 +39,21 @@ public static class NorseModelConventions
 	/// silently break whichever one didn't win. No default, for the same reason as
 	/// <paramref name="applyFixedLength"/>.
 	/// </param>
+	/// <param name="temporalRealizationHook">
+	/// The provider binding's <see cref="INorseEfProvider.TemporalRealizationHook"/>, invoked by
+	/// <see cref="TemporalEntityConvention"/> once per validated temporal entity immediately after
+	/// its <see cref="NorseAnnotationNames.Temporal"/> stamp, or <see langword="null"/> when the
+	/// provider realizes temporality elsewhere. No default, for the same reason as the other
+	/// parameters: whether realization happens in the model is a provider fact every caller states.
+	/// </param>
 	/// <returns>The same <paramref name="configurationBuilder"/>, for chaining.</returns>
 	public static ModelConfigurationBuilder Apply(ModelConfigurationBuilder configurationBuilder,
-		bool applyFixedLength, GuidByteOrder sequentialGuidOrder)
+		bool applyFixedLength, GuidByteOrder sequentialGuidOrder,
+		Action<IConventionEntityType>? temporalRealizationHook)
 	{
 		configurationBuilder.Conventions.Add(_ => new RequireExplicitLengthConvention(applyFixedLength));
 		configurationBuilder.Conventions.Add(static _ => new RequireEntityConfigurationConvention());
+		configurationBuilder.Conventions.Add(_ => new TemporalEntityConvention(temporalRealizationHook));
 		var converterType = sequentialGuidOrder switch
 		{
 			GuidByteOrder.SqlServer => typeof(SqlServerSequentialGuidValueConverter),

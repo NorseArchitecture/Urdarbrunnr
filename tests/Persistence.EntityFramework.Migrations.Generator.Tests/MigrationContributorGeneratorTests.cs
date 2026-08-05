@@ -201,6 +201,8 @@ public sealed class MigrationContributorGeneratorTests
 
 				public Action<IConventionEntityType, Func<string, string>>? EntityRenameHook => null;
 
+				public Action<IConventionEntityType>? TemporalRealizationHook => null;
+
 				public string DesignTimePlaceholderConnectionString(string databaseName) => "";
 			}
 			""");
