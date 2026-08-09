@@ -8,10 +8,10 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 #pragma warning disable EF1002
 
 /// <summary>
-/// Every evolution shape of spec §3.4, applied to a real PostgreSQL 19beta2 server with a live history
-/// row and a live timeline view already in place. The snapshot suite proves the SQL says what the design
-/// says; this one proves PostgreSQL accepts it — the failure the design will not ship (ruling 16) is DDL
-/// that reads correctly and cannot be applied, and it dies here rather than in the integration suite.
+///     Every evolution shape of spec §3.4, applied to a real PostgreSQL 19beta2 server with a live history
+///     row and a live timeline view already in place. The snapshot suite proves the SQL says what the design
+///     says; this one proves PostgreSQL accepts it — the failure the design will not ship (ruling 16) is DDL
+///     that reads correctly and cannot be applied, and it dies here rather than in the integration suite.
 /// </summary>
 /// <param name="fixture">The shared container.</param>
 [Collection(PostgresCollection.Name)]
@@ -204,38 +204,46 @@ public sealed class TemporalEvolutionLiveTests(PostgresContainerFixture fixture)
 		await context.Database.ExecuteSqlRawAsync($"UPDATE public.{table} SET name = 'v2';", Cancellation);
 	}
 
-	static Task<long> CountAsync(DbContext context, string relation) =>
-		context.Database.SqlQueryRaw<long>($"SELECT count(*) AS \"Value\" FROM public.{relation}")
+	static Task<long> CountAsync(DbContext context, string relation)
+	{
+		return context.Database.SqlQueryRaw<long>($"SELECT count(*) AS \"Value\" FROM public.{relation}")
 			.SingleAsync(Cancellation);
+	}
 
 	// Main table, history table, and timeline view alike: pg_class carries all three, so one query proves
 	// the whole apparatus rather than three that could each pass while another object lingers. Restricted
 	// to ordinary tables and views ('r', 'v') because indexes and sequences live in pg_class too and cannot
 	// outlive the table they belong to. Triggers need no check of their own for the same reason.
-	static Task<List<string>> RelationsAsync(DbContext context, string pattern) =>
-		context.Database.SqlQueryRaw<string>(
+	static Task<List<string>> RelationsAsync(DbContext context, string pattern)
+	{
+		return context.Database.SqlQueryRaw<string>(
 			$"""
-			SELECT c.relname AS "Value"
-			FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-			WHERE n.nspname = 'public' AND c.relkind IN ('r', 'v') AND c.relname LIKE '{pattern}'
-			ORDER BY c.relname
-			""").ToListAsync(Cancellation);
+			 SELECT c.relname AS "Value"
+			 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+			 WHERE n.nspname = 'public' AND c.relkind IN ('r', 'v') AND c.relname LIKE '{pattern}'
+			 ORDER BY c.relname
+			 """).ToListAsync(Cancellation);
+	}
 
-	static Task<List<string>> FunctionsAsync(DbContext context, string pattern) =>
-		context.Database.SqlQueryRaw<string>(
+	static Task<List<string>> FunctionsAsync(DbContext context, string pattern)
+	{
+		return context.Database.SqlQueryRaw<string>(
 			$"""
-			SELECT p.proname AS "Value"
-			FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-			WHERE n.nspname = 'public' AND p.proname LIKE '{pattern}'
-			ORDER BY p.proname
-			""").ToListAsync(Cancellation);
+			 SELECT p.proname AS "Value"
+			 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+			 WHERE n.nspname = 'public' AND p.proname LIKE '{pattern}'
+			 ORDER BY p.proname
+			 """).ToListAsync(Cancellation);
+	}
 
-	static Task<List<string>> TriggerBindingsAsync(DbContext context, string table) =>
-		context.Database.SqlQueryRaw<string>(
+	static Task<List<string>> TriggerBindingsAsync(DbContext context, string table)
+	{
+		return context.Database.SqlQueryRaw<string>(
 			$"""
-			SELECT t.tgname || ' -> ' || p.proname AS "Value"
-			FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
-			WHERE t.tgrelid = 'public.{table}'::regclass AND NOT t.tgisinternal
-			ORDER BY t.tgname
-			""").ToListAsync(Cancellation);
+			 SELECT t.tgname || ' -> ' || p.proname AS "Value"
+			 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+			 WHERE t.tgrelid = 'public.{table}'::regclass AND NOT t.tgisinternal
+			 ORDER BY t.tgname
+			 """).ToListAsync(Cancellation);
+	}
 }

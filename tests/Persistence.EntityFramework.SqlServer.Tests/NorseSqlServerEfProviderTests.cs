@@ -153,7 +153,9 @@ public sealed class NorseSqlServerEfProviderTests
 
 		[MaxLength(100)] public string Value { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<TemporalTestEntity> builder) { }
+		public static void Configure(EntityTypeBuilder<TemporalTestEntity> builder)
+		{
+		}
 	}
 
 	sealed class TemporalTestContext(DbContextOptions<TemporalTestContext> options) : NorseDbContext(options)

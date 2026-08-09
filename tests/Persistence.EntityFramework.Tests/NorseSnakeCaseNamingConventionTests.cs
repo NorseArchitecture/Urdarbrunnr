@@ -119,12 +119,13 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		ctx.Set<NestedJsonMappedOwner>().Add(new()
 		{
 			Id = 1,
-			ShippingDetail = new() { Value = "hello", SubDetail = new() { Value = "world" } },
+			ShippingDetail = new() { Value = "hello", SubDetail = new() { Value = "world" } }
 		});
 		await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
 		ctx.ChangeTracker.Clear();
 
-		var reread = await ctx.Set<NestedJsonMappedOwner>().SingleAsync(o => o.Id == 1, TestContext.Current.CancellationToken);
+		var reread = await ctx.Set<NestedJsonMappedOwner>()
+			.SingleAsync(o => o.Id == 1, TestContext.Current.CancellationToken);
 
 		reread.ShippingDetail.ShouldNotBeNull();
 		reread.ShippingDetail.Value.ShouldBe("hello");
@@ -195,7 +196,8 @@ public sealed class NorseSnakeCaseNamingConventionTests
 		var primaryKey = entity.FindPrimaryKey()!;
 
 		primaryKey.GetName(StoreObjectIdentifier.Table("split_test_users")).ShouldBe("PK_split_test_users");
-		primaryKey.GetName(StoreObjectIdentifier.Table("split_test_user_lockout")).ShouldBe("PK_split_test_user_lockout");
+		primaryKey.GetName(StoreObjectIdentifier.Table("split_test_user_lockout"))
+			.ShouldBe("PK_split_test_user_lockout");
 	}
 
 	[Fact]
@@ -236,7 +238,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Id = 1,
 			CustomerName = "hello",
 			LockoutEnd = new DateTimeOffset(2026, 8, 3, 0, 0, 0, TimeSpan.Zero),
-			AccessFailedCount = 3,
+			AccessFailedCount = 3
 		});
 		await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
 		ctx.ChangeTracker.Clear();
@@ -286,7 +288,8 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<RewriteTestEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
+			configurationBuilder.Conventions.Add(static _ =>
+				new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 	}
 
 	// No string properties, unlike RewriteTestEntity -- keeps this out of reach of
@@ -321,7 +324,8 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<JsonMappedOwner>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
+			configurationBuilder.Conventions.Add(static _ =>
+				new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -353,7 +357,8 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<NestedJsonMappedOwner>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
+			configurationBuilder.Conventions.Add(static _ =>
+				new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -383,7 +388,8 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<ComplexJsonMappedOwner>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
+			configurationBuilder.Conventions.Add(static _ =>
+				new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -395,6 +401,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 	sealed record SplitTestUser
 	{
 		public int Id { get; init; }
+
 		// EF requires at least one non-primary-key property to stay mapped to the main table.
 		public string CustomerName { get; init; } = "";
 		public DateTimeOffset? LockoutEnd { get; init; }
@@ -407,7 +414,8 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<SplitTestUser>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(static _ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
+			configurationBuilder.Conventions.Add(static _ =>
+				new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, null));
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
@@ -429,6 +437,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 			Set<RewriteTestEntity>();
 
 		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-			configurationBuilder.Conventions.Add(_ => new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, applyProviderSpecificRenames));
+			configurationBuilder.Conventions.Add(_ =>
+				new NorseSnakeCaseNamingConvention(NorseNameRewriters.LowerSnakeCase, applyProviderSpecificRenames));
 	}
 }

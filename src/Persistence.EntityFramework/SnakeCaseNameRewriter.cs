@@ -4,11 +4,11 @@ using System.Text;
 namespace Norse.Persistence.EntityFramework;
 
 /// <summary>
-/// Rewrites an identifier (table name, column name, constraint name, ...) to snake_case. Ported from
-/// prior art's Unicode-category-aware rewrite algorithm — handles acronym runs, embedded digits, and
-/// pre-existing underscores correctly, unlike a naive case-boundary regex. Culture is fixed to
-/// <see cref="CultureInfo.InvariantCulture"/>: nothing on this platform plumbs a locale through for
-/// database identifier casing today, and adding one later is a small, easy change if that ever changes.
+///     Rewrites an identifier (table name, column name, constraint name, ...) to snake_case. Ported from
+///     prior art's Unicode-category-aware rewrite algorithm — handles acronym runs, embedded digits, and
+///     pre-existing underscores correctly, unlike a naive case-boundary regex. Culture is fixed to
+///     <see cref="CultureInfo.InvariantCulture" />: nothing on this platform plumbs a locale through for
+///     database identifier casing today, and adding one later is a small, easy change if that ever changes.
 /// </summary>
 static class SnakeCaseNameRewriter
 {
@@ -34,14 +34,12 @@ static class SnakeCaseNameRewriter
 				case UnicodeCategory.TitlecaseLetter:
 					if (previousCategory == UnicodeCategory.SpaceSeparator ||
 						previousCategory == UnicodeCategory.LowercaseLetter ||
-						previousCategory != UnicodeCategory.DecimalDigitNumber &&
-						previousCategory.HasValue &&
-						currentIndex > 0 &&
-						currentIndex + 1 < name.Length &&
-						char.IsLower(name[currentIndex + 1]))
-					{
+						(previousCategory != UnicodeCategory.DecimalDigitNumber &&
+							previousCategory.HasValue &&
+							currentIndex > 0 &&
+							currentIndex + 1 < name.Length &&
+							char.IsLower(name[currentIndex + 1])))
 						builder.Append('_');
-					}
 
 					currentChar = uppercase ?
 						char.ToUpper(currentChar, CultureInfo.InvariantCulture) :
@@ -51,9 +49,7 @@ static class SnakeCaseNameRewriter
 				case UnicodeCategory.LowercaseLetter:
 				case UnicodeCategory.DecimalDigitNumber:
 					if (previousCategory == UnicodeCategory.SpaceSeparator)
-					{
 						builder.Append('_');
-					}
 
 					currentChar = uppercase ?
 						char.ToUpper(currentChar, CultureInfo.InvariantCulture) :
@@ -62,9 +58,7 @@ static class SnakeCaseNameRewriter
 
 				default:
 					if (previousCategory.HasValue)
-					{
 						previousCategory = UnicodeCategory.SpaceSeparator;
-					}
 					continue;
 			}
 

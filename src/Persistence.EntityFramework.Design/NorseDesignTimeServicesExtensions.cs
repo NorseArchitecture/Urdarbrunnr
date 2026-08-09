@@ -5,13 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Norse.Persistence.EntityFramework.Design;
 
 /// <summary>
-/// Installs <see cref="DdlEmittingMigrationsScaffolder"/> as EFs <see cref="IMigrationsScaffolder"/>.
-/// A downstream realm's own <c>IDesignTimeServices</c> implementation calls this from its
-/// <c>.Migrations.{Provider}</c> project -- the one place EFs tooling actually reflects over to
-/// discover design-time services, so this boilerplate can't be hoisted any further up the chassis.
+///     Installs <see cref="DdlEmittingMigrationsScaffolder" /> as EFs <see cref="IMigrationsScaffolder" />.
+///     A downstream realm's own <c>IDesignTimeServices</c> implementation calls this from its
+///     <c>.Migrations.{Provider}</c> project -- the one place EFs tooling actually reflects over to
+///     discover design-time services, so this boilerplate can't be hoisted any further up the chassis.
 /// </summary>
 /// <example>
-/// <code>
+///     <code>
 /// sealed class DesignTimeServices : IDesignTimeServices
 /// {
 ///     public void ConfigureDesignTimeServices(IServiceCollection services) =>
@@ -25,10 +25,10 @@ public static class NorseDesignTimeServicesExtensions
 	extension(IServiceCollection services)
 	{
 		/// <param name="databaseName">
-		/// The realm's database name (e.g. <c>"norse_reference"</c>) -- names the emitted schema
-		/// file (<c>schema/{databaseName}.sql</c>, resolved via <see cref="DesignTimeSchemaPath"/>).
+		///     The realm's database name (e.g. <c>"norse_reference"</c>) -- names the emitted schema
+		///     file (<c>schema/{databaseName}.sql</c>, resolved via <see cref="DesignTimeSchemaPath" />).
 		/// </param>
-		/// <returns>The same <paramref name="services"/> for chaining.</returns>
+		/// <returns>The same <paramref name="services" /> for chaining.</returns>
 		public IServiceCollection AddNorseDesignTimeServices(string databaseName)
 		{
 			var outputFilePath = DesignTimeSchemaPath.Resolve(AppContext.BaseDirectory, databaseName);
@@ -38,13 +38,16 @@ public static class NorseDesignTimeServicesExtensions
 			{
 				var inner = efDescriptor switch
 				{
-					{ ImplementationType: not null } => (IMigrationsScaffolder)ActivatorUtilities.CreateInstance(sp, efDescriptor.ImplementationType),
-					{ ImplementationFactory: not null } => (IMigrationsScaffolder)efDescriptor.ImplementationFactory(sp),
+					{ ImplementationType: not null } => (IMigrationsScaffolder)ActivatorUtilities.CreateInstance(sp,
+						efDescriptor.ImplementationType),
+					{ ImplementationFactory: not null } =>
+						(IMigrationsScaffolder)efDescriptor.ImplementationFactory(sp),
 					{ ImplementationInstance: not null } => (IMigrationsScaffolder)efDescriptor.ImplementationInstance,
 					_ => throw new InvalidOperationException(
 						"Could not locate Entity Framework's IMigrationsScaffolder registration. Ensure Microsoft.EntityFrameworkCore.Design is referenced correctly.")
 				};
-				return new DdlEmittingMigrationsScaffolder(inner, sp.GetRequiredService<ICurrentDbContext>(), outputFilePath);
+				return new DdlEmittingMigrationsScaffolder(inner, sp.GetRequiredService<ICurrentDbContext>(),
+					outputFilePath);
 			});
 		}
 	}

@@ -7,14 +7,20 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 
 /// <summary>
-/// DDL coverage for the enable/disable transitions of the PostgreSQL temporal apparatus
-/// (spec §3.3). No database and no hand-built operations: EF's real model differ produces the
-/// <see cref="Microsoft.EntityFrameworkCore.Migrations.Operations.AlterTableOperation"/> from two
-/// model variants of the same table, and the real generator turns it into SQL — so the diffing and
-/// the emission are both under test in one arrange.
+///     DDL coverage for the enable/disable transitions of the PostgreSQL temporal apparatus
+///     (spec §3.3). No database and no hand-built operations: EF's real model differ produces the
+///     <see cref="Microsoft.EntityFrameworkCore.Migrations.Operations.AlterTableOperation" /> from two
+///     model variants of the same table, and the real generator turns it into SQL — so the diffing and
+///     the emission are both under test in one arrange.
 /// </summary>
 public sealed class TemporalTransitionSqlTests
 {
+	// Two entities, one table name, identical column shape: the only thing the differ can see between
+	// the two models is the temporal marker appearing or disappearing.
+	const string TransitionTable = "transition_widget";
+
+	const string DeclaredSchema = "norse_audit";
+
 	[Fact]
 	void Enabling_on_an_existing_table_backfills_with_a_single_captured_timestamp()
 	{
@@ -154,10 +160,12 @@ public sealed class TemporalTransitionSqlTests
 	}
 
 	[Fact]
-	void Enabling_without_a_declared_schema_asserts_the_session_default_schema() =>
+	void Enabling_without_a_declared_schema_asserts_the_session_default_schema()
+	{
 		// The apparatus is qualified "public" while Npgsql leaves the main table to the search path;
 		// the enable path owes the same assert the create path does.
 		EnableSql().ShouldContain("pg_catalog.current_schema() <> 'public'");
+	}
 
 	[Fact]
 	void Enabling_under_a_declared_schema_skips_the_default_schema_assert()
@@ -287,13 +295,8 @@ public sealed class TemporalTransitionSqlTests
 		return optionsBuilder.Options;
 	}
 
-	static int Occurrences(string sql, string value) => sql.Split(value).Length - 1;
-
-	// Two entities, one table name, identical column shape: the only thing the differ can see between
-	// the two models is the temporal marker appearing or disappearing.
-	const string TransitionTable = "transition_widget";
-
-	const string DeclaredSchema = "norse_audit";
+	static int Occurrences(string sql, string value) =>
+		sql.Split(value).Length - 1;
 
 	sealed class PlainContext(DbContextOptions<PlainContext> options) : NorseDbContext(options)
 	{
@@ -376,32 +379,35 @@ public sealed class TemporalTransitionSqlTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<PlainRow> builder) { }
+		public static void Configure(EntityTypeBuilder<PlainRow> builder)
+		{
+		}
 	}
 
 	sealed record TemporalRow : ITemporalEntity, INorseEntity<TemporalRow>
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<TemporalRow> builder) { }
+		public static void Configure(EntityTypeBuilder<TemporalRow> builder)
+		{
+		}
 	}
 
 	sealed record TemporalRowPlus : ITemporalEntity, INorseEntity<TemporalRowPlus>
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
 		public int AccessCount { get; init; }
 
-		public static void Configure(EntityTypeBuilder<TemporalRowPlus> builder) { }
+		public static void Configure(EntityTypeBuilder<TemporalRowPlus> builder)
+		{
+		}
 	}
 
 	// The differ pairs a rename only when the same CLR entity type maps to both table names (measured:
@@ -467,9 +473,10 @@ public sealed class TemporalTransitionSqlTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<RenameTransitionRow> builder) { }
+		public static void Configure(EntityTypeBuilder<RenameTransitionRow> builder)
+		{
+		}
 	}
 }

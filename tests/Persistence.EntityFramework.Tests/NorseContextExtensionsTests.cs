@@ -51,7 +51,7 @@ public sealed class NorseContextExtensionsTests
 	[Fact]
 	void AddNorseContext_throws_loudly_when_the_connection_string_is_missing()
 	{
-		var builder = CreateBuilder(connectionString: null);
+		var builder = CreateBuilder(null);
 
 		var ex = Should.Throw<InvalidOperationException>(() =>
 			builder.AddNorseContext<TestContext>(new FakeEfProvider(), "test-db"));
@@ -114,7 +114,7 @@ public sealed class NorseContextExtensionsTests
 	[Fact]
 	void AddNorseContextFactory_throws_when_the_connection_string_is_missing()
 	{
-		var builder = CreateBuilder(connectionString: null);
+		var builder = CreateBuilder(null);
 
 		Should.Throw<InvalidOperationException>(() =>
 			builder.AddNorseContextFactory<TestContext>(new FakeEfProvider(), "test-db"));

@@ -6,36 +6,39 @@ using Microsoft.EntityFrameworkCore.Migrations.Design;
 namespace Norse.Persistence.EntityFramework.Design;
 
 /// <summary>
-/// Decorates EF Core's own <see cref="IMigrationsScaffolder"/>: every <see cref="ScaffoldMigration"/>
-/// or <see cref="RemoveMigration"/> call also writes the current-state schema as plain DDL to
-/// <paramref name="outputFilePath"/> (via the constructor), so a DBA fluent in SQL but not C# can
-/// review the schema without reading migration Designer files. Raw <c>GenerateCreateScript()</c>
-/// passthrough -- no schema-guard cleanup, since nothing compiles this file yet (no <c>Microsoft.Build.Sql</c>
-/// project consumes it; see the design doc, deferred until a realm actually needs one).
+///     Decorates EF Core's own <see cref="IMigrationsScaffolder" />: every <see cref="ScaffoldMigration" />
+///     or <see cref="RemoveMigration" /> call also writes the current-state schema as plain DDL to
+///     <paramref name="outputFilePath" /> (via the constructor), so a DBA fluent in SQL but not C# can
+///     review the schema without reading migration Designer files. Raw <c>GenerateCreateScript()</c>
+///     passthrough -- no schema-guard cleanup, since nothing compiles this file yet (no <c>Microsoft.Build.Sql</c>
+///     project consumes it; see the design doc, deferred until a realm actually needs one).
 /// </summary>
 sealed class DdlEmittingMigrationsScaffolder(
 	IMigrationsScaffolder inner,
 	ICurrentDbContext currentContext,
 	string outputFilePath) : IMigrationsScaffolder
 {
-	public ScaffoldedMigration ScaffoldMigration(string migrationName, string? rootNamespace, string? subNamespace = null, string? language = null, bool dryRun = false)
+	static readonly UTF8Encoding _utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+
+	public ScaffoldedMigration ScaffoldMigration(string migrationName, string? rootNamespace,
+		string? subNamespace = null, string? language = null, bool dryRun = false)
 	{
 		var result = inner.ScaffoldMigration(migrationName, rootNamespace, subNamespace, language, dryRun);
 		EmitDdl();
 		return result;
 	}
 
-	public MigrationFiles RemoveMigration(string projectDir, string? rootNamespace, bool force, string? language, bool dryRun = false, bool offline = false)
+	public MigrationFiles RemoveMigration(string projectDir, string? rootNamespace, bool force, string? language,
+		bool dryRun = false, bool offline = false)
 	{
 		var result = inner.RemoveMigration(projectDir, rootNamespace, force, language, dryRun, offline);
 		EmitDdl();
 		return result;
 	}
 
-	public MigrationFiles Save(string projectDir, ScaffoldedMigration migration, string? outputDir, bool dryRun = false) =>
+	public MigrationFiles Save(string projectDir, ScaffoldedMigration migration, string? outputDir,
+		bool dryRun = false) =>
 		inner.Save(projectDir, migration, outputDir, dryRun);
-
-	static readonly UTF8Encoding _utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
 	void EmitDdl()
 	{

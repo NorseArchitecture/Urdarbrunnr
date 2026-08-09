@@ -53,9 +53,19 @@ public sealed class SqlServerTemporalRealizationTests
 	[Fact]
 	void A_parked_split_entity_skips_temporality_on_sql_server_only()
 	{
-		using var context = SqlServerTestContext.Create<ParkedSplitTemporalUser>();
+		using var context =
+			SqlServerTestContext.Create<ParkedSplitTemporalUser>();
 
 		context.Model.FindEntityType(typeof(ParkedSplitTemporalUser))!.IsTemporal().ShouldBeFalse();
+	}
+
+	static void ConfigureSplitTemporalUser(EntityTypeBuilder<SplitTemporalUser> builder) =>
+		builder.SplitToTable("user_lockout", static lockout => lockout.Property(user => user.LockoutEnd));
+
+	static void ConfigureParkedSplitTemporalUser(EntityTypeBuilder<ParkedSplitTemporalUser> builder)
+	{
+		ParkedSplitTemporalUser.Configure(builder);
+		builder.SplitToTable("user_lockout", static lockout => lockout.Property(user => user.LockoutEnd));
 	}
 
 	static class SqlServerTestContext
@@ -66,11 +76,12 @@ public sealed class SqlServerTemporalRealizationTests
 			optionsBuilder.ApplyNorseProviderOptions(NorseSqlServerEfProvider.Instance,
 				"Server=localhost;Database=test;Trusted_Connection=True;TrustServerCertificate=True;",
 				migrationsAssemblyName: null);
-			return new(optionsBuilder.Options);
+			return new TemporalTestContext<TEntity>(optionsBuilder.Options);
 		}
 	}
 
-	sealed class TemporalTestContext<TEntity>(DbContextOptions<TemporalTestContext<TEntity>> options) : NorseDbContext(options)
+	sealed class TemporalTestContext<TEntity>(DbContextOptions<TemporalTestContext<TEntity>> options)
+		: NorseDbContext(options)
 		where TEntity : class
 	{
 		public DbSet<TEntity> Entities => Set<TEntity>();
@@ -91,10 +102,11 @@ public sealed class SqlServerTemporalRealizationTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Description { get; init; } = "";
+		[MaxLength(100)] public string Description { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<TemporalOrder> builder) { }
+		public static void Configure(EntityTypeBuilder<TemporalOrder> builder)
+		{
+		}
 	}
 
 	sealed record SplitTemporalUser : ITemporalEntity, INorseEntity<SplitTemporalUser>
@@ -103,7 +115,9 @@ public sealed class SqlServerTemporalRealizationTests
 		[MaxLength(100)] public string Name { get; init; } = "";
 		public DateTimeOffset? LockoutEnd { get; init; }
 
-		public static void Configure(EntityTypeBuilder<SplitTemporalUser> builder) { }
+		public static void Configure(EntityTypeBuilder<SplitTemporalUser> builder)
+		{
+		}
 	}
 
 	sealed record ParkedSplitTemporalUser : ITemporalEntity, INorseEntity<ParkedSplitTemporalUser>
@@ -114,14 +128,5 @@ public sealed class SqlServerTemporalRealizationTests
 
 		public static void Configure(EntityTypeBuilder<ParkedSplitTemporalUser> builder) =>
 			builder.TemporalParkedOnSqlServer();
-	}
-
-	static void ConfigureSplitTemporalUser(EntityTypeBuilder<SplitTemporalUser> builder) =>
-		builder.SplitToTable("user_lockout", static lockout => lockout.Property(user => user.LockoutEnd));
-
-	static void ConfigureParkedSplitTemporalUser(EntityTypeBuilder<ParkedSplitTemporalUser> builder)
-	{
-		ParkedSplitTemporalUser.Configure(builder);
-		builder.SplitToTable("user_lockout", static lockout => lockout.Property(user => user.LockoutEnd));
 	}
 }

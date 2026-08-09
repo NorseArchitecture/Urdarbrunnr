@@ -18,7 +18,8 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 	{
 		var entityDeclarations = context.SyntaxProvider.CreateSyntaxProvider(
 			static (node, _) => node is TypeDeclarationSyntax { TypeParameterList: null } typeDeclaration &&
-				(typeDeclaration.IsKind(SyntaxKind.ClassDeclaration) || typeDeclaration.IsKind(SyntaxKind.RecordDeclaration)),
+				(typeDeclaration.IsKind(SyntaxKind.ClassDeclaration) ||
+					typeDeclaration.IsKind(SyntaxKind.RecordDeclaration)),
 			static (ctx, _) => (TypeDeclarationSyntax)ctx.Node);
 
 		var compilationAndDeclarations = context.CompilationProvider.Combine(entityDeclarations.Collect());
@@ -63,7 +64,8 @@ public sealed class EntityConfigurationApplicationGenerator : IIncrementalGenera
 		return results;
 	}
 
-	static INamedTypeSymbol? FindPartialTier1Context(Compilation compilation, IList<TypeDeclarationSyntax> typeDeclarations)
+	static INamedTypeSymbol? FindPartialTier1Context(Compilation compilation,
+		IList<TypeDeclarationSyntax> typeDeclarations)
 	{
 		foreach (var typeDeclaration in typeDeclarations)
 		{

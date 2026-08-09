@@ -23,6 +23,9 @@ static class MigrationContributorDiscovery
 	const string MigrationProviderInterfaceMetadataName =
 		"Norse.Persistence.EntityFramework.INorseEfMigrationProvider";
 
+	const string SeedContributorInterfaceMetadataName =
+		"Norse.Abstractions.Migrations.Seeding.ISeedContributor";
+
 	public static IList<ContributorInfo> FindContributors(Compilation compilation)
 	{
 		IList<ContributorInfo> results = [];
@@ -42,7 +45,7 @@ static class MigrationContributorDiscovery
 			if (attr is null || attr.ConstructorArguments.Length == 0)
 				continue;
 
-			if (attr.ConstructorArguments[0].Value is not String connectionStringName)
+			if (attr.ConstructorArguments[0].Value is not string connectionStringName)
 				continue;
 
 			var dbContextType = FindEfContextType(type);
@@ -55,7 +58,9 @@ static class MigrationContributorDiscovery
 				type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
 				contextDisplay,
 				connectionStringName,
-				snapshotAssemblies.TryGetValue(contextDisplay, out var assemblies) ? assemblies : []));
+				snapshotAssemblies.TryGetValue(contextDisplay, out var assemblies) ?
+					assemblies :
+					[]));
 		}
 
 		return results;
@@ -67,7 +72,8 @@ static class MigrationContributorDiscovery
 	// load-bearing for every discovery below, not just an accommodation for packaged contributors.
 	static IEnumerable<INamedTypeSymbol> AllTypes(Compilation compilation)
 	{
-		foreach (var type in compilation.SourceModule.ReferencedAssemblySymbols.SelectMany(assembly => GetAllTypes(assembly.GlobalNamespace)))
+		foreach (var type in compilation.SourceModule.ReferencedAssemblySymbols.SelectMany(assembly =>
+			GetAllTypes(assembly.GlobalNamespace)))
 			yield return type;
 
 		foreach (var type in GetAllTypes(compilation.Assembly.GlobalNamespace))
@@ -85,7 +91,8 @@ static class MigrationContributorDiscovery
 		while (current is not null)
 		{
 			if (current.OriginalDefinition.MetadataName == "EfMigrationContributor`1" &&
-				current.OriginalDefinition.ContainingNamespace?.ToDisplayString() == "Norse.Persistence.EntityFramework.Migrations" &&
+				current.OriginalDefinition.ContainingNamespace?.ToDisplayString() ==
+				"Norse.Persistence.EntityFramework.Migrations" &&
 				current.TypeArguments.Length == 1)
 			{
 				return current.TypeArguments[0] as INamedTypeSymbol;
@@ -150,6 +157,7 @@ static class MigrationContributorDiscovery
 				return true;
 			current = current.BaseType;
 		}
+
 		return false;
 	}
 
@@ -189,9 +197,6 @@ static class MigrationContributorDiscovery
 			foreach (var type in GetAllTypes(child))
 				yield return type;
 	}
-
-	const string SeedContributorInterfaceMetadataName =
-		"Norse.Abstractions.Migrations.Seeding.ISeedContributor";
 
 	public static IList<SeedContributorInfo> FindSeedContributors(Compilation compilation)
 	{

@@ -91,6 +91,13 @@ dotnet_diagnostic.IDE0130.severity = error
 ## ── Accessibility — omit modifiers that match the default ─────────────────
 dotnet_style_require_accessibility_modifiers = omit_if_default
 dotnet_diagnostic.IDE0040.severity = error
+# ReSharper/Rider reads its own syntax-style keys, not the Roslyn property above —
+# without these, R# code cleanup ADDS explicit modifiers (its factory default) and
+# every one of them is an IDE0040 build error. With them, the same cleanup step
+# (ArrangeTypeMemberAccessModifier) REMOVES redundant modifiers instead: cleanup
+# enforces omit_if_default rather than fighting it. Proven live 2026-08-09 (80 errors).
+resharper_csharp_default_private_modifier = implicit
+resharper_csharp_default_internal_modifier = implicit
 
 ## ── var: prefer var everywhere; construction uses `Type x = new();` ───────
 # Roslyn's "type is apparent" heuristic groups factory invocations

@@ -69,10 +69,11 @@ public sealed class NorseDbContextOptionsExtensionsTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<TestEntity> builder) { }
+		public static void Configure(EntityTypeBuilder<TestEntity> builder)
+		{
+		}
 	}
 
 	sealed record ParentEntity : INorseEntity<ParentEntity>
@@ -80,7 +81,9 @@ public sealed class NorseDbContextOptionsExtensionsTests
 		public int Id { get; init; }
 		public ICollection<ChildEntity> Children { get; init; } = [];
 
-		public static void Configure(EntityTypeBuilder<ParentEntity> builder) { }
+		public static void Configure(EntityTypeBuilder<ParentEntity> builder)
+		{
+		}
 	}
 
 	sealed record ChildEntity : INorseEntity<ChildEntity>
@@ -89,10 +92,13 @@ public sealed class NorseDbContextOptionsExtensionsTests
 		public int ParentEntityId { get; init; }
 		public ParentEntity ParentEntity { get; init; } = null!;
 
-		public static void Configure(EntityTypeBuilder<ChildEntity> builder) { }
+		public static void Configure(EntityTypeBuilder<ChildEntity> builder)
+		{
+		}
 	}
 
-	sealed class RelatedEntitiesContext(DbContextOptions<RelatedEntitiesContext> options) : NorseDbContext(options)
+	sealed class RelatedEntitiesContext(DbContextOptions<RelatedEntitiesContext> options)
+		: NorseDbContext(options)
 	{
 		public DbSet<ParentEntity> ParentEntities => Set<ParentEntity>();
 		public DbSet<ChildEntity> ChildEntities => Set<ChildEntity>();

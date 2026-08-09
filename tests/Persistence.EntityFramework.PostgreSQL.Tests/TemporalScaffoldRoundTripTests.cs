@@ -19,33 +19,33 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 #pragma warning disable EF1001
 
 /// <summary>
-/// The real adoption path, end to end: <c>dotnet ef migrations add</c> and then <c>database update</c>.
-/// Every other temporal suite drives the differ straight into the generator, which skips the two
-/// serialization layers a scaffolded migration actually goes through — and the
-/// <see cref="NorseAnnotationNames.Temporal"/> marker has to survive both of them.
+///     The real adoption path, end to end: <c>dotnet ef migrations add</c> and then <c>database update</c>.
+///     Every other temporal suite drives the differ straight into the generator, which skips the two
+///     serialization layers a scaffolded migration actually goes through — and the
+///     <see cref="NorseAnnotationNames.Temporal" /> marker has to survive both of them.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Layer (a) is the operation annotations: written into the scaffolded C# and reconstructed through
-/// <see cref="MigrationBuilder"/> at apply time. Measured twice — EF's real
-/// <see cref="ICSharpMigrationOperationGenerator"/> has to emit the <c>.Annotation</c>/<c>.OldAnnotation</c>
-/// call, and operations rebuilt from exactly those calls have to still drive the apparatus. The
-/// enable/disable <see cref="AlterTableOperation"/> and the <c>ForRemove</c>-sourced
-/// <see cref="DropTableOperation"/> live or die here.
-/// </para>
-/// <para>
-/// Layer (b) is the entity-type annotation surviving into the migration's designer <c>BuildTargetModel</c>
-/// and into the snapshot. That model — a bare convention set, the shape written longhand, then
-/// <see cref="IModelRuntimeInitializer"/>, which is the call EF's own <c>Migrator</c> makes before handing
-/// the target model to the SQL generator — is what the generator consults for a create and for column
-/// operations, neither of which carries a marker of its own. A drop there is silent: appliable SQL, no
-/// error anywhere, and a temporal table left without its history mirror.
-/// </para>
-/// <para>
-/// Compiling and executing the scaffolded C# is the heavyweight equivalent; this measures the same two
-/// joints without a Roslyn build. Applying the result is <see cref="TemporalEvolutionLiveTests"/>'s job —
-/// here the SQL text is the measurement.
-/// </para>
+///     <para>
+///         Layer (a) is the operation annotations: written into the scaffolded C# and reconstructed through
+///         <see cref="MigrationBuilder" /> at apply time. Measured twice — EF's real
+///         <see cref="ICSharpMigrationOperationGenerator" /> has to emit the <c>.Annotation</c>/<c>.OldAnnotation</c>
+///         call, and operations rebuilt from exactly those calls have to still drive the apparatus. The
+///         enable/disable <see cref="AlterTableOperation" /> and the <c>ForRemove</c>-sourced
+///         <see cref="DropTableOperation" /> live or die here.
+///     </para>
+///     <para>
+///         Layer (b) is the entity-type annotation surviving into the migration's designer <c>BuildTargetModel</c>
+///         and into the snapshot. That model — a bare convention set, the shape written longhand, then
+///         <see cref="IModelRuntimeInitializer" />, which is the call EF's own <c>Migrator</c> makes before handing
+///         the target model to the SQL generator — is what the generator consults for a create and for column
+///         operations, neither of which carries a marker of its own. A drop there is silent: appliable SQL, no
+///         error anywhere, and a temporal table left without its history mirror.
+///     </para>
+///     <para>
+///         Compiling and executing the scaffolded C# is the heavyweight equivalent; this measures the same two
+///         joints without a Roslyn build. Applying the result is <see cref="TemporalEvolutionLiveTests" />'s job —
+///         here the SQL text is the measurement.
+///     </para>
 /// </remarks>
 public sealed class TemporalScaffoldRoundTripTests
 {
@@ -114,14 +114,14 @@ public sealed class TemporalScaffoldRoundTripTests
 	{
 		// The whole of layer (a) in one assertion: operations rebuilt from the MigrationBuilder calls the
 		// scaffolded C# carries produce character-for-character the SQL the differ's own operations do.
-		ReconstructedSql(EnableTransition(withMarker: true), RebuiltTargetModel(marked: true))
+		ReconstructedSql(EnableTransition(true), RebuiltTargetModel(true))
 			.ShouldBe(TemporalEvolution.EnableSql());
 	}
 
 	[Fact]
 	void A_reconstructed_enable_transition_still_builds_the_whole_apparatus()
 	{
-		var sql = ReconstructedSql(EnableTransition(withMarker: true), RebuiltTargetModel(marked: true));
+		var sql = ReconstructedSql(EnableTransition(true), RebuiltTargetModel(true));
 
 		sql.ShouldContain("ADD COLUMN system_period tstzrange");
 		sql.ShouldContain("""CREATE TABLE "public"."temporal_widgets_history""");
@@ -134,7 +134,7 @@ public sealed class TemporalScaffoldRoundTripTests
 	[Fact]
 	void A_reconstructed_entity_drop_still_tears_the_apparatus_down_before_the_table()
 	{
-		var sql = ReconstructedSql(EntityDrop(withMarker: true), RebuiltTargetModel(marked: false, withTable: false));
+		var sql = ReconstructedSql(EntityDrop(true), RebuiltTargetModel(false, withTable: false));
 
 		var dropView = Position(sql, """DROP VIEW "public"."temporal_widgets_timeline";""");
 		var dropFunction = Position(sql, """DROP FUNCTION "public"."temporal_widgets_versioning"();""");
@@ -197,7 +197,7 @@ public sealed class TemporalScaffoldRoundTripTests
 		// The designer-style model never meets a Norse convention — no ITemporalEntity, no stamping pass.
 		// The annotation it replays has to reach the relational table through the annotation provider on
 		// its own, or every marker-free operation below silently loses its apparatus.
-		var table = RebuiltTargetModel(marked: true).GetRelationalModel().Tables
+		var table = RebuiltTargetModel(true).GetRelationalModel().Tables
 			.Single(candidate => candidate.Name == TemporalEvolution.Table);
 
 		table.FindAnnotation(NorseAnnotationNames.Temporal).ShouldNotBeNull().Value.ShouldBe(true);
@@ -207,7 +207,7 @@ public sealed class TemporalScaffoldRoundTripTests
 	void A_reconstructed_create_against_the_rebuilt_model_still_builds_the_apparatus()
 	{
 		// CreateTableOperation carries no marker; everything here is read off the rebuilt target model.
-		var sql = ReconstructedSql(CreateTable(), RebuiltTargetModel(marked: true));
+		var sql = ReconstructedSql(CreateTable(), RebuiltTargetModel(true));
 
 		sql.ShouldContain("""ADD COLUMN system_period tstzrange NOT NULL;""");
 		sql.ShouldContain("""CREATE TABLE "public"."temporal_widgets_history""");
@@ -220,7 +220,7 @@ public sealed class TemporalScaffoldRoundTripTests
 	{
 		// The silent failure this round trip exists to catch: an AddColumn on a temporal table whose marker
 		// did not survive into the designer model applies cleanly and leaves history one column behind.
-		var sql = ReconstructedSql(AddColumn(), RebuiltTargetModel(marked: true, withExtraColumn: true));
+		var sql = ReconstructedSql(AddColumn(), RebuiltTargetModel(true, true));
 
 		var dropView = Position(sql, """DROP VIEW "public"."temporal_widgets_timeline";""");
 		var historyAdd = Position(sql,
@@ -242,7 +242,7 @@ public sealed class TemporalScaffoldRoundTripTests
 	[Fact]
 	void An_enable_transition_stripped_of_its_annotation_emits_no_apparatus()
 	{
-		var sql = ReconstructedSql(EnableTransition(withMarker: false), RebuiltTargetModel(marked: true));
+		var sql = ReconstructedSql(EnableTransition(false), RebuiltTargetModel(true));
 
 		sql.ShouldNotContain("system_period");
 		sql.ShouldNotContain("_history");
@@ -252,7 +252,7 @@ public sealed class TemporalScaffoldRoundTripTests
 	[Fact]
 	void An_entity_drop_stripped_of_its_annotation_leaves_the_apparatus_behind()
 	{
-		var sql = ReconstructedSql(EntityDrop(withMarker: false), RebuiltTargetModel(marked: false, withTable: false));
+		var sql = ReconstructedSql(EntityDrop(false), RebuiltTargetModel(false, withTable: false));
 
 		sql.ShouldContain("DROP TABLE public.temporal_widgets;");
 		sql.ShouldNotContain("_history");
@@ -265,7 +265,7 @@ public sealed class TemporalScaffoldRoundTripTests
 	{
 		// The operation still carries its own .Annotation("Norse:Temporal", true) — the create path does not
 		// read it. Only the rebuilt target model decides, which is exactly why layer (b) has to hold.
-		var sql = ReconstructedSql(CreateTable(), RebuiltTargetModel(marked: false));
+		var sql = ReconstructedSql(CreateTable(), RebuiltTargetModel(false));
 
 		sql.ShouldContain("CREATE TABLE public.temporal_widgets");
 		sql.ShouldNotContain("system_period");
@@ -276,7 +276,7 @@ public sealed class TemporalScaffoldRoundTripTests
 	void A_column_added_against_a_target_model_stripped_of_the_marker_mirrors_nothing()
 	{
 		// This is the silent one: appliable SQL, no error, no history mirror.
-		var sql = ReconstructedSql(AddColumn(), RebuiltTargetModel(marked: false, withExtraColumn: true));
+		var sql = ReconstructedSql(AddColumn(), RebuiltTargetModel(false, true));
 
 		sql.ShouldContain("ALTER TABLE public.temporal_widgets ADD extra");
 		sql.ShouldNotContain("_history");
@@ -347,15 +347,15 @@ public sealed class TemporalScaffoldRoundTripTests
 	{
 		MigrationBuilder migrationBuilder = new(Provider);
 		migrationBuilder.CreateTable(
-			name: TemporalEvolution.Table,
-			schema: TemporalEvolution.Schema,
-			columns: table => new
-			{
-				Id = table.Column<int>(name: "id", type: "integer", nullable: false),
-				Name = table.Column<string>(name: "name", type: "character varying(100)", maxLength: 100,
-					nullable: false)
-			},
-			constraints: table => table.PrimaryKey("pk_temporal_widgets", columns => columns.Id))
+				name: TemporalEvolution.Table,
+				schema: TemporalEvolution.Schema,
+				columns: table => new
+				{
+					Id = table.Column<int>(name: "id", type: "integer", nullable: false),
+					Name = table.Column<string>(name: "name", type: "character varying(100)", maxLength: 100,
+						nullable: false)
+				},
+				constraints: table => table.PrimaryKey("pk_temporal_widgets", columns => columns.Id))
 			.Annotation(NorseAnnotationNames.Temporal, true);
 		return migrationBuilder.Operations;
 	}
@@ -379,11 +379,11 @@ public sealed class TemporalScaffoldRoundTripTests
 	// ---------------------------------------------------------------------------------------------
 
 	/// <summary>
-	/// A model built the way a migration's designer file builds one: a bare convention set — no Norse
-	/// conventions, no <c>ITemporalEntity</c>, no stamping pass — the shape written out longhand, then
-	/// <see cref="IModelRuntimeInitializer"/>, which is the call EF's own <c>Migrator</c> makes before it
-	/// hands the target model to the SQL generator. The single <c>HasAnnotation</c> line is the one thing
-	/// the designer file has to have carried across for any of this to work.
+	///     A model built the way a migration's designer file builds one: a bare convention set — no Norse
+	///     conventions, no <c>ITemporalEntity</c>, no stamping pass — the shape written out longhand, then
+	///     <see cref="IModelRuntimeInitializer" />, which is the call EF's own <c>Migrator</c> makes before it
+	///     hands the target model to the SQL generator. The single <c>HasAnnotation</c> line is the one thing
+	///     the designer file has to have carried across for any of this to work.
 	/// </summary>
 	static IModel RebuiltTargetModel(bool marked, bool withExtraColumn = false, bool withTable = true)
 	{

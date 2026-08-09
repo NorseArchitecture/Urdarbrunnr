@@ -8,7 +8,8 @@ namespace Norse.Persistence.EntityFramework;
 
 sealed class RequireExplicitLengthConvention(bool applyFixedLength) : IModelFinalizingConvention
 {
-	public void ProcessModelFinalizing(IConventionModelBuilder builder, IConventionContext<IConventionModelBuilder> context)
+	public void ProcessModelFinalizing(IConventionModelBuilder builder,
+		IConventionContext<IConventionModelBuilder> context)
 	{
 		IList<string> violations = [];
 

@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 
 /// <summary>
-/// DDL snapshot coverage for the create path of the PostgreSQL temporal apparatus (spec §3.1–§3.2).
-/// No database: <c>Database.GenerateCreateScript()</c> runs the real create operations through the
-/// real generator, which is exactly the path the DBA schema dump takes (spec §3.5).
+///     DDL snapshot coverage for the create path of the PostgreSQL temporal apparatus (spec §3.1–§3.2).
+///     No database: <c>Database.GenerateCreateScript()</c> runs the real create operations through the
+///     real generator, which is exactly the path the DBA schema dump takes (spec §3.5).
 /// </summary>
 public sealed class TemporalCreateTableSqlTests
 {
@@ -87,9 +87,12 @@ public sealed class TemporalCreateTableSqlTests
 	{
 		var script = Script<TemporalWidget>();
 
-		script.ShouldContain("CREATE TRIGGER \"temporal_widget_versioning_insert\" BEFORE INSERT ON \"public\".\"temporal_widget\"");
-		script.ShouldContain("CREATE TRIGGER \"temporal_widget_versioning_update\" BEFORE UPDATE ON \"public\".\"temporal_widget\"");
-		script.ShouldContain("CREATE TRIGGER \"temporal_widget_versioning_delete\" BEFORE DELETE ON \"public\".\"temporal_widget\"");
+		script.ShouldContain(
+			"CREATE TRIGGER \"temporal_widget_versioning_insert\" BEFORE INSERT ON \"public\".\"temporal_widget\"");
+		script.ShouldContain(
+			"CREATE TRIGGER \"temporal_widget_versioning_update\" BEFORE UPDATE ON \"public\".\"temporal_widget\"");
+		script.ShouldContain(
+			"CREATE TRIGGER \"temporal_widget_versioning_delete\" BEFORE DELETE ON \"public\".\"temporal_widget\"");
 	}
 
 	[Fact]
@@ -113,7 +116,7 @@ public sealed class TemporalCreateTableSqlTests
 	[Fact]
 	void Emits_the_floor_assert_and_extension_guard_once_per_migration()
 	{
-		using var context = new TwoTemporalWidgetContext(
+		using TwoTemporalWidgetContext context = new(
 			PostgresTestContext.Options<TwoTemporalWidgetContext>());
 
 		var script = context.Database.GenerateCreateScript();
@@ -151,7 +154,7 @@ public sealed class TemporalCreateTableSqlTests
 	[Fact]
 	void Skips_the_default_schema_assert_when_the_model_declares_a_schema()
 	{
-		using var context = new DeclaredSchemaContext(PostgresTestContext.Options<DeclaredSchemaContext>());
+		using DeclaredSchemaContext context = new(PostgresTestContext.Options<DeclaredSchemaContext>());
 
 		var script = context.Database.GenerateCreateScript();
 
@@ -188,7 +191,8 @@ public sealed class TemporalCreateTableSqlTests
 	void An_unmarked_entity_gets_no_apparatus() =>
 		Script<PlainWidget>().ShouldNotContain("system_period");
 
-	static int Occurrences(string script, string value) => script.Split(value).Length - 1;
+	static int Occurrences(string script, string value) =>
+		script.Split(value).Length - 1;
 
 	static int Position(string script, string statement)
 	{
@@ -229,10 +233,12 @@ public sealed class TemporalCreateTableSqlTests
 			else if (typeof(TEntity) == typeof(PlainWidget))
 				builder.Entity<PlainWidget>().ToTable("plain_widget");
 			else if (typeof(TEntity) == typeof(SplitTemporalWidget))
+			{
 				builder.Entity<SplitTemporalWidget>()
 					.ToTable("split_temporal_widgets")
 					.SplitToTable("widget_counters",
 						static counters => counters.Property(widget => widget.AccessCount));
+			}
 		}
 	}
 
@@ -268,20 +274,22 @@ public sealed class TemporalCreateTableSqlTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<TemporalWidget> builder) { }
+		public static void Configure(EntityTypeBuilder<TemporalWidget> builder)
+		{
+		}
 	}
 
 	sealed record TemporalGadget : ITemporalEntity, INorseEntity<TemporalGadget>
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<TemporalGadget> builder) { }
+		public static void Configure(EntityTypeBuilder<TemporalGadget> builder)
+		{
+		}
 	}
 
 	// SplitTemporalWidget is not nested here: the integration suite drives the same model against a real
@@ -291,9 +299,10 @@ public sealed class TemporalCreateTableSqlTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
-		public static void Configure(EntityTypeBuilder<PlainWidget> builder) { }
+		public static void Configure(EntityTypeBuilder<PlainWidget> builder)
+		{
+		}
 	}
 }

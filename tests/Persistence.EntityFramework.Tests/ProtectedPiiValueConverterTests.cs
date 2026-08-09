@@ -7,27 +7,6 @@ namespace Norse.Persistence.EntityFramework.Tests;
 
 public sealed class ProtectedPiiValueConverterTests
 {
-	// Deterministic fake: "P:" prefix marks protected payloads.
-	sealed class FakeProtector : IPersonalDataProtector
-	{
-		public string? Protect(string? data) => data is null ? null : $"P:{data}";
-		public string? Unprotect(string? data) => data is not null && data.StartsWith("P:", StringComparison.Ordinal) ?
-			data[2..] :
-			throw new InvalidOperationException("Not protected.");
-	}
-
-	// A distinct, unrelated exception type — never InvalidOperationException — so a test asserting
-	// pass-through can't accidentally pass against the converter's own parse-failure exception.
-	sealed class SentinelException : Exception;
-
-	// A protector whose Unprotect always fails with something other than unparseable data, standing
-	// in for a real subject-keyed protector's own exception types (e.g. a future KeyDestroyedException).
-	sealed class ThrowingProtector : IPersonalDataProtector
-	{
-		public string? Protect(string? data) => data;
-		public string? Unprotect(string? data) => throw new SentinelException();
-	}
-
 	[Fact]
 	void To_provider_protects_the_wire_value()
 	{
@@ -69,24 +48,56 @@ public sealed class ProtectedPiiValueConverterTests
 			.UseSqlite("Data Source=:memory:")
 			.Options;
 		using PiiFixtureContext context = new(options, new FakeProtector());
-		var property = context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.Email))!;
+		var property =
+			context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.Email))!;
 		property.GetValueConverter().ShouldBeOfType<ProtectedPiiValueConverter<EmailAddress>>();
 
 		// Nullable branch: ProtectPiiScalars unwraps Nullable<T> before checking IMaskedValue, so an
 		// EmailAddress? property must get the same converter as a non-nullable EmailAddress property.
-		var secondaryEmailProperty = context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.SecondaryEmail))!;
+		var secondaryEmailProperty =
+			context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(
+				nameof(PiiFixtureEntity.SecondaryEmail))!;
 		secondaryEmailProperty.GetValueConverter().ShouldBeOfType<ProtectedPiiValueConverter<EmailAddress>>();
 
 		// Negative case: a plain non-PII scalar must never receive a PII converter — proves the guard
 		// has a working false side, not just a working true side.
-		var idProperty = context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.Id))!;
+		var idProperty =
+			context.Model.FindEntityType(typeof(PiiFixtureEntity))!.FindProperty(nameof(PiiFixtureEntity.Id))!;
 		idProperty.GetValueConverter().ShouldBeNull();
+	}
+
+	// Deterministic fake: "P:" prefix marks protected payloads.
+	sealed class FakeProtector : IPersonalDataProtector
+	{
+		public string? Protect(string? data) => data is null ?
+			null :
+			$"P:{data}";
+
+		public string? Unprotect(string? data) => data is not null && data.StartsWith("P:", StringComparison.Ordinal) ?
+			data[2..] :
+			throw new InvalidOperationException("Not protected.");
+	}
+
+	// A distinct, unrelated exception type — never InvalidOperationException — so a test asserting
+	// pass-through can't accidentally pass against the converter's own parse-failure exception.
+	sealed class SentinelException : Exception;
+
+	// A protector whose Unprotect always fails with something other than unparseable data, standing
+	// in for a real subject-keyed protector's own exception types (e.g. a future KeyDestroyedException).
+	sealed class ThrowingProtector : IPersonalDataProtector
+	{
+		public string? Protect(string? data) => data;
+		public string? Unprotect(string? data) => throw new SentinelException();
 	}
 
 	sealed record PiiFixtureEntity(
 		Guid Id,
-		[property: MaxLength(400)][property: RetentionPolicy(RetentionBasis.SubjectKey)] EmailAddress Email,
-		[property: MaxLength(400)][property: RetentionPolicy(RetentionBasis.SubjectKey)] EmailAddress? SecondaryEmail) :
+		[property: MaxLength(400)]
+		[property: RetentionPolicy(RetentionBasis.SubjectKey)]
+		EmailAddress Email,
+		[property: MaxLength(400)]
+		[property: RetentionPolicy(RetentionBasis.SubjectKey)]
+		EmailAddress? SecondaryEmail) :
 		NorseEntityBase<PiiFixtureEntity>, INorseEntity<PiiFixtureEntity>
 	{
 		// EmailAddress carries no default EF type mapping, so without this explicit .Property call

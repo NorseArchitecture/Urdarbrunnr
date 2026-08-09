@@ -6,27 +6,28 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 namespace Norse.Persistence.EntityFramework;
 
 /// <summary>
-/// Validates every <see cref="ITemporalEntity"/> at model finalize, stamps the
-/// <see cref="NorseAnnotationNames.Temporal"/> annotation on its main table mapping, and reserves
-/// the derived history/timeline names (fails loudly on collision). The <c>system_period</c> column
-/// name is reserved too — not because SQL Server's own temporal realization ever produces a
-/// column by that name (it stamps <c>SystemPeriodStart</c>/<c>SystemPeriodEnd</c> shadow
-/// properties instead), but because one model builds for both providers and PostgreSQL owns
-/// <c>system_period</c> in migration SQL generation, never by an application property — so a
-/// mapped property whose column resolves to <c>system_period</c> (ordinal-ignore-case) throws
-/// here, at model finalize, instead of surfacing as a duplicate-column failure from the
-/// migration emitter. When the provider binding supplies a
-/// <see cref="INorseEfProvider.TemporalRealizationHook"/>, each validated entity is realized
-/// immediately after its stamp — one deterministic pass, mirroring how
-/// <see cref="INorseEfProvider.EntityRenameHook"/> rides the naming convention. A separate
-/// finalizing convention cannot do this: plugin-added conventions enter the finalizing list before
-/// context-added ones, so a realization pass registered independently races the stamp it reads.
+///     Validates every <see cref="ITemporalEntity" /> at model finalize, stamps the
+///     <see cref="NorseAnnotationNames.Temporal" /> annotation on its main table mapping, and reserves
+///     the derived history/timeline names (fails loudly on collision). The <c>system_period</c> column
+///     name is reserved too — not because SQL Server's own temporal realization ever produces a
+///     column by that name (it stamps <c>SystemPeriodStart</c>/<c>SystemPeriodEnd</c> shadow
+///     properties instead), but because one model builds for both providers and PostgreSQL owns
+///     <c>system_period</c> in migration SQL generation, never by an application property — so a
+///     mapped property whose column resolves to <c>system_period</c> (ordinal-ignore-case) throws
+///     here, at model finalize, instead of surfacing as a duplicate-column failure from the
+///     migration emitter. When the provider binding supplies a
+///     <see cref="INorseEfProvider.TemporalRealizationHook" />, each validated entity is realized
+///     immediately after its stamp — one deterministic pass, mirroring how
+///     <see cref="INorseEfProvider.EntityRenameHook" /> rides the naming convention. A separate
+///     finalizing convention cannot do this: plugin-added conventions enter the finalizing list before
+///     context-added ones, so a realization pass registered independently races the stamp it reads.
 /// </summary>
 /// <param name="realizationHook">
-/// The provider binding's realization hook, or <see langword="null"/> when the provider realizes
-/// temporality elsewhere (Postgres: migration SQL generation, never the model).
+///     The provider binding's realization hook, or <see langword="null" /> when the provider realizes
+///     temporality elsewhere (Postgres: migration SQL generation, never the model).
 /// </param>
-sealed class TemporalEntityConvention(Action<IConventionEntityType>? realizationHook) : IModelFinalizingConvention
+sealed class TemporalEntityConvention(Action<IConventionEntityType>? realizationHook)
+	: IModelFinalizingConvention
 {
 	public void ProcessModelFinalizing(
 		IConventionModelBuilder modelBuilder, IConventionContext<IConventionModelBuilder> context)

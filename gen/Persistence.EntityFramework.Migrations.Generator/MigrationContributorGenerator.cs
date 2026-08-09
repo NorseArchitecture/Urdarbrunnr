@@ -8,37 +8,42 @@ namespace Norse.Persistence.EntityFramework.Migrations.Generator;
 #pragma warning disable RS2008 // No analyzer-release ledger, matching the platform's other generators.
 
 /// <summary>
-/// Discovers every <c>EfMigrationContributor&lt;TContext&gt;</c> and <c>ISeedContributor</c> visible
-/// to a migrations service's compilation, along with the single <c>INorseEfMigrationProvider</c>
-/// binding it references, derives each context's migrations assembly from its <c>ModelSnapshot</c>,
-/// and emits the provider-neutral <c>AddNorseMigrations()</c> choreography.
+///     Discovers every <c>EfMigrationContributor&lt;TContext&gt;</c> and <c>ISeedContributor</c> visible
+///     to a migrations service's compilation, along with the single <c>INorseEfMigrationProvider</c>
+///     binding it references, derives each context's migrations assembly from its <c>ModelSnapshot</c>,
+///     and emits the provider-neutral <c>AddNorseMigrations()</c> choreography.
 /// </summary>
 [Generator]
 public sealed class MigrationContributorGenerator : IIncrementalGenerator
 {
 	static readonly DiagnosticDescriptor _noProvider = new(
 		"NORSE030", "No provider binding referenced",
-		"Migration contributors were found but no INorseEfMigrationProvider implementation is visible to this compilation — reference exactly one provider binding package, for example Norse.Persistence.EntityFramework.PostgreSQL", "Norse.Migrations",
+		"Migration contributors were found but no INorseEfMigrationProvider implementation is visible to this compilation — reference exactly one provider binding package, for example Norse.Persistence.EntityFramework.PostgreSQL",
+		"Norse.Migrations",
 		DiagnosticSeverity.Error, isEnabledByDefault: true);
 
 	static readonly DiagnosticDescriptor _multipleProviders = new(
 		"NORSE031", "Multiple provider bindings referenced",
-		"Exactly one INorseEfMigrationProvider implementation must be visible to a migrations compilation; found: {0}", "Norse.Migrations",
+		"Exactly one INorseEfMigrationProvider implementation must be visible to a migrations compilation; found: {0}",
+		"Norse.Migrations",
 		DiagnosticSeverity.Error, isEnabledByDefault: true);
 
 	static readonly DiagnosticDescriptor _noSnapshot = new(
 		"NORSE032", "No ModelSnapshot for context",
-		"No ModelSnapshot annotated with [DbContext(typeof({0}))] is visible to this compilation — the migrations assembly cannot be derived; reference the realm's *.Migrations.{{Provider}} project", "Norse.Migrations",
+		"No ModelSnapshot annotated with [DbContext(typeof({0}))] is visible to this compilation — the migrations assembly cannot be derived; reference the realm's *.Migrations.{{Provider}} project",
+		"Norse.Migrations",
 		DiagnosticSeverity.Error, isEnabledByDefault: true);
 
 	static readonly DiagnosticDescriptor _ambiguousSnapshot = new(
 		"NORSE034", "Multiple ModelSnapshots for context",
-		"More than one assembly visible to this compilation carries a ModelSnapshot annotated with [DbContext(typeof({0}))] — the migrations assembly is ambiguous and reference order must never decide it; reference exactly one provider's *.Migrations.{{Provider}} project; candidates: {1}", "Norse.Migrations",
+		"More than one assembly visible to this compilation carries a ModelSnapshot annotated with [DbContext(typeof({0}))] — the migrations assembly is ambiguous and reference order must never decide it; reference exactly one provider's *.Migrations.{{Provider}} project; candidates: {1}",
+		"Norse.Migrations",
 		DiagnosticSeverity.Error, isEnabledByDefault: true);
 
 	static readonly DiagnosticDescriptor _noInstance = new(
 		"NORSE033", "Provider binding missing Instance",
-		"Provider binding '{0}' must expose a public static Instance property — the generated AddNorseMigrations() consumes the binding through it", "Norse.Migrations",
+		"Provider binding '{0}' must expose a public static Instance property — the generated AddNorseMigrations() consumes the binding through it",
+		"Norse.Migrations",
 		DiagnosticSeverity.Error, isEnabledByDefault: true);
 
 	/// <inheritdoc />

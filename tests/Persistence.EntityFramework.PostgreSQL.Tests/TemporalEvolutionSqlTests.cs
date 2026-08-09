@@ -1,12 +1,12 @@
 namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 
 /// <summary>
-/// DDL coverage for evolution against a temporal table (spec §3.4). The fixed order — drop the timeline
-/// view, run the main-table operation, mirror it onto history, regenerate the function, recreate the
-/// view — is ruling 16, and it is the only appliable order: PostgreSQL refuses a column drop or a type
-/// change under a dependent view, and <c>CREATE OR REPLACE VIEW</c> cannot change the output column set.
-/// The arrange is EF's real model differ over two real models (<see cref="TemporalEvolution"/>), so the
-/// operations are never hand-built.
+///     DDL coverage for evolution against a temporal table (spec §3.4). The fixed order — drop the timeline
+///     view, run the main-table operation, mirror it onto history, regenerate the function, recreate the
+///     view — is ruling 16, and it is the only appliable order: PostgreSQL refuses a column drop or a type
+///     change under a dependent view, and <c>CREATE OR REPLACE VIEW</c> cannot change the output column set.
+///     The arrange is EF's real model differ over two real models (<see cref="TemporalEvolution" />), so the
+///     operations are never hand-built.
 /// </summary>
 public sealed class TemporalEvolutionSqlTests
 {
@@ -366,5 +366,6 @@ public sealed class TemporalEvolutionSqlTests
 		return position;
 	}
 
-	static int Occurrences(string sql, string value) => sql.Split(value).Length - 1;
+	static int Occurrences(string sql, string value) =>
+		sql.Split(value).Length - 1;
 }

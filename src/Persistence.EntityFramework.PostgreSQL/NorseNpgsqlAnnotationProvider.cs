@@ -12,12 +12,12 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL;
 #pragma warning disable EF1001
 
 /// <summary>
-/// Projects the <see cref="NorseAnnotationNames.Temporal"/> marker from the entity type onto its
-/// relational table, so EF's model differ can see it. Two things depend on that projection: the
-/// enable/disable transitions in the chassis design §3.3, which EF emits as annotation-only table
-/// alterations and would otherwise diff away to nothing, and the marker's presence on
-/// <c>AlterTableOperation.OldTable</c>, the only discriminator available on the disable side once
-/// the entity has left the target model.
+///     Projects the <see cref="NorseAnnotationNames.Temporal" /> marker from the entity type onto its
+///     relational table, so EF's model differ can see it. Two things depend on that projection: the
+///     enable/disable transitions in the chassis design §3.3, which EF emits as annotation-only table
+///     alterations and would otherwise diff away to nothing, and the marker's presence on
+///     <c>AlterTableOperation.OldTable</c>, the only discriminator available on the disable side once
+///     the entity has left the target model.
 /// </summary>
 /// <param name="dependencies">The relational annotation-provider dependencies, forwarded to Npgsql's own provider.</param>
 sealed class NorseNpgsqlAnnotationProvider(RelationalAnnotationProviderDependencies dependencies)
@@ -39,5 +39,5 @@ sealed class NorseNpgsqlAnnotationProvider(RelationalAnnotationProviderDependenc
 	static bool IsRootTableOfTemporalEntity(ITypeBase typeBase, ITable table) =>
 		typeBase.FindAnnotation(NorseAnnotationNames.Temporal)?.Value as bool? == true
 		&& StoreObjectIdentifier.Create(typeBase, StoreObjectType.Table)
-			== StoreObjectIdentifier.Table(table.Name, table.Schema);
+		== StoreObjectIdentifier.Table(table.Name, table.Schema);
 }

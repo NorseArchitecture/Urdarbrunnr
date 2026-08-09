@@ -20,14 +20,6 @@ public sealed class NorseDbContextTests
 		act.ShouldThrow<InvalidOperationException>();
 	}
 
-	sealed record PlainEntity(int Id);
-
-	sealed class UnconfiguredContext(DbContextOptions<UnconfiguredContext> options) : NorseDbContext(options)
-	{
-		public DbSet<PlainEntity> Entities =>
-			Set<PlainEntity>();
-	}
-
 	[Fact]
 	void ConfigureNorseEntities_is_called_during_OnModelCreating_and_is_overridable()
 	{
@@ -38,6 +30,14 @@ public sealed class NorseDbContextTests
 		_ = ctx.Model;
 
 		ctx.HookInvoked.ShouldBeTrue();
+	}
+
+	sealed record PlainEntity(int Id);
+
+	sealed class UnconfiguredContext(DbContextOptions<UnconfiguredContext> options) : NorseDbContext(options)
+	{
+		public DbSet<PlainEntity> Entities =>
+			Set<PlainEntity>();
 	}
 
 	sealed record HookEntity(int Id) : NorseEntityBase<HookEntity>, INorseEntity<HookEntity>

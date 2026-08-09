@@ -51,9 +51,7 @@ public sealed class NorseDesignTimeServicesExtensionsTests
 		{
 			File.Delete(schemaPath);
 			if (Directory.Exists(schemaDir) && !Directory.EnumerateFileSystemEntries(schemaDir).Any())
-			{
 				Directory.Delete(schemaDir);
-			}
 		}
 	}
 
