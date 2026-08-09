@@ -10,9 +10,45 @@
 
 The well's record for the Norse Architecture — **`Norse.Persistence`**: the platform's persistence realm, covering any database or data-store mechanism, not just EF Core. `Norse.Persistence.EntityFramework` is today's live vendor family — entity base types, `DbContext` foundations, conventions, value converters, and the migrations chassis, the EF Core foundation that Midgard's concrete repository implementations ride on, governed by the contracts Asgard declares. Other ORMs, native drivers, or document/search stores land here as their own vendor-specific sibling under `Norse.Persistence.*`, the same drop-in pattern Heimdall used for FluentUI. In the dependency chain it sits below Asgard and Svartálfheim, and above Midgard.
 
+## The dependency graph
+
+Arrows point at the thing depended on. Dashed arrows are packaging, not compilation — each `gen/` generator ships inside the `src/` package it serves, which is why a consumer writes one `NorseRef` with `Generator="true"` and receives both the library and its generator.
+
+```mermaid
+flowchart BT
+	subgraph Urdarbrunnr["Urðarbrunnr — Norse.Persistence"]
+		Design["EntityFramework.Design"]
+		PostgreSQL["EntityFramework.PostgreSQL"]
+		SqlServer["EntityFramework.SqlServer"]
+		Migrations["EntityFramework.Migrations"]
+		EF["EntityFramework"]
+		Generator["EntityFramework.Generator"]
+		MigGenerator["EntityFramework.Migrations.Generator"]
+	end
+	subgraph Asgard
+		Emit["Abstractions.Emit"]
+		AMigrations["Abstractions.Migrations"]
+	end
+	subgraph Svartalfheim["Svartálfheim"]
+		Primitives["Norse.Primitives"]
+	end
+	Design --> EF
+	Migrations --> EF
+	PostgreSQL --> EF
+	SqlServer --> EF
+	Migrations --> AMigrations
+	EF --> Primitives
+	Generator --> Emit
+	MigGenerator --> Emit
+	EF -.-> Generator
+	Migrations -.-> MigGenerator
+```
+
+The base `EntityFramework` is the only node touching Svartálfheim — `SequentialGuid`'s byte-order converters and the `IPiiScalar` family reach every provider through it, transitive-first by house law. Each provider binding is one thin package with exactly one edge; Oracle or SQLite lands as one more node with that same single edge, zero edits to the foundation — the symmetry *is* the acceptance test, and the chart renders it.
+
 ## Status
 
-**Live: five assemblies** built around a provider seam. `Norse.Persistence.EntityFramework` is the neutral foundation — `INorseDbContext`, the abstract `NorseDbContext` base, snake_case naming machinery, the temporal opt-in surface (`ITemporalEntity` and its finalizing convention, below), and the seam itself: `INorseEfProvider`/`INorseEfMigrationProvider`, `NorseNameRewriters`, `AddNorseContext<TContext>()`, and `ApplyNorseProviderOptions()`. `Norse.Persistence.EntityFramework.Migrations` carries `EfMigrationContributor<TContext>`, `MigrationConnectionStringAttribute`, `AddNorseMigrationContext<TContext>()`, and — consolidated here from what used to be a per-provider generator — the one provider-agnostic Roslyn source generator: it discovers every migration contributor, every seed contributor, and the single provider binding visible in a migrations service's compilation, and emits `AddNorseMigrations()`, reporting NORSE030–034 for anything ambiguous (no binding, more than one binding, no `ModelSnapshot`, more than one `ModelSnapshot`, a binding missing its required `Instance` member). `Norse.Persistence.EntityFramework.Design` ships `DdlEmittingMigrationsScaffolder`, `AddNorseDesignTimeServices()`, and the one neutral `NorseDesignTimeDbContextFactory<TContext>` — abstract, never connects to a database, no environment-variable escape hatch. `Norse.Persistence.EntityFramework.PostgreSQL` and `.SqlServer` are one sealed provider binding each (`NorsePostgresEfProvider`/`NorseSqlServerEfProvider`, each `public static Instance`) — the spec's acceptance test: Oracle or SQLite arrives as one more thin binding package, zero edits to the neutral foundation. Full design: [Glitnir's `docs/Urdarbrunnr/specs/2026-07-27-ef-provider-seam-repackaging-design.md`](https://github.com/NorseArchitecture/Glitnir/blob/master/docs/Urdarbrunnr/specs/2026-07-27-ef-provider-seam-repackaging-design.md).
+**Live: five assemblies and two `gen/` source generators** built around a provider seam. `Norse.Persistence.EntityFramework` is the neutral foundation — `INorseDbContext`, the abstract `NorseDbContext` base, snake_case naming machinery, the temporal opt-in surface (`ITemporalEntity` and its finalizing convention, below), entity self-configuration (`INorseEntity<TSelf>`, a static abstract `Configure` the compiler refuses to let a concrete entity omit, enforced colocated by `RequireEntityConfigurationConvention` and applied by the generated `ApplyNorseConfigurations()` — the emitting `Norse.Persistence.EntityFramework.Generator` ships inside this package), column-level PII protection (`ProtectedPiiValueConverter<TPii>` behind `ProtectPiiScalars()`: canonical wire string ∘ protect on write, unprotect ∘ parse on read — one composed converter, so no converter-ordering problem can exist), and the seam itself: `INorseEfProvider`/`INorseEfMigrationProvider`, `NorseNameRewriters`, `AddNorseContext<TContext>()` with its `IDbContextFactory`-shaped sibling `AddNorseContextFactory<TContext>()`, and `ApplyNorseProviderOptions()`. `Norse.Persistence.EntityFramework.Migrations` carries `EfMigrationContributor<TContext>`, `MigrationConnectionStringAttribute`, `AddNorseMigrationContext<TContext>()`, and — consolidated from what used to be a per-provider generator pair — the provider-agnostic migrations generator (`Norse.Persistence.EntityFramework.Migrations.Generator`, shipped inside this package): it discovers every migration contributor, every seed contributor, and the single provider binding visible in a migrations service's compilation, and emits `AddNorseMigrations()`, reporting NORSE030–034 for anything ambiguous (no binding, more than one binding, no `ModelSnapshot`, more than one `ModelSnapshot`, a binding missing its required `Instance` member). `Norse.Persistence.EntityFramework.Design` ships `DdlEmittingMigrationsScaffolder`, `AddNorseDesignTimeServices()`, and the one neutral `NorseDesignTimeDbContextFactory<TContext>` — abstract, never connects to a database, no environment-variable escape hatch. `Norse.Persistence.EntityFramework.PostgreSQL` and `.SqlServer` are one sealed provider binding each (`NorsePostgresEfProvider`/`NorseSqlServerEfProvider`, each `public static Instance`) — the spec's acceptance test: Oracle or SQLite arrives as one more thin binding package, zero edits to the neutral foundation. Full design: [Glitnir's `docs/Urdarbrunnr/specs/2026-07-27-ef-provider-seam-repackaging-design.md`](https://github.com/NorseArchitecture/Glitnir/blob/master/docs/Urdarbrunnr/specs/2026-07-27-ef-provider-seam-repackaging-design.md).
 
 This repackaging retired the earlier `*.Design.PostgreSQL`/`*.Design.SqlServer` package pair and their two separate generators (2026-07-22 through 2026-07-26 lineage below) — the generator that first proved this realm's Roslyn source-generation capability now lives consolidated in `.Migrations`, provider-agnostic from the start rather than duplicated per provider. Three conventions remain provider-aware exactly as before: `[FixedLength(n)]` only becomes SQL Server's `IsFixedLength()` (Postgres's own docs say fixed-length storage there is a pure downside, never a benefit), name rewriting is now expressed as each provider binding's `NameRewriter` delegate — Postgres's engine-native lower snake_case, SQL Server's raw PascalCase (`NameRewriter` is `null`, its temporal-rename hook inert by construction) — rather than an opt-in/opt-out parameter, and `NorseModelConventions.Apply()` still registers the provider-correct `SequentialGuid` byte-order converter, `SqlServerSequentialGuidValueConverter` on SQL Server and `Rfc9562SequentialGuidValueConverter` everywhere else. Snake_case naming remains in-house via `NorseSnakeCaseNamingConvention` and `SnakeCaseNameRewriter`, no external `EFCore.NamingConventions` dependency. Full history: [the 2026-07-03 provider-aware conventions spec](https://github.com/NorseArchitecture/Glitnir/blob/master/docs/Urdarbrunnr/specs/2026-07-03-provider-aware-length-and-naming-conventions.md), [the 2026-07-22 in-house naming-convention spec](https://github.com/NorseArchitecture/Glitnir/blob/master/docs/Urdarbrunnr/specs/2026-07-22-inhouse-snake-case-naming-convention-design.md), [the 2026-07-22 DDL-emission/chassis-rename spec](https://github.com/NorseArchitecture/Glitnir/blob/master/docs/Urdarbrunnr/specs/2026-07-22-design-time-ddl-emission-and-chassis-rename-design.md), and [the 2026-07-26 SequentialGuid converter spec](https://github.com/NorseArchitecture/Glitnir/blob/master/docs/Urdarbrunnr/specs/2026-07-26-sequentialguid-provider-aware-ef-converter-design.md).
 
