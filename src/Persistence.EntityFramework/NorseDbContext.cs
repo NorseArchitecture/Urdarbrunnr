@@ -5,12 +5,12 @@ using Norse.Primitives.Identifiers;
 namespace Norse.Persistence.EntityFramework;
 
 /// <summary>
-/// Abstract <see cref="DbContext"/> base for all non-auth Norse EF contexts. Naming conventions are
-/// binding data, not a decision this base makes — each provider binding's
-/// <see cref="INorseEfProvider.NameRewriter"/> supplies (or withholds) the rewrite delegate, wired into
-/// the context by <see cref="NorseDbContextOptionsExtensions.ApplyNorseProviderOptions"/>, never here —
-/// this base stays provider-neutral. Auth contexts inherit <c>IdentityDbContext</c> instead of this
-/// class and replicate its conventions manually.
+///     Abstract <see cref="DbContext" /> base for all non-auth Norse EF contexts. Naming conventions are
+///     binding data, not a decision this base makes — each provider binding's
+///     <see cref="INorseEfProvider.NameRewriter" /> supplies (or withholds) the rewrite delegate, wired into
+///     the context by <see cref="NorseDbContextOptionsExtensions.ApplyNorseProviderOptions" />, never here —
+///     this base stays provider-neutral. Auth contexts inherit <c>IdentityDbContext</c> instead of this
+///     class and replicate its conventions manually.
 /// </summary>
 /// <param name="options">The options for this context.</param>
 public abstract class NorseDbContext(DbContextOptions options) : DbContext(options), INorseDbContext
@@ -30,7 +30,9 @@ public abstract class NorseDbContext(DbContextOptions options) : DbContext(optio
 		var isSqlServer = Database.ProviderName == NorseDbContextOptionsExtensions.SqlServerProviderName;
 		NorseModelConventions.Apply(configurationBuilder,
 			applyFixedLength: isSqlServer,
-			sequentialGuidOrder: isSqlServer ? GuidByteOrder.SqlServer : GuidByteOrder.Rfc9562,
+			sequentialGuidOrder: isSqlServer ?
+				GuidByteOrder.SqlServer :
+				GuidByteOrder.Rfc9562,
 			temporalRealizationHook: _temporalRealizationHook);
 	}
 
@@ -42,12 +44,12 @@ public abstract class NorseDbContext(DbContextOptions options) : DbContext(optio
 	}
 
 	/// <summary>
-	/// Empty by default. A Tier-1 consumer project declares its own <c>DbContext</c> subclass
-	/// <c>partial</c> — EntityConfigurationApplicationGenerator (in that project's own
-	/// compilation, alongside its <c>INorseEntity&lt;TSelf&gt;</c> entities) emits a second partial
-	/// declaration overriding this method. Real virtual dispatch, not a generated static extension call —
-	/// see the plan's "Design amendments" note on why the static-extension approach can't work for a base
-	/// class compiled once and shipped as a package.
+	///     Empty by default. A Tier-1 consumer project declares its own <c>DbContext</c> subclass
+	///     <c>partial</c> — EntityConfigurationApplicationGenerator (in that project's own
+	///     compilation, alongside its <c>INorseEntity&lt;TSelf&gt;</c> entities) emits a second partial
+	///     declaration overriding this method. Real virtual dispatch, not a generated static extension call —
+	///     see the plan's "Design amendments" note on why the static-extension approach can't work for a base
+	///     class compiled once and shipped as a package.
 	/// </summary>
 	protected virtual void ConfigureNorseEntities(ModelBuilder modelBuilder)
 	{

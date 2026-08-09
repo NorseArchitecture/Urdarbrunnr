@@ -91,7 +91,8 @@ public sealed class TemporalEntityConventionTests
 		}
 	}
 
-	sealed class TemporalTestContext<TEntity, TConfiguration>(DbContextOptions<TemporalTestContext<TEntity, TConfiguration>> options) :
+	sealed class TemporalTestContext<TEntity, TConfiguration>(
+		DbContextOptions<TemporalTestContext<TEntity, TConfiguration>> options) :
 		NorseDbContext(options)
 		where TEntity : class
 		where TConfiguration : ITestConfiguration<TEntity>
@@ -109,8 +110,7 @@ public sealed class TemporalEntityConventionTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(64)]
-		public string Name { get; init; } = "";
+		[MaxLength(64)] public string Name { get; init; } = "";
 
 		public static void Configure(EntityTypeBuilder<TemporalWidget> builder)
 		{
@@ -150,8 +150,7 @@ public sealed class TemporalEntityConventionTests
 
 	sealed record KeylessTemporal : ITemporalEntity, INorseEntity<KeylessTemporal>
 	{
-		[MaxLength(100)]
-		public string Name { get; init; } = "";
+		[MaxLength(100)] public string Name { get; init; } = "";
 
 		public static void Configure(EntityTypeBuilder<KeylessTemporal> builder)
 		{
@@ -180,11 +179,9 @@ public sealed class TemporalEntityConventionTests
 	{
 		public int Id { get; init; }
 
-		[MaxLength(64)]
-		public string Name { get; init; } = "";
+		[MaxLength(64)] public string Name { get; init; } = "";
 
-		[MaxLength(64)]
-		public string Detail { get; init; } = "";
+		[MaxLength(64)] public string Detail { get; init; } = "";
 
 		public static void Configure(EntityTypeBuilder<SplitTemporal> builder)
 		{

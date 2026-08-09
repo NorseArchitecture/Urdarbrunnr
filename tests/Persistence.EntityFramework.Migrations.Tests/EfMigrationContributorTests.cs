@@ -21,10 +21,12 @@ public sealed class EfMigrationContributorTests
 		sut.Name.ShouldBe("Stub");
 	}
 
-	static StubContext CreateContext() =>
-		new(new DbContextOptionsBuilder<StubContext>()
+	static StubContext CreateContext()
+	{
+		return new StubContext(new DbContextOptionsBuilder<StubContext>()
 			.UseInMemoryDatabase("test-ef-migrations")
 			.Options);
+	}
 
 	[MigrationConnectionString("stub-db")]
 	sealed class StubContributor(StubContext context) : EfMigrationContributor<StubContext>(context)

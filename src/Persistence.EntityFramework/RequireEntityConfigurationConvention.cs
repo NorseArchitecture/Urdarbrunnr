@@ -18,10 +18,11 @@ sealed class RequireEntityConfigurationConvention : IModelFinalizingConvention
 				clrType,
 				implementsSelf = clrType
 					.GetInterfaces()
-					.Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(INorseEntity<>) && i.GetGenericArguments()[0] == clrType)
+					.Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(INorseEntity<>) &&
+						i.GetGenericArguments()[0] == clrType)
 			})
-			.Where(@t => !@t.implementsSelf)
-			.Select(@t => @t.clrType.FullName!));
+			.Where(t => !t.implementsSelf)
+			.Select(t => t.clrType.FullName!));
 
 		if (violations.Count == 0)
 			return;

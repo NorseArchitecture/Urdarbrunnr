@@ -16,62 +16,68 @@ public sealed class MigrationContributorGeneratorTests
 {
 	const string SnapshotFixture = """
 
-		[DbContext(typeof(TestContext))]
-		sealed class TestContextModelSnapshot : ModelSnapshot
-		{
-			protected override void BuildModel(ModelBuilder modelBuilder)
-			{
-			}
-		}
-		""";
+	                                       [DbContext(typeof(TestContext))]
+	                                       sealed class TestContextModelSnapshot : ModelSnapshot
+	                                       {
+	                                       	protected override void BuildModel(ModelBuilder modelBuilder)
+	                                       	{
+	                                       	}
+	                                       }
+	                                       """;
 
 	const string ContributorSource = """
-		using Norse.Persistence.EntityFramework;
-		using Norse.Persistence.EntityFramework.Migrations;
-		using Microsoft.EntityFrameworkCore;
-		using Microsoft.EntityFrameworkCore.Infrastructure;
+	                                         using Norse.Persistence.EntityFramework;
+	                                         using Norse.Persistence.EntityFramework.Migrations;
+	                                         using Microsoft.EntityFrameworkCore;
+	                                         using Microsoft.EntityFrameworkCore.Infrastructure;
 
-		[MigrationConnectionString("test-db")]
-		sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
-		{
-			public override string Name => "Test";
-		}
+	                                         [MigrationConnectionString("test-db")]
+	                                         sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
+	                                         {
+	                                         	public override string Name => "Test";
+	                                         }
 
-		sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
-		""";
+	                                         sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
+	                                         """;
 
 	// The real split shape the 2026-07-25 AppHost failure exposed: the context ships in the realm's
 	// data assembly, its ModelSnapshot in a per-provider migrations assembly, and the contributor in
 	// the migrations service.
 	const string ContextAssemblySource = """
-		using Microsoft.EntityFrameworkCore;
-		using Norse.Persistence.EntityFramework;
+	                                             using Microsoft.EntityFrameworkCore;
+	                                             using Norse.Persistence.EntityFramework;
 
-		public sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
-		""";
+	                                             public sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
+	                                             """;
 
 	const string SnapshotAssemblySource = """
-		using Microsoft.EntityFrameworkCore;
-		using Microsoft.EntityFrameworkCore.Infrastructure;
+	                                              using Microsoft.EntityFrameworkCore;
+	                                              using Microsoft.EntityFrameworkCore.Infrastructure;
 
-		[DbContext(typeof(TestContext))]
-		public sealed class TestContextModelSnapshot : ModelSnapshot
-		{
-			protected override void BuildModel(ModelBuilder modelBuilder)
-			{
-			}
-		}
-		""";
+	                                              [DbContext(typeof(TestContext))]
+	                                              public sealed class TestContextModelSnapshot : ModelSnapshot
+	                                              {
+	                                              	protected override void BuildModel(ModelBuilder modelBuilder)
+	                                              	{
+	                                              	}
+	                                              }
+	                                              """;
 
 	const string ExternalContextContributorSource = """
-		using Norse.Persistence.EntityFramework.Migrations;
+	                                                        using Norse.Persistence.EntityFramework.Migrations;
 
-		[MigrationConnectionString("test-db")]
-		sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
-		{
-			public override string Name => "Test";
-		}
-		""";
+	                                                        [MigrationConnectionString("test-db")]
+	                                                        sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
+	                                                        {
+	                                                        	public override string Name => "Test";
+	                                                        }
+	                                                        """;
+
+	// Build metadata references from explicit assembly locations — AppDomain.GetAssemblies()
+	// is unreliable in .NET 11 due to metadata pre-sharing; typeof().Assembly.Location is stable.
+	// In .NET 5+ the public Attribute/Object surface lives in System.Runtime.dll (a facade), not
+	// System.Private.CoreLib — both must be present for Roslyn to bind attribute constructors.
+	static IList<MetadataReference> StandardReferences { get; } = BuildStandardReferences();
 
 	[Fact]
 	void Generator_emits_the_discovered_provider_binding_and_neutral_choreography()
@@ -82,7 +88,8 @@ public sealed class MigrationContributorGeneratorTests
 		result.GeneratedTrees.Length.ShouldBe(1);
 		var generated = result.GeneratedTrees[0].ToString();
 		generated.ShouldContain("AddNorseMigrationContext");
-		generated.ShouldContain("global::Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresEfProvider.Instance");
+		generated.ShouldContain(
+			"global::Norse.Persistence.EntityFramework.PostgreSQL.NorsePostgresEfProvider.Instance");
 		generated.ShouldContain("test-db");
 		generated.ShouldContain("AddNorseMigrationsRunner");
 		generated.ShouldNotContain("AddNorsePostgresMigrationContext");
@@ -178,34 +185,34 @@ public sealed class MigrationContributorGeneratorTests
 	void Generator_reports_NORSE033_when_the_binding_has_no_public_static_Instance()
 	{
 		var instanceless = CreateReferencedAssembly("TestAssembly.Binding", """
-			#nullable enable
-			using System;
-			using Microsoft.EntityFrameworkCore;
-			using Microsoft.EntityFrameworkCore.Metadata;
-			using Microsoft.Extensions.Hosting;
-			using Norse.Persistence.EntityFramework;
+		                                                                    #nullable enable
+		                                                                    using System;
+		                                                                    using Microsoft.EntityFrameworkCore;
+		                                                                    using Microsoft.EntityFrameworkCore.Metadata;
+		                                                                    using Microsoft.Extensions.Hosting;
+		                                                                    using Norse.Persistence.EntityFramework;
 
-			public sealed class InstancelessEfProvider : INorseEfMigrationProvider
-			{
-				public void Configure(DbContextOptionsBuilder optionsBuilder, string connectionString,
-					string? migrationsAssemblyName)
-				{
-				}
+		                                                                    public sealed class InstancelessEfProvider : INorseEfMigrationProvider
+		                                                                    {
+		                                                                    	public void Configure(DbContextOptionsBuilder optionsBuilder, string connectionString,
+		                                                                    		string? migrationsAssemblyName)
+		                                                                    	{
+		                                                                    	}
 
-				public void Enrich<TContext>(IHostApplicationBuilder builder)
-					where TContext : DbContext, INorseDbContext
-				{
-				}
+		                                                                    	public void Enrich<TContext>(IHostApplicationBuilder builder)
+		                                                                    		where TContext : DbContext, INorseDbContext
+		                                                                    	{
+		                                                                    	}
 
-				public Func<string, string>? NameRewriter => null;
+		                                                                    	public Func<string, string>? NameRewriter => null;
 
-				public Action<IConventionEntityType, Func<string, string>>? EntityRenameHook => null;
+		                                                                    	public Action<IConventionEntityType, Func<string, string>>? EntityRenameHook => null;
 
-				public Action<IConventionEntityType>? TemporalRealizationHook => null;
+		                                                                    	public Action<IConventionEntityType>? TemporalRealizationHook => null;
 
-				public string DesignTimePlaceholderConnectionString(string databaseName) => "";
-			}
-			""");
+		                                                                    	public string DesignTimePlaceholderConnectionString(string databaseName) => "";
+		                                                                    }
+		                                                                    """);
 
 		var compilation = CreateCompilation(ContributorSource + SnapshotFixture, instanceless);
 		var result = Run(compilation);
@@ -235,16 +242,16 @@ public sealed class MigrationContributorGeneratorTests
 		// Seed-only: no migration contributors, therefore no provider binding referenced, and the
 		// generator must still emit.
 		const string Source = """
-			using Microsoft.Extensions.DependencyInjection;
-			using Norse.Abstractions.Migrations.Seeding;
+		                      using Microsoft.Extensions.DependencyInjection;
+		                      using Norse.Abstractions.Migrations.Seeding;
 
-			sealed class TestSeedContributor : ISeedContributor
-			{
-				public string Name => "Test";
-				public Task SeedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-				public static void ConfigureServices(IServiceCollection services) { }
-			}
-			""";
+		                      sealed class TestSeedContributor : ISeedContributor
+		                      {
+		                      	public string Name => "Test";
+		                      	public Task SeedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+		                      	public static void ConfigureServices(IServiceCollection services) { }
+		                      }
+		                      """;
 
 		var compilation = CreateCompilation(Source);
 		var result = Run(compilation);
@@ -253,7 +260,8 @@ public sealed class MigrationContributorGeneratorTests
 		result.GeneratedTrees.Length.ShouldBe(1);
 		var generated = result.GeneratedTrees[0].ToString();
 		generated.ShouldContain("ConfigureSeedContributor<global::TestSeedContributor>(builder.Services);");
-		generated.ShouldContain("AddTransient<global::Norse.Abstractions.Migrations.Seeding.ISeedContributor, global::TestSeedContributor>");
+		generated.ShouldContain(
+			"AddTransient<global::Norse.Abstractions.Migrations.Seeding.ISeedContributor, global::TestSeedContributor>");
 		generated.ShouldContain("AddNorseSeedingRunner");
 	}
 
@@ -269,61 +277,61 @@ public sealed class MigrationContributorGeneratorTests
 		// alongside the original source (plus a minimal stand-in for Midgard's runner extensions,
 		// which Urðarbrunnr cannot reference — it sits below Midgard in the dependency chain).
 		const string Source = """
-			using System.Threading;
-			using System.Threading.Tasks;
-			using Norse.Persistence.EntityFramework;
-			using Norse.Persistence.EntityFramework.Migrations;
-			using Microsoft.EntityFrameworkCore;
-			using Microsoft.EntityFrameworkCore.Infrastructure;
-			using Microsoft.Extensions.DependencyInjection;
-			using Norse.Abstractions.Migrations.Seeding;
+		                      using System.Threading;
+		                      using System.Threading.Tasks;
+		                      using Norse.Persistence.EntityFramework;
+		                      using Norse.Persistence.EntityFramework.Migrations;
+		                      using Microsoft.EntityFrameworkCore;
+		                      using Microsoft.EntityFrameworkCore.Infrastructure;
+		                      using Microsoft.Extensions.DependencyInjection;
+		                      using Norse.Abstractions.Migrations.Seeding;
 
-			[MigrationConnectionString("test-db")]
-			sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
-			{
-				public override string Name => "Test";
-			}
+		                      [MigrationConnectionString("test-db")]
+		                      sealed class TestContributor(TestContext ctx) : EfMigrationContributor<TestContext>(ctx)
+		                      {
+		                      	public override string Name => "Test";
+		                      }
 
-			sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
+		                      sealed class TestContext(DbContextOptions<TestContext> opts) : NorseDbContext(opts);
 
-			[DbContext(typeof(TestContext))]
-			sealed class TestContextModelSnapshot : ModelSnapshot
-			{
-				protected override void BuildModel(ModelBuilder modelBuilder)
-				{
-				}
-			}
+		                      [DbContext(typeof(TestContext))]
+		                      sealed class TestContextModelSnapshot : ModelSnapshot
+		                      {
+		                      	protected override void BuildModel(ModelBuilder modelBuilder)
+		                      	{
+		                      	}
+		                      }
 
-			sealed class SeedContributorWithoutOverride : ISeedContributor
-			{
-				public string Name => "WithoutOverride";
-				public Task SeedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-			}
+		                      sealed class SeedContributorWithoutOverride : ISeedContributor
+		                      {
+		                      	public string Name => "WithoutOverride";
+		                      	public Task SeedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+		                      }
 
-			sealed class SeedContributorWithOverride : ISeedContributor
-			{
-				public string Name => "WithOverride";
-				public Task SeedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-				public static void ConfigureServices(IServiceCollection services) { }
-			}
-			""";
+		                      sealed class SeedContributorWithOverride : ISeedContributor
+		                      {
+		                      	public string Name => "WithOverride";
+		                      	public Task SeedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+		                      	public static void ConfigureServices(IServiceCollection services) { }
+		                      }
+		                      """;
 
 		const string InfrastructureStub = """
-			// Stand-in for Norse.Infrastructure.Migrations (Midgard) -- Urðarbrunnr sits below Midgard in
-			// the dependency chain and cannot reference it, so this reproduces just enough of its shape
-			// (same namespace, same method names) for the generated code to resolve against.
-			namespace Norse.Infrastructure.Migrations
-			{
-				static class HostApplicationBuilderExtensionsTestStub
-				{
-					public static Microsoft.Extensions.Hosting.IHostApplicationBuilder AddNorseMigrationsRunner(
-						this Microsoft.Extensions.Hosting.IHostApplicationBuilder builder) => builder;
+		                                  // Stand-in for Norse.Infrastructure.Migrations (Midgard) -- Urðarbrunnr sits below Midgard in
+		                                  // the dependency chain and cannot reference it, so this reproduces just enough of its shape
+		                                  // (same namespace, same method names) for the generated code to resolve against.
+		                                  namespace Norse.Infrastructure.Migrations
+		                                  {
+		                                  	static class HostApplicationBuilderExtensionsTestStub
+		                                  	{
+		                                  		public static Microsoft.Extensions.Hosting.IHostApplicationBuilder AddNorseMigrationsRunner(
+		                                  			this Microsoft.Extensions.Hosting.IHostApplicationBuilder builder) => builder;
 
-					public static Microsoft.Extensions.Hosting.IHostApplicationBuilder AddNorseSeedingRunner(
-						this Microsoft.Extensions.Hosting.IHostApplicationBuilder builder) => builder;
-				}
-			}
-			""";
+		                                  		public static Microsoft.Extensions.Hosting.IHostApplicationBuilder AddNorseSeedingRunner(
+		                                  			this Microsoft.Extensions.Hosting.IHostApplicationBuilder builder) => builder;
+		                                  	}
+		                                  }
+		                                  """;
 
 		var postgres = PostgresBinding();
 		var compilation = CreateCompilation(Source, postgres);
@@ -335,14 +343,18 @@ public sealed class MigrationContributorGeneratorTests
 			"TestAssembly.Recompiled",
 			[
 				CSharpSyntaxTree.ParseText(Source, cancellationToken: TestContext.Current.CancellationToken),
-				CSharpSyntaxTree.ParseText(InfrastructureStub, cancellationToken: TestContext.Current.CancellationToken),
-				result.GeneratedTrees[0],
+				CSharpSyntaxTree.ParseText(InfrastructureStub,
+					cancellationToken: TestContext.Current.CancellationToken),
+				result.GeneratedTrees[0]
 			],
 			[.. StandardReferences, postgres],
 			new(OutputKind.DynamicallyLinkedLibrary));
 
-		IList<Diagnostic> errors = [.. recompiled.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(d => d.Severity == DiagnosticSeverity.Error)];
+		IList<Diagnostic> errors =
+		[
+			.. recompiled.GetDiagnostics(TestContext.Current.CancellationToken)
+				.Where(d => d.Severity == DiagnosticSeverity.Error)
+		];
 
 		errors.ShouldBeEmpty();
 	}
@@ -356,12 +368,14 @@ public sealed class MigrationContributorGeneratorTests
 		return driver.GetRunResult();
 	}
 
-	static Compilation CreateCompilation(string source, params MetadataReference[] extraReferences) =>
-		CSharpCompilation.Create(
+	static Compilation CreateCompilation(string source, params MetadataReference[] extraReferences)
+	{
+		return CSharpCompilation.Create(
 			"TestAssembly",
 			[CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
 			[.. StandardReferences, .. extraReferences],
 			new(OutputKind.DynamicallyLinkedLibrary));
+	}
 
 	static MetadataReference CreateReferencedAssembly(string assemblyName, string source,
 		params MetadataReference[] extraReferences)
@@ -386,12 +400,6 @@ public sealed class MigrationContributorGeneratorTests
 	static MetadataReference SqlServerBinding() =>
 		MetadataReference.CreateFromFile(typeof(NorseSqlServerEfProvider).Assembly.Location);
 
-	// Build metadata references from explicit assembly locations — AppDomain.GetAssemblies()
-	// is unreliable in .NET 11 due to metadata pre-sharing; typeof().Assembly.Location is stable.
-	// In .NET 5+ the public Attribute/Object surface lives in System.Runtime.dll (a facade), not
-	// System.Private.CoreLib — both must be present for Roslyn to bind attribute constructors.
-	static IList<MetadataReference> StandardReferences { get; } = BuildStandardReferences();
-
 	static IList<MetadataReference> BuildStandardReferences()
 	{
 		var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
@@ -405,7 +413,7 @@ public sealed class MigrationContributorGeneratorTests
 			typeof(IServiceCollection),
 			typeof(DbContext),
 			typeof(ModelSnapshot),
-			typeof(IHostApplicationBuilder),
+			typeof(IHostApplicationBuilder)
 		];
 
 		List<MetadataReference> references = [];

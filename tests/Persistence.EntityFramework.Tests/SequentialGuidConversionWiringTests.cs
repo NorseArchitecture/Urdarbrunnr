@@ -59,7 +59,8 @@ public sealed class SequentialGuidConversionWiringTests
 				.UseSqlServer("Server=localhost;Database=test;Trusted_Connection=True;TrustServerCertificate=True;")
 				.Options)!;
 
-	sealed record SequentialGuidEntity(SequentialGuid Id) : NorseEntityBase<SequentialGuidEntity>, INorseEntity<SequentialGuidEntity>
+	sealed record SequentialGuidEntity(SequentialGuid Id)
+		: NorseEntityBase<SequentialGuidEntity>, INorseEntity<SequentialGuidEntity>
 	{
 		public static void Configure(EntityTypeBuilder<SequentialGuidEntity> builder) =>
 			builder.HasKey(e => e.Id);
@@ -87,7 +88,8 @@ public sealed class SequentialGuidConversionWiringTests
 	// Regression coverage for the real Mímisbrunnr defect: DeterministicGuid has no automatic EF
 	// conversion inference, so a property typed with it used to throw InvalidOperationException at
 	// model-build time. This proves NorseModelConventions.Apply's unconditional registration fixes it.
-	sealed record DeterministicGuidEntity(DeterministicGuid Id) : NorseEntityBase<DeterministicGuidEntity>, INorseEntity<DeterministicGuidEntity>
+	sealed record DeterministicGuidEntity(DeterministicGuid Id)
+		: NorseEntityBase<DeterministicGuidEntity>, INorseEntity<DeterministicGuidEntity>
 	{
 		public static void Configure(EntityTypeBuilder<DeterministicGuidEntity> builder) =>
 			builder.HasKey(e => e.Id);

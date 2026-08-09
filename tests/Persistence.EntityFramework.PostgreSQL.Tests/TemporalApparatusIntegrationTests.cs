@@ -9,18 +9,18 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 #pragma warning disable CA2100, EF1002
 
 /// <summary>
-/// The runtime semantics of the PostgreSQL temporal apparatus, proved against a real
-/// <c>postgres:19beta2</c> server (spec §6 item 3). The snapshot suites prove the generator emits the
-/// design's SQL and the evolution live suite proves PostgreSQL accepts it; neither can say what the
-/// apparatus <em>does</em> once rows start moving. That is this suite: one clock, the monotonicity
-/// clamp, no-op suppression, and version closure (spec §3.2), plus the brownfield enable/disable
-/// transitions (§3.3) against live data.
+///     The runtime semantics of the PostgreSQL temporal apparatus, proved against a real
+///     <c>postgres:19beta2</c> server (spec §6 item 3). The snapshot suites prove the generator emits the
+///     design's SQL and the evolution live suite proves PostgreSQL accepts it; neither can say what the
+///     apparatus <em>does</em> once rows start moving. That is this suite: one clock, the monotonicity
+///     clamp, no-op suppression, and version closure (spec §3.2), plus the brownfield enable/disable
+///     transitions (§3.3) against live data.
 /// </summary>
 /// <remarks>
-/// Every timing assertion here is structural — positive period length, adjacency of a closed upper
-/// bound to its successor's lower bound, overlap refused by the temporal primary key. Nothing compares
-/// against wall clock or asserts a duration, because the clamp exists precisely so that correctness
-/// does not depend on what the clock did.
+///     Every timing assertion here is structural — positive period length, adjacency of a closed upper
+///     bound to its successor's lower bound, overlap refused by the temporal primary key. Nothing compares
+///     against wall clock or asserts a duration, because the clamp exists precisely so that correctness
+///     does not depend on what the clock did.
 /// </remarks>
 /// <param name="fixture">The shared container.</param>
 [Collection(PostgresCollection.Name)]
@@ -88,9 +88,9 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 
 		var exception = await Should.ThrowAsync<PostgresException>(() => live.ExecuteAsync(
 			$"""
-			INSERT INTO public.{Widgets} (name, system_period)
-			VALUES ('smuggled', tstzrange('1990-01-01T00:00:00Z'::timestamptz, 'infinity'))
-			"""));
+			 INSERT INTO public.{Widgets} (name, system_period)
+			 VALUES ('smuggled', tstzrange('1990-01-01T00:00:00Z'::timestamptz, 'infinity'))
+			 """));
 
 		exception.MessageText.ShouldContain("system_period");
 		exception.MessageText.ShouldContain("database-owned");
@@ -232,9 +232,9 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 
 		var exception = await Should.ThrowAsync<PostgresException>(() => live.ExecuteAsync(
 			$"""
-			UPDATE public.{Widgets} SET name = 'tampered', system_period = tstzrange(clock_timestamp(), 'infinity')
-			WHERE id = $1
-			""", id));
+			 UPDATE public.{Widgets} SET name = 'tampered', system_period = tstzrange(clock_timestamp(), 'infinity')
+			 WHERE id = $1
+			 """, id));
 
 		exception.MessageText.ShouldContain("system_period");
 		exception.MessageText.ShouldContain("database-owned");
@@ -286,10 +286,10 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 
 		var exception = await Should.ThrowAsync<PostgresException>(() => live.ExecuteAsync(
 			$"""
-			INSERT INTO public.{Widgets}_history (id, name, system_period)
-			SELECT id, name, tstzrange(lower(system_period), upper(system_period) + interval '1 hour')
-			FROM public.{Widgets}_history WHERE id = $1
-			""", id));
+			 INSERT INTO public.{Widgets}_history (id, name, system_period)
+			 SELECT id, name, tstzrange(lower(system_period), upper(system_period) + interval '1 hour')
+			 FROM public.{Widgets}_history WHERE id = $1
+			 """, id));
 
 		exception.SqlState.ShouldBe(PostgresErrorCodes.ExclusionViolation);
 	}
@@ -365,9 +365,9 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 	}
 
 	/// <summary>
-	/// Inserts through EF, so the split write path and the database-owned column default are both real.
-	/// Typed to the split-widget database on purpose: it is the only context that maps this entity, and a
-	/// helper that compiles against the brownfield database and throws at run time is a trap, not a helper.
+	///     Inserts through EF, so the split write path and the database-owned column default are both real.
+	///     Typed to the split-widget database on purpose: it is the only context that maps this entity, and a
+	///     helper that compiles against the brownfield database and throws at run time is a trap, not a helper.
 	/// </summary>
 	static async Task<int> SeedWidgetAsync(TemporalDatabase<SplitWidgetContext> live, string name)
 	{
@@ -413,9 +413,9 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 }
 
 /// <summary>
-/// One test's database: the EF context that built it, plus the raw access the assertions need.
-/// <c>system_period</c> is outside the EF model by design (§3.2), so every period reading here is a
-/// deliberate trip past EF rather than a gap in the mapping.
+///     One test's database: the EF context that built it, plus the raw access the assertions need.
+///     <c>system_period</c> is outside the EF model by design (§3.2), so every period reading here is a
+///     deliberate trip past EF rather than a gap in the mapping.
 /// </summary>
 /// <param name="context">The context whose <c>EnsureCreated</c> built the schema.</param>
 /// <param name="connectionString">The connection string for that database.</param>
@@ -426,7 +426,8 @@ sealed class TemporalDatabase<TContext>(TContext context, string connectionStrin
 
 	public TContext Context => context;
 
-	public ValueTask DisposeAsync() => context.DisposeAsync();
+	public ValueTask DisposeAsync() =>
+		context.DisposeAsync();
 
 	/// <summary>A connection of the caller's own, for the tests that need a transaction they control.</summary>
 	public async Task<NpgsqlConnection> OpenAsync()
@@ -466,48 +467,56 @@ sealed class TemporalDatabase<TContext>(TContext context, string connectionStrin
 	public Task<string> SystemPeriodTextAsync(string table, int id) =>
 		ScalarAsync<string>($"SELECT system_period::text FROM public.{table} WHERE id = $1", id);
 
-	public Task<bool> HasSystemPeriodAsync(string table) =>
-		ScalarAsync<bool>(
+	public Task<bool> HasSystemPeriodAsync(string table)
+	{
+		return ScalarAsync<bool>(
 			"""
 			SELECT EXISTS (
 				SELECT 1 FROM pg_catalog.pg_attribute
 				WHERE attrelid = $1::regclass AND attname = 'system_period' AND NOT attisdropped)
 			""", $"public.{table}");
+	}
 
 	/// <summary>
-	/// Ordinary tables and views only ('r', 'v'): indexes and sequences live in <c>pg_class</c> too and
-	/// cannot outlive the table they belong to, so counting them would only add noise.
+	///     Ordinary tables and views only ('r', 'v'): indexes and sequences live in <c>pg_class</c> too and
+	///     cannot outlive the table they belong to, so counting them would only add noise.
 	/// </summary>
-	public Task<List<string>> RelationsAsync(string pattern) =>
-		ListAsync(
+	public Task<List<string>> RelationsAsync(string pattern)
+	{
+		return ListAsync(
 			"""
 			SELECT c.relname
 			FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 			WHERE n.nspname = 'public' AND c.relkind IN ('r', 'v') AND c.relname LIKE $1
 			ORDER BY c.relname
 			""", pattern);
+	}
 
-	public Task<List<string>> FunctionsAsync(string pattern) =>
-		ListAsync(
+	public Task<List<string>> FunctionsAsync(string pattern)
+	{
+		return ListAsync(
 			"""
 			SELECT p.proname
 			FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
 			WHERE n.nspname = 'public' AND p.proname LIKE $1
 			ORDER BY p.proname
 			""", pattern);
+	}
 
 	/// <summary>
-	/// Trigger name and the function it is bound to, together: a trigger surviving under its old name and
-	/// still bound to a retired function is the failure a name-only check would sail past.
+	///     Trigger name and the function it is bound to, together: a trigger surviving under its old name and
+	///     still bound to a retired function is the failure a name-only check would sail past.
 	/// </summary>
-	public Task<List<string>> TriggerBindingsAsync(string table) =>
-		ListAsync(
+	public Task<List<string>> TriggerBindingsAsync(string table)
+	{
+		return ListAsync(
 			"""
 			SELECT t.tgname || ' -> ' || p.proname
 			FROM pg_catalog.pg_trigger t JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
 			WHERE t.tgrelid = $1::regclass AND NOT t.tgisinternal
 			ORDER BY t.tgname
 			""", $"public.{table}");
+	}
 
 	async Task<List<string>> ListAsync(string sql, string argument)
 	{
@@ -525,30 +534,30 @@ sealed class TemporalDatabase<TContext>(TContext context, string connectionStrin
 		await using var connection = await OpenAsync();
 		await using var command = TemporalSql.Command(connection,
 			$"""
-			SELECT name,
-				lower(system_period),
-				CASE WHEN {TemporalVersion.StillOpenSql} THEN NULL ELSE upper(system_period) END,
-				isempty(system_period)
-			FROM public.{relation}
-			WHERE id = $1
-			ORDER BY lower(system_period)
-			""", id);
+			 SELECT name,
+			 	lower(system_period),
+			 	CASE WHEN {TemporalVersion.StillOpenSql} THEN NULL ELSE upper(system_period) END,
+			 	isempty(system_period)
+			 FROM public.{relation}
+			 WHERE id = $1
+			 ORDER BY lower(system_period)
+			 """, id);
 		await using var reader = await command.ExecuteReaderAsync(Cancellation);
 		List<TemporalVersion> versions = [];
 		while (await reader.ReadAsync(Cancellation))
 			versions.Add(new TemporalVersion(reader.GetString(0),
 				await reader.GetFieldValueAsync<DateTimeOffset>(1, Cancellation),
-				await reader.IsDBNullAsync(2, Cancellation)
-					? null
-					: await reader.GetFieldValueAsync<DateTimeOffset>(2, Cancellation),
+				await reader.IsDBNullAsync(2, Cancellation) ?
+					null :
+					await reader.GetFieldValueAsync<DateTimeOffset>(2, Cancellation),
 				reader.GetBoolean(3)));
 		return versions;
 	}
 }
 
 /// <summary>
-/// Raw command plumbing, shared by <see cref="TemporalDatabase{TContext}"/> and by the tests that drive
-/// a transaction on a connection of their own. Every varying value is bound, never interpolated.
+///     Raw command plumbing, shared by <see cref="TemporalDatabase{TContext}" /> and by the tests that drive
+///     a transaction on a connection of their own. Every varying value is bound, never interpolated.
 /// </summary>
 static class TemporalSql
 {
@@ -572,19 +581,19 @@ static class TemporalSql
 /// <summary>One row of a timeline: a name and the system period it was true for.</summary>
 /// <param name="Name">The recorded value of the application column these tests version on.</param>
 /// <param name="Lower">The period's open bound.</param>
-/// <param name="Upper">The period's closed bound, or <see langword="null"/> while the version is current.</param>
+/// <param name="Upper">The period's closed bound, or <see langword="null" /> while the version is current.</param>
 /// <param name="IsEmpty">
-/// Whether PostgreSQL normalized the range to <c>empty</c>. Empty ranges overlap nothing, so a
-/// <c>WITHOUT OVERLAPS</c> key admits any number of them — which is why every positive-length assertion
-/// here checks this rather than trusting the key alone.
+///     Whether PostgreSQL normalized the range to <c>empty</c>. Empty ranges overlap nothing, so a
+///     <c>WITHOUT OVERLAPS</c> key admits any number of them — which is why every positive-length assertion
+///     here checks this rather than trusting the key alone.
 /// </param>
 readonly record struct TemporalVersion(string Name, DateTimeOffset Lower, DateTimeOffset? Upper, bool IsEmpty)
 {
 	/// <summary>
-	/// The SQL predicate for "this version is still current". The apparatus opens a period at
-	/// <c>tstzrange(clock_timestamp(), 'infinity')</c> — an upper bound that exists and holds the infinity
-	/// timestamp, not an unbounded range — so <c>upper_inf()</c> answers <see langword="false"/> for every
-	/// one of them and would call every live row closed.
+	///     The SQL predicate for "this version is still current". The apparatus opens a period at
+	///     <c>tstzrange(clock_timestamp(), 'infinity')</c> — an upper bound that exists and holds the infinity
+	///     timestamp, not an unbounded range — so <c>upper_inf()</c> answers <see langword="false" /> for every
+	///     one of them and would call every live row closed.
 	/// </summary>
 	public const string StillOpenSql = "upper(system_period) = 'infinity'::timestamptz";
 
@@ -594,8 +603,8 @@ readonly record struct TemporalVersion(string Name, DateTimeOffset Lower, DateTi
 }
 
 /// <summary>
-/// The split model against a real server: no declared schema, exactly as the create-path snapshots
-/// exercise it, so the session-default-schema assert the apparatus carries runs live too.
+///     The split model against a real server: no declared schema, exactly as the create-path snapshots
+///     exercise it, so the session-default-schema assert the apparatus carries runs live too.
 /// </summary>
 sealed class SplitWidgetContext(DbContextOptions<SplitWidgetContext> options) : NorseDbContext(options)
 {
@@ -642,18 +651,20 @@ sealed record BrownfieldRow : INorseEntity<BrownfieldRow>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
-	public static void Configure(EntityTypeBuilder<BrownfieldRow> builder) { }
+	public static void Configure(EntityTypeBuilder<BrownfieldRow> builder)
+	{
+	}
 }
 
 sealed record TemporalBrownfieldRow : ITemporalEntity, INorseEntity<TemporalBrownfieldRow>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
-	public static void Configure(EntityTypeBuilder<TemporalBrownfieldRow> builder) { }
+	public static void Configure(EntityTypeBuilder<TemporalBrownfieldRow> builder)
+	{
+	}
 }

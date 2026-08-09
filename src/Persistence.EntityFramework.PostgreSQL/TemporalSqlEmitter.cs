@@ -1,29 +1,37 @@
 namespace Norse.Persistence.EntityFramework.PostgreSQL;
 
 /// <summary>
-/// The literal SQL of the PostgreSQL temporal apparatus (Norns Model B), one method per element of
-/// the emission order in the temporal-tables chassis design §3.1, with the clock and version-closure
-/// semantics of §3.2. Every method returns a complete, self-contained statement block; nothing here
-/// touches EF metadata, so the same text serves the create path, the enable/disable transitions, and
-/// every evolution operation. <c>now()</c> appears nowhere: it is transaction-start time and cannot
-/// close versions safely (§3.2).
+///     The literal SQL of the PostgreSQL temporal apparatus (Norns Model B), one method per element of
+///     the emission order in the temporal-tables chassis design §3.1, with the clock and version-closure
+///     semantics of §3.2. Every method returns a complete, self-contained statement block; nothing here
+///     touches EF metadata, so the same text serves the create path, the enable/disable transitions, and
+///     every evolution operation. <c>now()</c> appears nowhere: it is transaction-start time and cannot
+///     close versions safely (§3.2).
 /// </summary>
 static class TemporalSqlEmitter
 {
+	const string DefaultSchemaAssert =
+		"""
+			IF pg_catalog.current_schema() <> 'public' THEN
+				RAISE EXCEPTION 'This migration declares no schema for its temporal tables, so the Norse temporal apparatus is qualified with PostgreSQL''s default schema (public), but the session default schema is %. Declare the schema explicitly (HasDefaultSchema or ToTable) so the table and its apparatus cannot land apart.', pg_catalog.current_schema();
+			END IF;
+
+		""";
+
 	/// <summary>
-	/// Step 0 — the PostgreSQL 19 floor. <c>WITHOUT OVERLAPS</c> temporal primary keys are a PG19
-	/// feature; a migration reaching an older server fails here rather than part-way through the
-	/// apparatus. Emitted once per migration that contains temporal DDL.
+	///     Step 0 — the PostgreSQL 19 floor. <c>WITHOUT OVERLAPS</c> temporal primary keys are a PG19
+	///     feature; a migration reaching an older server fails here rather than part-way through the
+	///     apparatus. Emitted once per migration that contains temporal DDL.
 	/// </summary>
 	/// <param name="assertDefaultSchemaIsPublic">
-	/// Whether to also assert that the session's default schema is <c>public</c>. Passed
-	/// <see langword="true"/> when some temporal table in this migration resolved no schema from
-	/// either the operation or the model, so the apparatus had to be qualified with PostgreSQL's own
-	/// default. The main table in that case is emitted unqualified and lands wherever the search path
-	/// points; if that is not <c>public</c>, the table and its apparatus would silently split across
-	/// two schemas. The assert makes the migration fail at the top instead. No default: the caller
-	/// always knows whether it resolved a real schema, and guessing here is the very failure being
-	/// closed.
+	///     Whether to also assert that the session's default schema is <c>public</c>. Passed
+	///     <see langword="true" /> when some temporal table in this migration resolved no schema from
+	///     either the operation or the model, so the apparatus had to be qualified with PostgreSQL's own
+	///     default. The main table in that case is emitted unqualified and lands wherever the search path
+	///     points; if that is not <c>public</c>, the table and its apparatus would silently split across
+	///     two schemas. The assert makes the migration fail at the top instead. No default: the caller
+	///     always knows whether it resolved a real schema, and guessing here is the very failure being
+	///     closed.
 	/// </param>
 	public static string FloorAssert(bool assertDefaultSchemaIsPublic) =>
 		$"""
@@ -35,19 +43,11 @@ static class TemporalSqlEmitter
 		{(assertDefaultSchemaIsPublic ? DefaultSchemaAssert : "")}END $norse$;
 		""";
 
-	const string DefaultSchemaAssert =
-		"""
-			IF pg_catalog.current_schema() <> 'public' THEN
-				RAISE EXCEPTION 'This migration declares no schema for its temporal tables, so the Norse temporal apparatus is qualified with PostgreSQL''s default schema (public), but the session default schema is %. Declare the schema explicitly (HasDefaultSchema or ToTable) so the table and its apparatus cannot land apart.', pg_catalog.current_schema();
-			END IF;
-
-		""";
-
 	/// <summary>
-	/// Step 1 — the <c>btree_gist</c> prerequisite for <c>WITHOUT OVERLAPS</c>, and the operational
-	/// privilege boundary around it. Idempotent and loud: extension present, proceed; absent, create
-	/// it; creation denied, raise the provisioning-prerequisite diagnostic so the failure lands here
-	/// instead of mid-apparatus. Emitted once per migration that contains temporal DDL.
+	///     Step 1 — the <c>btree_gist</c> prerequisite for <c>WITHOUT OVERLAPS</c>, and the operational
+	///     privilege boundary around it. Idempotent and loud: extension present, proceed; absent, create
+	///     it; creation denied, raise the provisioning-prerequisite diagnostic so the failure lands here
+	///     instead of mid-apparatus. Emitted once per migration that contains temporal DDL.
 	/// </summary>
 	public static string BtreeGistGuard() =>
 		"""
@@ -65,13 +65,13 @@ static class TemporalSqlEmitter
 		""";
 
 	/// <summary>
-	/// Step 2 — the database-owned system period on the main table. No column default: the BEFORE
-	/// INSERT branch of the versioning function assigns <c>system_period</c> before the row's NOT NULL
-	/// constraint is checked (triggers run before constraint checks), and a column default cannot be
-	/// distinguished from a client-supplied value once applied, which is exactly the gap that let a raw
-	/// INSERT smuggle a backdated period past the create path (§3.2 amendment, 2026-08-05). The column
-	/// is outside the EF model by design, which is why it arrives as an <c>ALTER TABLE</c> after the
-	/// provider's own <c>CREATE TABLE</c>.
+	///     Step 2 — the database-owned system period on the main table. No column default: the BEFORE
+	///     INSERT branch of the versioning function assigns <c>system_period</c> before the row's NOT NULL
+	///     constraint is checked (triggers run before constraint checks), and a column default cannot be
+	///     distinguished from a client-supplied value once applied, which is exactly the gap that let a raw
+	///     INSERT smuggle a backdated period past the create path (§3.2 amendment, 2026-08-05). The column
+	///     is outside the EF model by design, which is why it arrives as an <c>ALTER TABLE</c> after the
+	///     provider's own <c>CREATE TABLE</c>.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -81,10 +81,10 @@ static class TemporalSqlEmitter
 		""";
 
 	/// <summary>
-	/// Step 3 — the history table: the main table's columns plus <c>system_period</c>, under a
-	/// <c>PRIMARY KEY (… WITHOUT OVERLAPS)</c> that makes version overlap structurally impossible.
-	/// Columns follow the projection rule (§3.4): name and store type only, nullable except the
-	/// temporal key components, and never a default, identity, foreign key, check, or index.
+	///     Step 3 — the history table: the main table's columns plus <c>system_period</c>, under a
+	///     <c>PRIMARY KEY (… WITHOUT OVERLAPS)</c> that makes version overlap structurally impossible.
+	///     Columns follow the projection rule (§3.4): name and store type only, nullable except the
+	///     temporal key components, and never a default, identity, foreign key, check, or index.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -111,27 +111,27 @@ static class TemporalSqlEmitter
 	}
 
 	/// <summary>
-	/// Step 4a — the versioning function. <c>system_period</c> is database-owned on every verb (§3.2
-	/// amendment, 2026-08-05), so the first thing the function does — before UPDATE or DELETE ever enter
-	/// it — is the INSERT branch: reject a client-supplied <c>system_period</c> the same way the UPDATE
-	/// guard does, otherwise assign <c>tstzrange(clock_timestamp(), 'infinity')</c> and return, since a
-	/// column default cannot tell its own applied value apart from one a client wrote (defaults apply
-	/// before BEFORE triggers fire). An UPDATE or DELETE past that guard closure-clamps to
-	/// <c>greatest(clock_timestamp(), lower(OLD.system_period) + 1 microsecond)</c> so every history
-	/// period has strictly positive length regardless of wall-clock behavior, and a no-op UPDATE
-	/// (compared over the explicit application column list) writes no history row at all. Hardened per
-	/// the definer checklist: <c>SECURITY DEFINER</c>, <c>search_path</c> pinned to <c>pg_catalog</c>,
-	/// every reference schema-qualified, execute revoked from <c>PUBLIC</c>.
+	///     Step 4a — the versioning function. <c>system_period</c> is database-owned on every verb (§3.2
+	///     amendment, 2026-08-05), so the first thing the function does — before UPDATE or DELETE ever enter
+	///     it — is the INSERT branch: reject a client-supplied <c>system_period</c> the same way the UPDATE
+	///     guard does, otherwise assign <c>tstzrange(clock_timestamp(), 'infinity')</c> and return, since a
+	///     column default cannot tell its own applied value apart from one a client wrote (defaults apply
+	///     before BEFORE triggers fire). An UPDATE or DELETE past that guard closure-clamps to
+	///     <c>greatest(clock_timestamp(), lower(OLD.system_period) + 1 microsecond)</c> so every history
+	///     period has strictly positive length regardless of wall-clock behavior, and a no-op UPDATE
+	///     (compared over the explicit application column list) writes no history row at all. Hardened per
+	///     the definer checklist: <c>SECURITY DEFINER</c>, <c>search_path</c> pinned to <c>pg_catalog</c>,
+	///     every reference schema-qualified, execute revoked from <c>PUBLIC</c>.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
 	/// <param name="columns">The main table's columns, excluding <c>system_period</c>.</param>
 	/// <param name="orReplace">
-	/// Whether to emit <c>CREATE OR REPLACE</c>. Evolution passes <see langword="true"/>: replacing the
-	/// function in place keeps the existing triggers bound to it, which is exactly why a table rename —
-	/// where the function's name changes and the old triggers would stay bound to the old function —
-	/// retires the apparatus explicitly instead (§3.4). No default: the two callers mean opposite things
-	/// and neither is the obvious one.
+	///     Whether to emit <c>CREATE OR REPLACE</c>. Evolution passes <see langword="true" />: replacing the
+	///     function in place keeps the existing triggers bound to it, which is exactly why a table rename —
+	///     where the function's name changes and the old triggers would stay bound to the old function —
+	///     retires the apparatus explicitly instead (§3.4). No default: the two callers mean opposite things
+	///     and neither is the obvious one.
 	/// </param>
 	public static string TriggerFunction(string schema, string table,
 		IReadOnlyList<(string Name, string StoreType, bool IsNullable)> columns, bool orReplace)
@@ -171,10 +171,10 @@ static class TemporalSqlEmitter
 	}
 
 	/// <summary>
-	/// Step 4b — the INSERT, UPDATE, and DELETE triggers binding the main table to its versioning
-	/// function — <c>system_period</c> is database-owned on every verb (§3.2 amendment, 2026-08-05), not
-	/// UPDATE alone. Separate from <see cref="TriggerFunction"/> because evolution regenerates the
-	/// function with <c>CREATE OR REPLACE</c> and leaves the triggers alone (§3.4).
+	///     Step 4b — the INSERT, UPDATE, and DELETE triggers binding the main table to its versioning
+	///     function — <c>system_period</c> is database-owned on every verb (§3.2 amendment, 2026-08-05), not
+	///     UPDATE alone. Separate from <see cref="TriggerFunction" /> because evolution regenerates the
+	///     function with <c>CREATE OR REPLACE</c> and leaves the triggers alone (§3.4).
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -189,8 +189,8 @@ static class TemporalSqlEmitter
 		""";
 
 	/// <summary>
-	/// Step 5 — the timeline view: current versions unioned with closed ones. Explicit column lists,
-	/// never <c>SELECT *</c>, so the view's shape is the migration's shape.
+	///     Step 5 — the timeline view: current versions unioned with closed ones. Explicit column lists,
+	///     never <c>SELECT *</c>, so the view's shape is the migration's shape.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -208,20 +208,20 @@ static class TemporalSqlEmitter
 	}
 
 	/// <summary>
-	/// The enable transition (§3.3): temporality added to a table that already exists and already holds
-	/// rows. Everything from step 3 on is the create path verbatim — this method composes those same
-	/// emitters — and only the arrival of <c>system_period</c> differs, for one reason: the column
-	/// cannot arrive carrying a volatile per-row default, which would scatter each pre-existing row's
-	/// open bound across the table rewrite. Instead the column arrives nullable, a single <c>DO</c>
-	/// block captures <c>clock_timestamp()</c> <em>once</em> and stamps every existing row from that one
-	/// reading, and only then does the column take <c>NOT NULL</c> — with no column default restored
-	/// afterwards, because the BEFORE INSERT trigger assigns the period for every row inserted from here
-	/// on (§3.2 amendment, 2026-08-05); the backfill itself runs before the triggers exist, so brownfield
-	/// enable cannot trip the INSERT guard. History starts empty: the table's pre-temporal past is
-	/// honestly unrecorded, and every pre-existing row enters the timeline as a current version opened
-	/// at the enable timestamp. Emitted as one block because the nullable window between the
-	/// <c>ADD COLUMN</c> and the <c>SET NOT NULL</c> is choreography, not a sequence of independent
-	/// steps.
+	///     The enable transition (§3.3): temporality added to a table that already exists and already holds
+	///     rows. Everything from step 3 on is the create path verbatim — this method composes those same
+	///     emitters — and only the arrival of <c>system_period</c> differs, for one reason: the column
+	///     cannot arrive carrying a volatile per-row default, which would scatter each pre-existing row's
+	///     open bound across the table rewrite. Instead the column arrives nullable, a single <c>DO</c>
+	///     block captures <c>clock_timestamp()</c> <em>once</em> and stamps every existing row from that one
+	///     reading, and only then does the column take <c>NOT NULL</c> — with no column default restored
+	///     afterwards, because the BEFORE INSERT trigger assigns the period for every row inserted from here
+	///     on (§3.2 amendment, 2026-08-05); the backfill itself runs before the triggers exist, so brownfield
+	///     enable cannot trip the INSERT guard. History starts empty: the table's pre-temporal past is
+	///     honestly unrecorded, and every pre-existing row enters the timeline as a current version opened
+	///     at the enable timestamp. Emitted as one block because the nullable window between the
+	///     <c>ADD COLUMN</c> and the <c>SET NOT NULL</c> is choreography, not a sequence of independent
+	///     steps.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -250,11 +250,11 @@ static class TemporalSqlEmitter
 		""";
 
 	/// <summary>
-	/// The disable transition (§3.3): temporality removed from a table that has it. Recorded history is
-	/// destroyed, and the scaffolded migration says so in plain statements rather than behind a helper
-	/// call — the same visible-destruction posture as dropping the entity (§3.4). The order is the only
-	/// one PostgreSQL accepts: the triggers depend on the function, and the view depends on both the
-	/// history table and <c>system_period</c>.
+	///     The disable transition (§3.3): temporality removed from a table that has it. Recorded history is
+	///     destroyed, and the scaffolded migration says so in plain statements rather than behind a helper
+	///     call — the same visible-destruction posture as dropping the entity (§3.4). The order is the only
+	///     one PostgreSQL accepts: the triggers depend on the function, and the view depends on both the
+	///     history table and <c>system_period</c>.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -267,9 +267,9 @@ static class TemporalSqlEmitter
 		""";
 
 	/// <summary>
-	/// Destroys the recorded history. Emitted by the disable transition (§3.3) and by the drop of the
-	/// entity itself (§3.4) — the two acts the design treats identically, and the two it insists stay
-	/// visible in the scaffolded diff as a plain <c>DROP TABLE</c> rather than hiding behind a helper.
+	///     Destroys the recorded history. Emitted by the disable transition (§3.3) and by the drop of the
+	///     entity itself (§3.4) — the two acts the design treats identically, and the two it insists stay
+	///     visible in the scaffolded diff as a plain <c>DROP TABLE</c> rather than hiding behind a helper.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -277,9 +277,9 @@ static class TemporalSqlEmitter
 		$"""DROP TABLE "{schema}"."{table}_history";""";
 
 	/// <summary>
-	/// Evolution step 1 (§3.4): the timeline view goes first, every time. PostgreSQL refuses to drop a
-	/// column or change its type while a view selects it, and <c>CREATE OR REPLACE VIEW</c> cannot change
-	/// the output column set — so the view is dropped and recreated afresh, never replaced in place.
+	///     Evolution step 1 (§3.4): the timeline view goes first, every time. PostgreSQL refuses to drop a
+	///     column or change its type while a view selects it, and <c>CREATE OR REPLACE VIEW</c> cannot change
+	///     the output column set — so the view is dropped and recreated afresh, never replaced in place.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -287,16 +287,16 @@ static class TemporalSqlEmitter
 		$"""DROP VIEW "{schema}"."{table}_timeline";""";
 
 	/// <summary>
-	/// Retires the versioning triggers and the function they are bound to. PostgreSQL keeps a renamed
-	/// table's triggers under their original names, still bound to the original function, so a rename
-	/// drops them by their old names off the already-renamed table and creates newly named ones — the
-	/// apparatus is never left bound to a stale function (§3.4).
+	///     Retires the versioning triggers and the function they are bound to. PostgreSQL keeps a renamed
+	///     table's triggers under their original names, still bound to the original function, so a rename
+	///     drops them by their old names off the already-renamed table and creates newly named ones — the
+	///     apparatus is never left bound to a stale function (§3.4).
 	/// </summary>
 	/// <param name="schema">The schema holding the table and the function.</param>
 	/// <param name="table">The table the triggers currently sit on — the new name during a rename.</param>
 	/// <param name="apparatusName">
-	/// The name the apparatus objects were derived from. The same as <paramref name="table"/> everywhere
-	/// except immediately after a rename, when the objects still carry their pre-rename names.
+	///     The name the apparatus objects were derived from. The same as <paramref name="table" /> everywhere
+	///     except immediately after a rename, when the objects still carry their pre-rename names.
 	/// </param>
 	public static string DropTriggersAndFunction(string schema, string table, string apparatusName) =>
 		$"""
@@ -307,8 +307,8 @@ static class TemporalSqlEmitter
 		""";
 
 	/// <summary>
-	/// Renames the history table alongside its main table — a rename, never a rebuild, so the recorded
-	/// history's data mapping is preserved (§3.4).
+	///     Renames the history table alongside its main table — a rename, never a rebuild, so the recorded
+	///     history's data mapping is preserved (§3.4).
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name before the rename.</param>
@@ -317,10 +317,10 @@ static class TemporalSqlEmitter
 		$"""ALTER TABLE "{schema}"."{table}_history" RENAME TO "{newTable}_history";""";
 
 	/// <summary>
-	/// Mirrors an added column onto history per the projection rule (§3.4): name and store type only,
-	/// nullable regardless of what the main column declares, and never the default, identity, or
-	/// generation expression the main column may carry. History rows predating the column say NULL,
-	/// honestly.
+	///     Mirrors an added column onto history per the projection rule (§3.4): name and store type only,
+	///     nullable regardless of what the main column declares, and never the default, identity, or
+	///     generation expression the main column may carry. History rows predating the column say NULL,
+	///     honestly.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -330,8 +330,8 @@ static class TemporalSqlEmitter
 		$"""ALTER TABLE "{schema}"."{table}_history" ADD COLUMN "{column}" {storeType};""";
 
 	/// <summary>
-	/// Mirrors a dropped column onto history. History is a version log, not an archive of dead columns
-	/// (§3.4) — a retiring column's historical values go with it, deliberately.
+	///     Mirrors a dropped column onto history. History is a version log, not an archive of dead columns
+	///     (§3.4) — a retiring column's historical values go with it, deliberately.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -340,8 +340,8 @@ static class TemporalSqlEmitter
 		$"""ALTER TABLE "{schema}"."{table}_history" DROP COLUMN "{column}";""";
 
 	/// <summary>
-	/// Mirrors a renamed column onto history — a rename, never a drop plus an add, so the recorded
-	/// values follow the column (§3.4).
+	///     Mirrors a renamed column onto history — a rename, never a drop plus an add, so the recorded
+	///     values follow the column (§3.4).
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
@@ -351,9 +351,9 @@ static class TemporalSqlEmitter
 		$"""ALTER TABLE "{schema}"."{table}_history" RENAME COLUMN "{column}" TO "{newColumn}";""";
 
 	/// <summary>
-	/// Mirrors a store-type change onto history. Type only: nullability is never projected, because a
-	/// history column is nullable whatever the main column declares, and the temporal key components are
-	/// <c>NOT NULL</c> from the day the history table was created (§3.4).
+	///     Mirrors a store-type change onto history. Type only: nullability is never projected, because a
+	///     history column is nullable whatever the main column declares, and the temporal key components are
+	///     <c>NOT NULL</c> from the day the history table was created (§3.4).
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>

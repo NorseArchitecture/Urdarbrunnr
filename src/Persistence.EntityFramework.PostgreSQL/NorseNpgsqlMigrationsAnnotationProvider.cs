@@ -11,16 +11,16 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL;
 #pragma warning disable EF1001
 
 /// <summary>
-/// Carries the <see cref="NorseAnnotationNames.Temporal"/> marker onto the operation that drops a
-/// temporal table. This is a different seam from
-/// <see cref="NorseNpgsqlAnnotationProvider"/>: the relational annotation provider decorates the
-/// <em>model</em>'s tables, and EF's differ copies those annotations onto create and alter operations
-/// itself — but a <c>DropTableOperation</c> takes its annotations from
-/// <see cref="IMigrationsAnnotationProvider.ForRemove(ITable)"/> alone, whose base implementation
-/// returns nothing. Without this override the drop operation arrives at the SQL generator carrying no
-/// annotations at all (measured, not assumed), and since the dropped entity is gone from the target
-/// model there is nothing left to consult — the table's temporality would be unknowable and the
-/// apparatus would outlive it.
+///     Carries the <see cref="NorseAnnotationNames.Temporal" /> marker onto the operation that drops a
+///     temporal table. This is a different seam from
+///     <see cref="NorseNpgsqlAnnotationProvider" />: the relational annotation provider decorates the
+///     <em>model</em>'s tables, and EF's differ copies those annotations onto create and alter operations
+///     itself — but a <c>DropTableOperation</c> takes its annotations from
+///     <see cref="IMigrationsAnnotationProvider.ForRemove(ITable)" /> alone, whose base implementation
+///     returns nothing. Without this override the drop operation arrives at the SQL generator carrying no
+///     annotations at all (measured, not assumed), and since the dropped entity is gone from the target
+///     model there is nothing left to consult — the table's temporality would be unknowable and the
+///     apparatus would outlive it.
 /// </summary>
 /// <param name="dependencies">The migrations annotation-provider dependencies, forwarded to Npgsql's own provider.</param>
 sealed class NorseNpgsqlMigrationsAnnotationProvider(MigrationsAnnotationProviderDependencies dependencies)

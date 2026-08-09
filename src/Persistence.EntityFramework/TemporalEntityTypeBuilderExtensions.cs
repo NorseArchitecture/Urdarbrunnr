@@ -8,8 +8,8 @@ public static class TemporalEntityTypeBuilderExtensions
 	extension<TEntity>(EntityTypeBuilder<TEntity> builder) where TEntity : class
 	{
 		/// <summary>
-		/// Acknowledges that this split temporal entity is deliberately non-temporal on SQL Server
-		/// until dotnet/efcore#26457 ships per-fragment temporal control. Deleted the day upstream moves.
+		///     Acknowledges that this split temporal entity is deliberately non-temporal on SQL Server
+		///     until dotnet/efcore#26457 ships per-fragment temporal control. Deleted the day upstream moves.
 		/// </summary>
 		public EntityTypeBuilder<TEntity> TemporalParkedOnSqlServer() =>
 			builder.HasAnnotation(NorseAnnotationNames.TemporalParkedOnSqlServer, true);

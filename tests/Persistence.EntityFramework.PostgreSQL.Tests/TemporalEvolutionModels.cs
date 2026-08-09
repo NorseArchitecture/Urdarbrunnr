@@ -8,16 +8,16 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations;
 namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 
 /// <summary>
-/// The model variants and the differ-driven arrange shared by the evolution snapshot tests and the
-/// live application tests. One set of models, one transition helper: the SQL a snapshot test asserts
-/// on is character-for-character the SQL the live test applies to PostgreSQL, so a snapshot that goes
-/// green on unappliable DDL cannot survive both suites (spec ruling 16).
+///     The model variants and the differ-driven arrange shared by the evolution snapshot tests and the
+///     live application tests. One set of models, one transition helper: the SQL a snapshot test asserts
+///     on is character-for-character the SQL the live test applies to PostgreSQL, so a snapshot that goes
+///     green on unappliable DDL cannot survive both suites (spec ruling 16).
 /// </summary>
 /// <remarks>
-/// Every context declares <c>public</c> as its default schema. Npgsql leaves an undeclared schema to
-/// the session search path and emits the main table unqualified, while the apparatus must be
-/// qualified for the <c>SECURITY DEFINER</c> function — declaring the schema keeps both sides of
-/// every mirror statement in one namespace, which is what an evolution test is actually about.
+///     Every context declares <c>public</c> as its default schema. Npgsql leaves an undeclared schema to
+///     the session search path and emits the main table unqualified, while the apparatus must be
+///     qualified for the <c>SECURITY DEFINER</c> function — declaring the schema keeps both sides of
+///     every mirror statement in one namespace, which is what an evolution test is actually about.
 /// </remarks>
 static class TemporalEvolution
 {
@@ -48,9 +48,9 @@ static class TemporalEvolution
 	}
 
 	/// <summary>
-	/// Two columns arriving in one batch. The differ pairs columns by name first and by mapped property
-	/// name second, so the same entity with a re-pointed column name is a rename, and a wider entity is
-	/// a pair of adds — this is the multi-operation batch the fixed order has to survive.
+	///     Two columns arriving in one batch. The differ pairs columns by name first and by mapped property
+	///     name second, so the same entity with a re-pointed column name is a rename, and a wider entity is
+	///     a pair of adds — this is the multi-operation batch the fixed order has to survive.
 	/// </summary>
 	public static string TwoAddedColumnsSql()
 	{
@@ -81,8 +81,8 @@ static class TemporalEvolution
 	}
 
 	/// <summary>
-	/// A rename and a column add in one migration — the shape where the choreography and the fixed column
-	/// order have to agree with each other, since both touch the same timeline view.
+	///     A rename and a column add in one migration — the shape where the choreography and the fixed column
+	///     order have to agree with each other, since both touch the same timeline view.
 	/// </summary>
 	public static string RenameTableWithAddedColumnSql()
 	{
@@ -100,9 +100,9 @@ static class TemporalEvolution
 	}
 
 	/// <summary>
-	/// Both sides at once: a rename whose batch drops a column ahead of it and adds one after it. EF sorts
-	/// the drop before the rename (old table name) and the add after it (new table name), so this is the
-	/// shape where a per-operation-name grouping would see two groups and finish the first one early.
+	///     Both sides at once: a rename whose batch drops a column ahead of it and adds one after it. EF sorts
+	///     the drop before the rename (old table name) and the add after it (new table name), so this is the
+	///     shape where a per-operation-name grouping would see two groups and finish the first one early.
 	/// </summary>
 	public static string RenameTableWithDroppedAndAddedColumnSql()
 	{
@@ -113,8 +113,8 @@ static class TemporalEvolution
 	}
 
 	/// <summary>
-	/// The entity leaves the model entirely (spec §3.4, "dropping the entity"). The target model has no
-	/// such table at all, so nothing but the operation itself records that it was ever temporal.
+	///     The entity leaves the model entirely (spec §3.4, "dropping the entity"). The target model has no
+	///     such table at all, so nothing but the operation itself records that it was ever temporal.
 	/// </summary>
 	public static string DropEntitySql()
 	{
@@ -185,14 +185,16 @@ static class TemporalEvolution
 	}
 
 	/// <summary>
-	/// The differ's own output, before the generator sees it — the arrange the scaffold round-trip needs,
-	/// since it measures what survives being written out as C# and rebuilt, not what the generator makes
-	/// of the in-memory operations.
+	///     The differ's own output, before the generator sees it — the arrange the scaffold round-trip needs,
+	///     since it measures what survives being written out as C# and rebuilt, not what the generator makes
+	///     of the in-memory operations.
 	/// </summary>
-	public static IReadOnlyList<MigrationOperation> Operations(DbContext from, DbContext to) =>
-		to.GetService<IMigrationsModelDiffer>().GetDifferences(
+	public static IReadOnlyList<MigrationOperation> Operations(DbContext from, DbContext to)
+	{
+		return to.GetService<IMigrationsModelDiffer>().GetDifferences(
 			from.GetService<IDesignTimeModel>().Model.GetRelationalModel(),
 			to.GetService<IDesignTimeModel>().Model.GetRelationalModel());
+	}
 
 	/// <summary>The four shapes the scaffold round-trip measures, each read straight off the real differ.</summary>
 	public static IReadOnlyList<MigrationOperation> CreateOperations()
@@ -231,9 +233,11 @@ static class TemporalEvolution
 	}
 
 	/// <summary>Design-time options: the placeholder connection string, never dialed.</summary>
-	public static DbContextOptions<TContext> Options<TContext>() where TContext : DbContext =>
-		LiveOptions<TContext>(
+	public static DbContextOptions<TContext> Options<TContext>() where TContext : DbContext
+	{
+		return LiveOptions<TContext>(
 			NorsePostgresEfProvider.Instance.DesignTimePlaceholderConnectionString("norse_test"));
+	}
 
 	/// <summary>Options against a real database — the same provider wiring, a real connection string.</summary>
 	public static DbContextOptions<TContext> LiveOptions<TContext>(string connectionString)
@@ -488,78 +492,80 @@ sealed record TemporalWidget : ITemporalEntity, INorseEntity<TemporalWidget>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
-	public static void Configure(EntityTypeBuilder<TemporalWidget> builder) { }
+	public static void Configure(EntityTypeBuilder<TemporalWidget> builder)
+	{
+	}
 }
 
 sealed record TemporalWidgetPlus : ITemporalEntity, INorseEntity<TemporalWidgetPlus>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
-	[MaxLength(50)]
-	public string Extra { get; init; } = "";
+	[MaxLength(50)] public string Extra { get; init; } = "";
 
-	public static void Configure(EntityTypeBuilder<TemporalWidgetPlus> builder) { }
+	public static void Configure(EntityTypeBuilder<TemporalWidgetPlus> builder)
+	{
+	}
 }
 
 sealed record TemporalWidgetDoublePlus : ITemporalEntity, INorseEntity<TemporalWidgetDoublePlus>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
-	[MaxLength(50)]
-	public string Extra { get; init; } = "";
+	[MaxLength(50)] public string Extra { get; init; } = "";
 
-	[MaxLength(50)]
-	public string Note { get; init; } = "";
+	[MaxLength(50)] public string Note { get; init; } = "";
 
-	public static void Configure(EntityTypeBuilder<TemporalWidgetDoublePlus> builder) { }
+	public static void Configure(EntityTypeBuilder<TemporalWidgetDoublePlus> builder)
+	{
+	}
 }
 
 sealed record PlainWidget : INorseEntity<PlainWidget>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
-	public static void Configure(EntityTypeBuilder<PlainWidget> builder) { }
+	public static void Configure(EntityTypeBuilder<PlainWidget> builder)
+	{
+	}
 }
 
 /// <summary>
-/// The temporal entity with a split fragment — <c>AccessCount</c> lives in a second table the apparatus
-/// deliberately never touches (spec §2.3). Shared rather than duplicated: the create-path snapshot suite
-/// asserts the fragment table gets no apparatus, and the integration suite proves the same thing against
-/// a real server by updating only the fragment and finding no history row.
+///     The temporal entity with a split fragment — <c>AccessCount</c> lives in a second table the apparatus
+///     deliberately never touches (spec §2.3). Shared rather than duplicated: the create-path snapshot suite
+///     asserts the fragment table gets no apparatus, and the integration suite proves the same thing against
+///     a real server by updating only the fragment and finding no history row.
 /// </summary>
 sealed record SplitTemporalWidget : ITemporalEntity, INorseEntity<SplitTemporalWidget>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
 	public int AccessCount { get; init; }
 
-	public static void Configure(EntityTypeBuilder<SplitTemporalWidget> builder) { }
+	public static void Configure(EntityTypeBuilder<SplitTemporalWidget> builder)
+	{
+	}
 }
 
 sealed record PlainWidgetPlus : INorseEntity<PlainWidgetPlus>
 {
 	public int Id { get; init; }
 
-	[MaxLength(100)]
-	public string Name { get; init; } = "";
+	[MaxLength(100)] public string Name { get; init; } = "";
 
-	[MaxLength(50)]
-	public string Extra { get; init; } = "";
+	[MaxLength(50)] public string Extra { get; init; } = "";
 
-	public static void Configure(EntityTypeBuilder<PlainWidgetPlus> builder) { }
+	public static void Configure(EntityTypeBuilder<PlainWidgetPlus> builder)
+	{
+	}
 }

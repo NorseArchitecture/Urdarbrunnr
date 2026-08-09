@@ -13,21 +13,21 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL;
 #pragma warning disable EF1001
 
 /// <summary>
-/// Emits the PostgreSQL temporal apparatus around Npgsql's own migration SQL. The emission-seam spike
-/// (<c>../Glitnir/poc/ef-temporal-emission/FINDINGS.md</c>) established two seams; a third was measured
-/// afterwards for the one shape the spike did not scaffold, and all three are used here. Ordinary
-/// operations do not carry the <see cref="NorseAnnotationNames.Temporal"/> marker, so they identify their
-/// table by consulting the target model. The marker transitions of §3.3 do carry it — they exist as
-/// operations at all only because <see cref="NorseNpgsqlAnnotationProvider"/> projects the marker onto
-/// the relational table — and on the disable side the target model still holds the table but no longer
-/// marks it, so <see cref="AlterTableOperation.OldTable"/> is the only record that it ever was temporal.
-/// Dropping the entity reaches neither: the table leaves the target model entirely, and EF builds
-/// <see cref="DropTableOperation"/> from <c>IMigrationsAnnotationProvider.ForRemove</c> instead of
-/// copying the model's annotations, which is why <see cref="NorseNpgsqlMigrationsAnnotationProvider"/>
-/// exists. A marker transition combined with a column change or a table rename on the same table is
-/// rejected by name (see <c>GuardCombinedTransitions</c>), as are the two evolutions §3.4 refuses outright (see
-/// <c>GuardRejectedOperations</c>). Everything else evolves in the fixed drop-view-first order of
-/// ruling 16.
+///     Emits the PostgreSQL temporal apparatus around Npgsql's own migration SQL. The emission-seam spike
+///     (<c>../Glitnir/poc/ef-temporal-emission/FINDINGS.md</c>) established two seams; a third was measured
+///     afterwards for the one shape the spike did not scaffold, and all three are used here. Ordinary
+///     operations do not carry the <see cref="NorseAnnotationNames.Temporal" /> marker, so they identify their
+///     table by consulting the target model. The marker transitions of §3.3 do carry it — they exist as
+///     operations at all only because <see cref="NorseNpgsqlAnnotationProvider" /> projects the marker onto
+///     the relational table — and on the disable side the target model still holds the table but no longer
+///     marks it, so <see cref="AlterTableOperation.OldTable" /> is the only record that it ever was temporal.
+///     Dropping the entity reaches neither: the table leaves the target model entirely, and EF builds
+///     <see cref="DropTableOperation" /> from <c>IMigrationsAnnotationProvider.ForRemove</c> instead of
+///     copying the model's annotations, which is why <see cref="NorseNpgsqlMigrationsAnnotationProvider" />
+///     exists. A marker transition combined with a column change or a table rename on the same table is
+///     rejected by name (see <c>GuardCombinedTransitions</c>), as are the two evolutions §3.4 refuses outright (see
+///     <c>GuardRejectedOperations</c>). Everything else evolves in the fixed drop-view-first order of
+///     ruling 16.
 /// </summary>
 /// <param name="dependencies">The migrations SQL generator dependencies.</param>
 /// <param name="npgsqlOptions">Npgsql's singleton options, forwarded to the base generator.</param>
@@ -42,11 +42,6 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	// _assertDefaultSchemaIsPublic.
 	const string DefaultSchema = "public";
 
-	// The prelude (§3.1 steps 0-1) is per-migration, not per-table. These flags are reset at the top
-	// of every batch rather than trusted to the generator's service lifetime.
-	bool _preludeEmitted;
-	bool _assertDefaultSchemaIsPublic;
-
 	// Per-batch, same discipline: how many column operations each temporal table still has coming, whether
 	// its timeline view has already been dropped, and whether its rename is still ahead. Keyed by the
 	// table's TARGET name, never by the name an individual operation carries — EF sorts a dropped column
@@ -59,6 +54,11 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	// table is looked up through this map, while its SQL is still emitted against the name the table
 	// actually has at that point in the batch.
 	readonly Dictionary<(string? Schema, string Table), (string? Schema, string Table)> _renames = [];
+	bool _assertDefaultSchemaIsPublic;
+
+	// The prelude (§3.1 steps 0-1) is per-migration, not per-table. These flags are reset at the top
+	// of every batch rather than trusted to the generator's service lifetime.
+	bool _preludeEmitted;
 
 	/// <inheritdoc />
 	public override IReadOnlyList<MigrationCommand> Generate(IReadOnlyList<MigrationOperation> operations,
@@ -111,14 +111,14 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 
 	/// <inheritdoc />
 	/// <remarks>
-	/// The marker transitions of §3.3. Unlike the column operations, these carry the marker themselves:
-	/// the differ produces this operation only because <see cref="NorseNpgsqlAnnotationProvider"/> projects
-	/// <see cref="NorseAnnotationNames.Temporal"/> onto the table. On the disable side the target model
-	/// still holds the table — unmarked — so nothing on the target side records that it used to be
-	/// temporal, and <see cref="AlterTableOperation.OldTable"/> is the only available discriminator.
-	/// An alteration
-	/// that leaves the marker as it found it — a comment or storage-parameter change on a table that is
-	/// temporal both before and after — is no transition and gets nothing beyond the base emission.
+	///     The marker transitions of §3.3. Unlike the column operations, these carry the marker themselves:
+	///     the differ produces this operation only because <see cref="NorseNpgsqlAnnotationProvider" /> projects
+	///     <see cref="NorseAnnotationNames.Temporal" /> onto the table. On the disable side the target model
+	///     still holds the table — unmarked — so nothing on the target side records that it used to be
+	///     temporal, and <see cref="AlterTableOperation.OldTable" /> is the only available discriminator.
+	///     An alteration
+	///     that leaves the marker as it found it — a comment or storage-parameter change on a table that is
+	///     temporal both before and after — is no transition and gets nothing beyond the base emission.
 	/// </remarks>
 	protected override void Generate(AlterTableOperation operation, IModel? model,
 		MigrationCommandListBuilder builder)
@@ -145,15 +145,15 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 
 	/// <inheritdoc />
 	/// <remarks>
-	/// Dropping the entity (§3.4), the one shape whose marker reaches neither seam the spike named. The
-	/// target model has no such table to consult, and the differ builds this operation from
-	/// <c>IMigrationsAnnotationProvider.ForRemove(ITable)</c> rather than copying the model's table
-	/// annotations — so the marker arrives only because
-	/// <see cref="NorseNpgsqlMigrationsAnnotationProvider"/> forwards it there. The apparatus is torn down
-	/// ahead of the base <c>DROP TABLE</c>, view first as everywhere else: PostgreSQL refuses to drop a
-	/// table under a dependent view (2BP01), and the versioning function is not owned by the table and
-	/// would otherwise outlive it. Recorded history dies with the entity — the same visible destruction as
-	/// the disable transition (§3.3).
+	///     Dropping the entity (§3.4), the one shape whose marker reaches neither seam the spike named. The
+	///     target model has no such table to consult, and the differ builds this operation from
+	///     <c>IMigrationsAnnotationProvider.ForRemove(ITable)</c> rather than copying the model's table
+	///     annotations — so the marker arrives only because
+	///     <see cref="NorseNpgsqlMigrationsAnnotationProvider" /> forwards it there. The apparatus is torn down
+	///     ahead of the base <c>DROP TABLE</c>, view first as everywhere else: PostgreSQL refuses to drop a
+	///     table under a dependent view (2BP01), and the versioning function is not owned by the table and
+	///     would otherwise outlive it. Recorded history dies with the entity — the same visible destruction as
+	///     the disable transition (§3.3).
 	/// </remarks>
 	protected override void Generate(DropTableOperation operation, IModel? model,
 		MigrationCommandListBuilder builder, bool terminate = true)
@@ -172,8 +172,8 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 
 	/// <inheritdoc />
 	/// <remarks>
-	/// Evolution (§3.4). The added column is mirrored onto history by the projection rule — name and
-	/// store type only, nullable regardless of what the main column declares, and never its default.
+	///     Evolution (§3.4). The added column is mirrored onto history by the projection rule — name and
+	///     store type only, nullable regardless of what the main column declares, and never its default.
 	/// </remarks>
 	protected override void Generate(AddColumnOperation operation, IModel? model,
 		MigrationCommandListBuilder builder, bool terminate = true)
@@ -194,8 +194,8 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 
 	/// <inheritdoc />
 	/// <remarks>
-	/// Evolution (§3.4): history is a version log, not an archive of dead columns, so the drop mirrors and
-	/// the column's recorded values go with it.
+	///     Evolution (§3.4): history is a version log, not an archive of dead columns, so the drop mirrors and
+	///     the column's recorded values go with it.
 	/// </remarks>
 	protected override void Generate(DropColumnOperation operation, IModel? model,
 		MigrationCommandListBuilder builder, bool terminate = true)
@@ -234,9 +234,9 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 
 	/// <inheritdoc />
 	/// <remarks>
-	/// Evolution (§3.4): the store type mirrors onto history, nothing else does. A history column is
-	/// nullable whatever the main column declares, so a nullability change has no mirror at all, and the
-	/// temporal key components took their <c>NOT NULL</c> the day the history table was created.
+	///     Evolution (§3.4): the store type mirrors onto history, nothing else does. A history column is
+	///     nullable whatever the main column declares, so a nullability change has no mirror at all, and the
+	///     temporal key components took their <c>NOT NULL</c> the day the history table was created.
 	/// </remarks>
 	protected override void Generate(AlterColumnOperation operation, IModel? model,
 		MigrationCommandListBuilder builder)
@@ -257,24 +257,24 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 
 	/// <inheritdoc />
 	/// <remarks>
-	/// The rename choreography of §3.4, and the one evolution shape that is not the five-statement column
-	/// order. PostgreSQL keeps a renamed table's triggers — under their old names, still bound to the old
-	/// function — so creating a newly named function would rebind nothing and the table would go on
-	/// versioning through stale apparatus. Only the two tables rename in place, preserving the history
-	/// data mapping; every other apparatus object is retired by name and recreated. A rename that also
-	/// moves schemas never reaches here: <c>GuardRejectedOperations</c> refused the batch.
+	///     The rename choreography of §3.4, and the one evolution shape that is not the five-statement column
+	///     order. PostgreSQL keeps a renamed table's triggers — under their old names, still bound to the old
+	///     function — so creating a newly named function would rebind nothing and the table would go on
+	///     versioning through stale apparatus. Only the two tables rename in place, preserving the history
+	///     data mapping; every other apparatus object is retired by name and recreated. A rename that also
+	///     moves schemas never reaches here: <c>GuardRejectedOperations</c> refused the batch.
 	/// </remarks>
 	/// <remarks>
-	/// When the same migration also changes the renamed table's columns, the rename is one step inside
-	/// that table's single column-evolution group rather than a self-contained batch of its own. EF sorts
-	/// a dropped column ahead of the rename and an added one after it, so the group can straddle the
-	/// rename: whichever side comes first drops the view (under the name the table has at that moment),
-	/// and whichever operation is last recreates it from the finished shape. This method therefore drops
-	/// the old view only if nothing already has, and creates the new one only when no column operation
-	/// remains to do it. The trigger function is always created here regardless, because the triggers it
-	/// binds need it and PostgreSQL resolves a plpgsql body's column references at first execution rather
-	/// than at creation; a later column operation replaces it in place over the finished shape. Every case
-	/// here was proven against a live server, not reasoned about.
+	///     When the same migration also changes the renamed table's columns, the rename is one step inside
+	///     that table's single column-evolution group rather than a self-contained batch of its own. EF sorts
+	///     a dropped column ahead of the rename and an added one after it, so the group can straddle the
+	///     rename: whichever side comes first drops the view (under the name the table has at that moment),
+	///     and whichever operation is last recreates it from the finished shape. This method therefore drops
+	///     the old view only if nothing already has, and creates the new one only when no column operation
+	///     remains to do it. The trigger function is always created here regardless, because the triggers it
+	///     binds need it and PostgreSQL resolves a plpgsql body's column references at first execution rather
+	///     than at creation; a later column operation replaces it in place over the finished shape. Every case
+	///     here was proven against a live server, not reasoned about.
 	/// </remarks>
 	protected override void Generate(RenameTableOperation operation, IModel? model,
 		MigrationCommandListBuilder builder)
@@ -370,9 +370,9 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 				|| !IsTemporalInBatch(model, target.Table, target.Schema))
 				continue;
 			var key = TargetNameOf(target.Schema, target.Table);
-			_columnEvolutions[key] = _columnEvolutions.TryGetValue(key, out var state)
-				? state with { Remaining = state.Remaining + 1 }
-				: new ColumnEvolution(Remaining: 1, ViewDropped: false,
+			_columnEvolutions[key] = _columnEvolutions.TryGetValue(key, out var state) ?
+				state with { Remaining = state.Remaining + 1 } :
+				new ColumnEvolution(Remaining: 1, ViewDropped: false,
 					RenamePending: _renames.ContainsValue(key));
 		}
 	}
@@ -387,7 +387,9 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	}
 
 	(string? Schema, string Table) TargetNameOf(string? schema, string table) =>
-		_renames.TryGetValue((schema, table), out var renamed) ? renamed : (schema, table);
+		_renames.TryGetValue((schema, table), out var renamed) ?
+			renamed :
+			(schema, table);
 
 	// The evolutions §3.4 refuses outright, caught across the whole batch before a line of SQL is emitted
 	// so the diagnostic never depends on where EF happened to sort the operation. A primary-key change
@@ -408,7 +410,7 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 					throw RejectedEvolution("DropPrimaryKey", drop.Table);
 				case RenameTableOperation rename
 					when !string.Equals(rename.Schema, rename.NewSchema, StringComparison.Ordinal)
-						&& IsTemporal(model, rename.NewName ?? rename.Name, rename.NewSchema):
+					&& IsTemporal(model, rename.NewName ?? rename.Name, rename.NewSchema):
 					throw RejectedEvolution(
 						$"A schema move to '{rename.NewSchema ?? DefaultSchema}'", rename.Name);
 				default:
@@ -522,7 +524,8 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 		{
 			AddColumnOperation add => (add.Table, add.Schema, $"AddColumn '{add.Name}'"),
 			DropColumnOperation drop => (drop.Table, drop.Schema, $"DropColumn '{drop.Name}'"),
-			RenameColumnOperation rename => (rename.Table, rename.Schema, $"RenameColumn '{rename.Name}' to '{rename.NewName}'"),
+			RenameColumnOperation rename => (rename.Table, rename.Schema,
+				$"RenameColumn '{rename.Name}' to '{rename.NewName}'"),
 			AlterColumnOperation alter => (alter.Table, alter.Schema, $"AlterColumn '{alter.Name}'"),
 			_ => null
 		};

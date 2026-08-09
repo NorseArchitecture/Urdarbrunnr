@@ -30,7 +30,8 @@ public sealed class DesignTimeSchemaPathTests
 		var buildOutputWithoutTrailingSeparator = Path.Combine("repo", AssemblyName, "bin", "Debug", "net11.0");
 		var buildOutputWithTrailingSeparator = $"{buildOutputWithoutTrailingSeparator}{Path.DirectorySeparatorChar}";
 
-		var resultWithoutTrailingSeparator = DesignTimeSchemaPath.Resolve(buildOutputWithoutTrailingSeparator, DatabaseName);
+		var resultWithoutTrailingSeparator =
+			DesignTimeSchemaPath.Resolve(buildOutputWithoutTrailingSeparator, DatabaseName);
 		var resultWithTrailingSeparator = DesignTimeSchemaPath.Resolve(buildOutputWithTrailingSeparator, DatabaseName);
 
 		resultWithTrailingSeparator.ShouldBe(resultWithoutTrailingSeparator);

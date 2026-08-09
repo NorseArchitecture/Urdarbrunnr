@@ -10,7 +10,8 @@ sealed class NorseSnakeCaseConventionSetPlugin(
 {
 	public ConventionSet ModifyConventions(ConventionSet conventionSet)
 	{
-		conventionSet.ModelFinalizingConventions.Add(new NorseSnakeCaseNamingConvention(rewriteName, applyProviderSpecificRenames));
+		conventionSet.ModelFinalizingConventions.Add(
+			new NorseSnakeCaseNamingConvention(rewriteName, applyProviderSpecificRenames));
 		return conventionSet;
 	}
 }
