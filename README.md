@@ -42,6 +42,9 @@ flowchart BT
 	MigGenerator --> Emit
 	EF -.-> Generator
 	Migrations -.-> MigGenerator
+	%% layout hints only, not dependencies — lift Svartálfheim onto the top tier beside Asgard
+	Generator ~~~ Primitives
+	MigGenerator ~~~ Primitives
 ```
 
 The base `EntityFramework` is the only node touching Svartálfheim — `SequentialGuid`'s byte-order converters and the `IPiiScalar` family reach every provider through it, transitive-first by house law. Each provider binding is one thin package with exactly one edge; Oracle or SQLite lands as one more node with that same single edge, zero edits to the foundation — the symmetry *is* the acceptance test, and the chart renders it.
