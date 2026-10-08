@@ -10,7 +10,7 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 
 /// <summary>
 ///     The runtime semantics of the PostgreSQL temporal apparatus, proved against a real
-///     <c>postgres:19beta2</c> server (spec §6 item 3). The snapshot suites prove the generator emits the
+///     <c>postgres:19beta4</c> server (spec §6 item 3). The snapshot suites prove the generator emits the
 ///     design's SQL and the evolution live suite proves PostgreSQL accepts it; neither can say what the
 ///     apparatus <em>does</em> once rows start moving. That is this suite: one clock, the monotonicity
 ///     clamp, no-op suppression, and version closure (spec §3.2), plus the brownfield enable/disable

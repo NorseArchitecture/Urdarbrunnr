@@ -8,14 +8,14 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 #pragma warning disable CA2100
 
 /// <summary>
-///     One PostgreSQL 19beta2 container — the same image Bifröst's AppHost runs — shared by every test in
+///     One PostgreSQL 19beta4 container — the same image Bifröst's AppHost runs — shared by every test in
 ///     the <see cref="PostgresCollection" />, with a database of its own per test. The temporal apparatus is
 ///     database semantics end to end (a <c>WITHOUT OVERLAPS</c> key, a <c>SECURITY DEFINER</c> trigger, a
 ///     view over two tables), so it is proved against a real server or not at all.
 /// </summary>
 public sealed class PostgresContainerFixture : IAsyncLifetime
 {
-	readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:19beta2")
+	readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:19beta4")
 		.WithDatabase("norse_test")
 		.Build();
 

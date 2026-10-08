@@ -8,7 +8,7 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 #pragma warning disable EF1002
 
 /// <summary>
-///     Every evolution shape of spec §3.4, applied to a real PostgreSQL 19beta2 server with a live history
+///     Every evolution shape of spec §3.4, applied to a real PostgreSQL 19beta4 server with a live history
 ///     row and a live timeline view already in place. The snapshot suite proves the SQL says what the design
 ///     says; this one proves PostgreSQL accepts it — the failure the design will not ship (ruling 16) is DDL
 ///     that reads correctly and cannot be applied, and it dies here rather than in the integration suite.

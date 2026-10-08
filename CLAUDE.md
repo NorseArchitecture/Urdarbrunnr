@@ -36,7 +36,7 @@ Urðarbrunnr is **the well's record** — `Norse.Persistence`: the platform's pe
 ## Build & Test
 
 - `dotnet build Urdarbrunnr.slnx` — warnings are errors; a single warning fails.
-- `dotnet test Urdarbrunnr.slnx` — xUnit v3 + Shouldly on Microsoft.Testing.Platform. **VSTest `--filter` does NOT work** — use `dotnet test tests/<Project> -- --filter-class "*.<ClassName>"`. The PostgreSQL live suites (`Persistence.EntityFramework.PostgreSQL.Tests`) need Docker: one shared Testcontainers `postgres:19beta2` fixture, the same image Bifröst's AppHost runs. No SQL Server container fixture exists anywhere on the platform — SQL Server coverage is model-level by deliberate choice, and standing a fixture up is its own chore, never smuggled into another train.
+- `dotnet test Urdarbrunnr.slnx` — xUnit v3 + Shouldly on Microsoft.Testing.Platform. **VSTest `--filter` does NOT work** — use `dotnet test tests/<Project> -- --filter-class "*.<ClassName>"`. The PostgreSQL live suites (`Persistence.EntityFramework.PostgreSQL.Tests`) need Docker: one shared Testcontainers `postgres:19beta4` fixture, the same image Bifröst's AppHost runs. No SQL Server container fixture exists anywhere on the platform — SQL Server coverage is model-level by deliberate choice, and standing a fixture up is its own chore, never smuggled into another train.
 - SDK pinned by `global.json`: `11.0.100-` prerelease.
 
 ## Architecture Facts (decided — do not re-litigate)
