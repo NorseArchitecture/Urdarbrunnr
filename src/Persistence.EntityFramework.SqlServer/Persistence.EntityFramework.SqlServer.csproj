@@ -7,6 +7,8 @@
 	<ItemGroup>
 		<PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.*" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.*-*" />
+		<!-- Transitive via Microsoft.Data.SqlClient 7.1.0 (pinned 9.0.18/10.0.12, GHSA-846f-f764-76mx); drop once SqlClient floors a patched version. -->
+		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="11.*-*" />
 		<ProjectReference Include="../Persistence.EntityFramework/Persistence.EntityFramework.csproj" />
 	</ItemGroup>
 </Project>
