@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Norse.Persistence.EntityFramework.PostgreSQL;
@@ -52,9 +53,20 @@ public sealed class NorsePostgresEfProvider : INorseEfMigrationProvider
 			.ReplaceService<IMigrationsSqlGenerator, NorseNpgsqlMigrationsSqlGenerator>();
 
 	/// <inheritdoc />
+	/// <remarks>
+	///     Aspire's own retry wiring is disabled and replaced by the same <c>EnableRetryOnFailure()</c> it
+	///     would have registered: its retry path compares against <c>NpgsqlExecutionStrategy</c>, which
+	///     Npgsql 11.0.0-rc.2 removed, so it throws <see cref="TypeLoadException" /> at first resolution.
+	///     Re-entry trigger: drop the override and call <c>EnrichNpgsqlDbContext&lt;TContext&gt;()</c> bare
+	///     the day an Aspire.Npgsql.EntityFrameworkCore.PostgreSQL release stops referencing that type.
+	/// </remarks>
 	public void Enrich<TContext>(IHostApplicationBuilder builder)
-		where TContext : DbContext, INorseDbContext =>
-		builder.EnrichNpgsqlDbContext<TContext>();
+		where TContext : DbContext, INorseDbContext
+	{
+		builder.EnrichNpgsqlDbContext<TContext>(settings => settings.DisableRetry = true);
+		builder.Services.ConfigureDbContext<TContext>(optionsBuilder =>
+			optionsBuilder.UseNpgsql(npgsql => npgsql.EnableRetryOnFailure()));
+	}
 
 	/// <inheritdoc />
 	public string DesignTimePlaceholderConnectionString(string databaseName) =>
