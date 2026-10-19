@@ -70,6 +70,21 @@ public sealed class NorsePostgresEfProviderTests
 	}
 
 	[Fact]
+	void Enrich_honors_a_configured_retry_opt_out()
+	{
+		var builder = CreateBuilder();
+		builder.Configuration.AddInMemoryCollection(
+			new Dictionary<string, string?> { ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableRetry"] = "true" });
+
+		builder.AddNorseContext<TestContext>(NorsePostgresEfProvider.Instance, "test-db");
+
+		using var host = builder.Build();
+		using var scope = host.Services.CreateScope();
+		using var ctx = scope.ServiceProvider.GetRequiredService<TestContext>();
+		ctx.Database.CreateExecutionStrategy().ShouldNotBeOfType<NpgsqlRetryingExecutionStrategy>();
+	}
+
+	[Fact]
 	void AddNorseMigrationContext_registers_TContext_non_pooled_and_does_not_throw_building_the_model()
 	{
 		var builder = CreateBuilder();
