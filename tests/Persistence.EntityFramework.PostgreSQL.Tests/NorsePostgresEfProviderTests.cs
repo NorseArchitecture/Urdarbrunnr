@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Norse.Persistence.EntityFramework.Migrations;
 using Npgsql;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace Norse.Persistence.EntityFramework.PostgreSQL.Tests;
 
@@ -53,6 +54,34 @@ public sealed class NorsePostgresEfProviderTests
 		var descriptor = builder.Services.FirstOrDefault(d => d.ServiceType == typeof(TestContext));
 		descriptor.ShouldNotBeNull();
 		descriptor.ImplementationFactory.ShouldNotBeNull();
+	}
+
+	[Fact]
+	void Enrich_keeps_Aspires_retry_on_failure_execution_strategy()
+	{
+		var builder = CreateBuilder();
+
+		builder.AddNorseContext<TestContext>(NorsePostgresEfProvider.Instance, "test-db");
+
+		using var host = builder.Build();
+		using var scope = host.Services.CreateScope();
+		using var ctx = scope.ServiceProvider.GetRequiredService<TestContext>();
+		ctx.Database.CreateExecutionStrategy().ShouldBeOfType<NpgsqlRetryingExecutionStrategy>();
+	}
+
+	[Fact]
+	void Enrich_honors_a_configured_retry_opt_out()
+	{
+		var builder = CreateBuilder();
+		builder.Configuration.AddInMemoryCollection(
+			new Dictionary<string, string?> { ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableRetry"] = "true" });
+
+		builder.AddNorseContext<TestContext>(NorsePostgresEfProvider.Instance, "test-db");
+
+		using var host = builder.Build();
+		using var scope = host.Services.CreateScope();
+		using var ctx = scope.ServiceProvider.GetRequiredService<TestContext>();
+		ctx.Database.CreateExecutionStrategy().ShouldNotBeOfType<NpgsqlRetryingExecutionStrategy>();
 	}
 
 	[Fact]

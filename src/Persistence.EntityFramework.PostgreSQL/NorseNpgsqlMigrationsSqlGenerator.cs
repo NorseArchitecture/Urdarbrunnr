@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.EntityFrameworkCore.Query;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations;
 
@@ -31,9 +32,12 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL;
 /// </summary>
 /// <param name="dependencies">The migrations SQL generator dependencies.</param>
 /// <param name="npgsqlOptions">Npgsql's singleton options, forwarded to the base generator.</param>
+/// <param name="querySqlGeneratorFactory">The query SQL generator factory, forwarded to the base generator.</param>
 sealed class NorseNpgsqlMigrationsSqlGenerator(
 	MigrationsSqlGeneratorDependencies dependencies,
-	INpgsqlSingletonOptions npgsqlOptions) : NpgsqlMigrationsSqlGenerator(dependencies, npgsqlOptions)
+	INpgsqlSingletonOptions npgsqlOptions,
+	IQuerySqlGeneratorFactory querySqlGeneratorFactory)
+	: NpgsqlMigrationsSqlGenerator(dependencies, npgsqlOptions, querySqlGeneratorFactory)
 {
 	// PostgreSQL's own default schema, used only when neither the operation nor the model named one.
 	// The SECURITY DEFINER function pins its search path to pg_catalog, so every apparatus object has
