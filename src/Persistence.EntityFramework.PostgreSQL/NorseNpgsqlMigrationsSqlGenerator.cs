@@ -64,11 +64,26 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	// of every batch rather than trusted to the generator's service lifetime.
 	bool _preludeEmitted;
 
+	// Set while Npgsql's own AlterColumn emission runs. Npgsql realizes some alterations — a column turning
+	// generated, or its generation expression changing — as a DROP COLUMN plus an ADD COLUMN, and it issues
+	// them through the virtual Generate overloads, which are this class's overrides. Left unguarded, those
+	// nested calls would mirror a DROP onto history (destroying the column's recorded values) and run the
+	// per-table evolution bookkeeping two extra times. Inside an AlterColumn they are base emission only;
+	// the AlterColumn override owns the history mirror and the regeneration.
+	bool _rebuildingColumn;
+
+	// norse_utf8_sha256 is emitted once per batch, ahead of the first table or column whose generation
+	// expression names it. Idempotent regardless (CREATE OR REPLACE), so a later migration naming it again
+	// re-emits it harmlessly.
+	bool _utf8Sha256Emitted;
+
 	/// <inheritdoc />
 	public override IReadOnlyList<MigrationCommand> Generate(IReadOnlyList<MigrationOperation> operations,
 		IModel? model = null, MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
 	{
 		_preludeEmitted = false;
+		_utf8Sha256Emitted = false;
+		_rebuildingColumn = false;
 		// The scan first: both guards below read the batch's rename map, and so does every column
 		// operation that EF sorted ahead of its own table's rename.
 		ScanBatch(operations, model);
@@ -92,19 +107,22 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	{
 		if (!IsTemporal(model, operation.Name, operation.Schema))
 		{
+			AppendUtf8Sha256IfNamed(builder, operation.Columns);
 			base.Generate(operation, model, builder, terminate);
 			return;
 		}
 
 		var schema = SchemaOf(operation.Schema, model);
 		var table = operation.Name;
-		List<(string Name, string StoreType, bool IsNullable)> columns =
-			[.. operation.Columns.Select(column => (column.Name, StoreType: StoreTypeOf(column), column.IsNullable))];
+		List<TemporalColumn> columns =
+			[.. operation.Columns.Select(column => new TemporalColumn(column.Name, StoreTypeOf(column), IsStoredGenerated(column)))];
 		var pkColumns = operation.PrimaryKey?.Columns ?? throw new InvalidOperationException(
 			$"Temporal table '{table}' has no primary key; the WITHOUT OVERLAPS history key requires one.");
 
-		// Before base.Generate, not after — see AppendPrelude.
+		// Before base.Generate, not after — see AppendPrelude. The function sits between the two: after the
+		// floor and schema asserts, ahead of the table whose generation expression needs it.
 		AppendPrelude(builder);
+		AppendUtf8Sha256IfNamed(builder, operation.Columns);
 		base.Generate(operation, model, builder, terminate);
 		AppendBlock(builder, TemporalSqlEmitter.SystemPeriodColumn(schema, table));
 		AppendBlock(builder, TemporalSqlEmitter.HistoryTable(schema, table, columns, pkColumns));
@@ -177,11 +195,20 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	/// <inheritdoc />
 	/// <remarks>
 	///     Evolution (§3.4). The added column is mirrored onto history by the projection rule — name and
-	///     store type only, nullable regardless of what the main column declares, and never its default.
+	///     store type only, nullable regardless of what the main column declares, and never its default or
+	///     generation expression — a stored generated column arrives in history as a plain column, and the
+	///     regenerated versioning function copies it from <c>OLD</c> but leaves it out of the no-op comparison.
 	/// </remarks>
 	protected override void Generate(AddColumnOperation operation, IModel? model,
 		MigrationCommandListBuilder builder, bool terminate = true)
 	{
+		if (_rebuildingColumn)
+		{
+			base.Generate(operation, model, builder, terminate);
+			return;
+		}
+
+		AppendUtf8Sha256IfNamed(builder, [operation]);
 		if (!IsTemporalInBatch(model, operation.Table, operation.Schema))
 		{
 			base.Generate(operation, model, builder, terminate);
@@ -204,7 +231,7 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	protected override void Generate(DropColumnOperation operation, IModel? model,
 		MigrationCommandListBuilder builder, bool terminate = true)
 	{
-		if (!IsTemporalInBatch(model, operation.Table, operation.Schema))
+		if (_rebuildingColumn || !IsTemporalInBatch(model, operation.Table, operation.Schema))
 		{
 			base.Generate(operation, model, builder, terminate);
 			return;
@@ -242,18 +269,25 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 	///     nullable whatever the main column declares, so a nullability change has no mirror at all, and the
 	///     temporal key components took their <c>NOT NULL</c> the day the history table was created.
 	/// </remarks>
+	/// <remarks>
+	///     A column turning generated (or changing its expression) is one of the alterations Npgsql realizes as
+	///     a drop plus an add of the main column. The history column is never rebuilt with it: it keeps its
+	///     recorded values and takes only the type mirror, and the regenerated function treats the column as
+	///     generated from here on (see <c>_rebuildingColumn</c>).
+	/// </remarks>
 	protected override void Generate(AlterColumnOperation operation, IModel? model,
 		MigrationCommandListBuilder builder)
 	{
+		AppendUtf8Sha256IfNamed(builder, [operation]);
 		if (!IsTemporalInBatch(model, operation.Table, operation.Schema))
 		{
-			base.Generate(operation, model, builder);
+			BaseAlterColumn(operation, model, builder);
 			return;
 		}
 
 		var schema = SchemaOf(operation.Schema, model);
 		BeginColumnEvolution(builder, schema, operation.Table, operation.Schema);
-		base.Generate(operation, model, builder);
+		BaseAlterColumn(operation, model, builder);
 		AppendBlock(builder, TemporalSqlEmitter.AlterHistoryColumnType(schema, operation.Table, operation.Name,
 			StoreTypeOf(operation)));
 		EndColumnEvolution(builder, model, schema, operation.Table, operation.Schema);
@@ -316,6 +350,29 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 			return;
 
 		AppendBlock(builder, TemporalSqlEmitter.TimelineView(schema, newTable, columns));
+	}
+
+	void BaseAlterColumn(AlterColumnOperation operation, IModel? model, MigrationCommandListBuilder builder)
+	{
+		_rebuildingColumn = true;
+		try
+		{
+			base.Generate(operation, model, builder);
+		}
+		finally
+		{
+			_rebuildingColumn = false;
+		}
+	}
+
+	// Ahead of the first statement in the batch whose generation expression names norse_utf8_sha256 — and
+	// only then: a model that never names it never gets it (identity split spec §4.6, r9).
+	void AppendUtf8Sha256IfNamed(MigrationCommandListBuilder builder, IEnumerable<ColumnOperation> columns)
+	{
+		if (_utf8Sha256Emitted || !columns.Any(column => Utf8Sha256Function.IsNamedBy(column.ComputedColumnSql)))
+			return;
+		AppendBlock(builder, Utf8Sha256Function.Sql);
+		_utf8Sha256Emitted = true;
 	}
 
 	// Evolution step 1: the timeline view goes first, once per table per batch — dropped under the name the
@@ -534,14 +591,15 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 			_ => null
 		};
 
-	static (IReadOnlyList<(string Name, string StoreType, bool IsNullable)> Columns, IReadOnlyList<string> PkColumns)
+	static (IReadOnlyList<TemporalColumn> Columns, IReadOnlyList<string> PkColumns)
 		TargetTableShape(IModel? model, string table, string? schema)
 	{
 		var target = model?.GetRelationalModel().FindTable(table, schema)
 			?? throw new InvalidOperationException(
 				$"Table '{table}' is temporal, but the target model has no such table; the history mirror cannot be projected.");
-		IReadOnlyList<(string Name, string StoreType, bool IsNullable)> columns =
-			[.. target.Columns.Select(column => (column.Name, column.StoreType, column.IsNullable))];
+		IReadOnlyList<TemporalColumn> columns =
+			[.. target.Columns.Select(column => new TemporalColumn(column.Name, column.StoreType,
+				column.ComputedColumnSql is not null && column.IsStored == true))];
 		IReadOnlyList<string> pkColumns = target.PrimaryKey?.Columns.Select(column => column.Name).ToArray()
 			?? throw new InvalidOperationException(
 				$"Temporal table '{table}' has no primary key; the WITHOUT OVERLAPS history key requires one.");
@@ -560,6 +618,9 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 			entityType.GetTableName() == table
 			&& entityType.GetSchema() == schema
 			&& entityType.FindAnnotation(NorseAnnotationNames.Temporal)?.Value as bool? == true);
+
+	static bool IsStoredGenerated(ColumnOperation column) =>
+		column.ComputedColumnSql is not null && column.IsStored == true;
 
 	static string StoreTypeOf(ColumnOperation column) =>
 		column.ColumnType ?? throw new InvalidOperationException(

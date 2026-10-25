@@ -188,6 +188,18 @@ public sealed class TemporalCreateTableSqlTests
 	}
 
 	[Fact]
+	void Opt_in_is_a_no_op_on_PostgreSQL()
+	{
+		using var plain = PostgresTestContext.Create<SplitTemporalWidget>();
+		using var optedIn = new OptedInSplitTemporalWidgetContext(
+			PostgresTestContext.Options<OptedInSplitTemporalWidgetContext>());
+
+		optedIn.Model.FindEntityType(typeof(SplitTemporalWidget))!
+			.FindAnnotation(NorseAnnotationNames.TemporalPrincipalTableOnly)!.Value.ShouldBe(true);
+		optedIn.Database.GenerateCreateScript().ShouldBe(plain.Database.GenerateCreateScript());
+	}
+
+	[Fact]
 	void An_unmarked_entity_gets_no_apparatus() =>
 		Script<PlainWidget>().ShouldNotContain("system_period");
 
@@ -239,6 +251,22 @@ public sealed class TemporalCreateTableSqlTests
 					.SplitToTable("widget_counters",
 						static counters => counters.Property(widget => widget.AccessCount));
 			}
+		}
+	}
+
+	sealed class OptedInSplitTemporalWidgetContext(DbContextOptions<OptedInSplitTemporalWidgetContext> options)
+		: NorseDbContext(options)
+	{
+		public DbSet<SplitTemporalWidget> Widgets => Set<SplitTemporalWidget>();
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<SplitTemporalWidget>()
+				.ToTable("split_temporal_widgets")
+				.SplitToTable("widget_counters",
+					static counters => counters.Property(widget => widget.AccessCount))
+				.TemporalOnPrincipalTableOnly();
 		}
 	}
 

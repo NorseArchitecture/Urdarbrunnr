@@ -84,14 +84,16 @@ static class TemporalSqlEmitter
 	///     Step 3 — the history table: the main table's columns plus <c>system_period</c>, under a
 	///     <c>PRIMARY KEY (… WITHOUT OVERLAPS)</c> that makes version overlap structurally impossible.
 	///     Columns follow the projection rule (§3.4): name and store type only, nullable except the
-	///     temporal key components, and never a default, identity, foreign key, check, or index.
+	///     temporal key components, and never a default, identity, generation expression, foreign key, check,
+	///     or index — a stored generated column lands here as a plain column holding the value copied from
+	///     <c>OLD</c>.
 	/// </summary>
 	/// <param name="schema">The main table's schema.</param>
 	/// <param name="table">The main table's name.</param>
 	/// <param name="columns">The main table's columns, excluding <c>system_period</c>.</param>
 	/// <param name="pkColumns">The main table's primary-key column names, in key order.</param>
 	public static string HistoryTable(string schema, string table,
-		IReadOnlyList<(string Name, string StoreType, bool IsNullable)> columns,
+		IReadOnlyList<TemporalColumn> columns,
 		IReadOnlyList<string> pkColumns)
 	{
 		var keyColumns = pkColumns.ToHashSet(StringComparer.Ordinal);
@@ -119,7 +121,10 @@ static class TemporalSqlEmitter
 	///     before BEFORE triggers fire). An UPDATE or DELETE past that guard closure-clamps to
 	///     <c>greatest(clock_timestamp(), lower(OLD.system_period) + 1 microsecond)</c> so every history
 	///     period has strictly positive length regardless of wall-clock behavior, and a no-op UPDATE
-	///     (compared over the explicit application column list) writes no history row at all. Hardened per
+	///     (compared over the explicit application column list, less any stored generated column — §3.2,
+	///     amended 2026-10-24) writes no history row at all. The history <c>INSERT</c> copies every column from
+	///     <c>OLD</c>, generated ones included (§3.4, amended), and nothing here ever writes the main table's
+	///     generated columns, which the engine refuses (<c>428C9</c>). Hardened per
 	///     the definer checklist: <c>SECURITY DEFINER</c>, <c>search_path</c> pinned to <c>pg_catalog</c>,
 	///     every reference schema-qualified, execute revoked from <c>PUBLIC</c>.
 	/// </summary>
@@ -134,11 +139,16 @@ static class TemporalSqlEmitter
 	///     and neither is the obvious one.
 	/// </param>
 	public static string TriggerFunction(string schema, string table,
-		IReadOnlyList<(string Name, string StoreType, bool IsNullable)> columns, bool orReplace)
+		IReadOnlyList<TemporalColumn> columns, bool orReplace)
 	{
 		var columnList = string.Join(", ", columns.Select(column => $"\"{column.Name}\""));
 		var oldColumnList = string.Join(", ", columns.Select(column => $"OLD.\"{column.Name}\""));
-		var newColumnList = string.Join(", ", columns.Select(column => $"NEW.\"{column.Name}\""));
+		// The no-op comparison leaves stored generated columns out (§3.2, amended): they are computed after
+		// BEFORE triggers, so NEW.<generated> is NULL here and would make every UPDATE look like a change. The
+		// history copy below keeps them — OLD holds the materialized value, and the history column is plain.
+		var comparedColumns = columns.Where(column => !column.IsStoredGenerated).ToArray();
+		var oldComparedList = string.Join(", ", comparedColumns.Select(column => $"OLD.\"{column.Name}\""));
+		var newComparedList = string.Join(", ", comparedColumns.Select(column => $"NEW.\"{column.Name}\""));
 		return $$"""
 			CREATE {{(orReplace ? "OR REPLACE " : "")}}FUNCTION "{{schema}}"."{{table}}_versioning"() RETURNS trigger
 			LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $norse$
@@ -154,7 +164,7 @@ static class TemporalSqlEmitter
 				IF TG_OP = 'UPDATE' AND NEW.system_period IS DISTINCT FROM OLD.system_period THEN
 					RAISE EXCEPTION 'system_period on "%.%" is database-owned; it cannot be written by clients.', TG_TABLE_SCHEMA, TG_TABLE_NAME;
 				END IF;
-				IF TG_OP = 'UPDATE' AND ROW({{oldColumnList}}) IS NOT DISTINCT FROM ROW({{newColumnList}}) THEN
+				IF TG_OP = 'UPDATE' AND ROW({{oldComparedList}}) IS NOT DISTINCT FROM ROW({{newComparedList}}) THEN
 					RETURN NEW;
 				END IF;
 				ts := greatest(pg_catalog.clock_timestamp(), pg_catalog.lower(OLD.system_period) + interval '1 microsecond');
@@ -196,7 +206,7 @@ static class TemporalSqlEmitter
 	/// <param name="table">The main table's name.</param>
 	/// <param name="columns">The main table's columns, excluding <c>system_period</c>.</param>
 	public static string TimelineView(string schema, string table,
-		IReadOnlyList<(string Name, string StoreType, bool IsNullable)> columns)
+		IReadOnlyList<TemporalColumn> columns)
 	{
 		var columnList = string.Join(", ", columns.Select(column => $"\"{column.Name}\""));
 		return $$"""
@@ -228,7 +238,7 @@ static class TemporalSqlEmitter
 	/// <param name="columns">The main table's columns, excluding <c>system_period</c>.</param>
 	/// <param name="pkColumns">The main table's primary-key column names, in key order.</param>
 	public static string EnableTransition(string schema, string table,
-		IReadOnlyList<(string Name, string StoreType, bool IsNullable)> columns,
+		IReadOnlyList<TemporalColumn> columns,
 		IReadOnlyList<string> pkColumns) =>
 		$"""
 		ALTER TABLE "{schema}"."{table}" ADD COLUMN system_period tstzrange;

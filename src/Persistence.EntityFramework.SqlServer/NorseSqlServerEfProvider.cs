@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Hosting;
 
 namespace Norse.Persistence.EntityFramework.SqlServer;
@@ -39,31 +40,59 @@ public sealed class NorseSqlServerEfProvider : INorseEfMigrationProvider
 		RenameTemporalHistoryTable;
 
 	/// <inheritdoc />
+	/// <remarks>
+	///     A non-split entity becomes EF-native temporal. A split entity cannot: EF scopes SQL Server
+	///     temporality per entity, not per fragment (dotnet/efcore#26457), and its migration generation
+	///     fails (#30366). So a split entity must declare <c>TemporalOnPrincipalTableOnly()</c>, and is then
+	///     left non-temporal in EF's eyes — no <c>SetIsTemporal</c>, no period properties, the
+	///     <see cref="NorseAnnotationNames.Temporal" /> stamp on the entity (its principal table's mapping)
+	///     and on none of its fragments. Migration emission realizes that stamp as engine-native
+	///     system-versioning with <c>HIDDEN</c> periods on the principal table alone. The opt-in on an
+	///     unsplit entity is a mistake, not a preference, and throws: EF-native temporality already serves it.
+	/// </remarks>
 	public Action<IConventionEntityType>? TemporalRealizationHook =>
 		static entityType =>
 		{
-			var isSplit = entityType.GetMappingFragments().Any();
-			var isParked = entityType.FindAnnotation(NorseAnnotationNames.TemporalParkedOnSqlServer) is { Value: true };
-			if (isSplit && !isParked)
-				throw new InvalidOperationException(
-					$$"""Temporal entity '{{entityType.DisplayName()}}' uses table splitting; EF cannot scope SQL Server temporality per fragment (dotnet/efcore#26457) and migration generation would fail (#30366). Declare TemporalParkedOnSqlServer() in Configure to acknowledge the SQL-Server-only park, or unsplit the entity.""");
-			if (isSplit)
+			var isOptedIn = entityType.FindAnnotation(NorseAnnotationNames.TemporalPrincipalTableOnly) is { Value: true };
+			if (!entityType.GetMappingFragments().Any())
+			{
+				if (isOptedIn)
+					throw new InvalidOperationException(
+						$"TemporalOnPrincipalTableOnly() applies only to entity-split temporal entities; remove it from {entityType.DisplayName()}.");
+				entityType.SetIsTemporal(true);
+				entityType.SetPeriodStartPropertyName("SystemPeriodStart");
+				entityType.SetPeriodEndPropertyName("SystemPeriodEnd");
+				entityType.SetHistoryTableName($"{entityType.GetTableName()}History");
 				return;
-			entityType.SetIsTemporal(true);
-			entityType.SetPeriodStartPropertyName("SystemPeriodStart");
-			entityType.SetPeriodEndPropertyName("SystemPeriodEnd");
-			entityType.SetHistoryTableName($"{entityType.GetTableName()}History");
+			}
+
+			if (!isOptedIn)
+				throw new InvalidOperationException(
+					$$"""Temporal entity '{{entityType.DisplayName()}}' uses table splitting; EF cannot scope SQL Server temporality per fragment (dotnet/efcore#26457) and migration generation would fail (#30366). Declare TemporalOnPrincipalTableOnly() in Configure to version the principal table only (engine-native, HIDDEN periods; cost: no TemporalAsOf/TemporalAll LINQ on SQL Server for this entity), or unsplit the entity.""");
 		};
 
 	/// <inheritdoc />
+	/// <remarks>
+	///     The three <c>ReplaceService</c> calls are the whole <c>TemporalOnPrincipalTableOnly()</c> seam,
+	///     mirroring the PostgreSQL binding's: the relational annotation provider makes the opt-in visible to
+	///     EF's model differ on the principal table alone, the migrations annotation provider carries it onto
+	///     the drop (the one operation the differ builds without the model's table annotations), and the SQL
+	///     generator emits engine-native system-versioning around SQL Server's own migration SQL. Each derives
+	///     from SQL Server's own implementation, so stock behavior — EF-native temporality included — is
+	///     untouched. All three are unconditional; the opt-in is per entity, never per registration.
+	/// </remarks>
 	public void Configure(DbContextOptionsBuilder optionsBuilder, string connectionString,
 		string? migrationsAssemblyName) =>
-		optionsBuilder.UseSqlServer(connectionString, sql =>
-		{
-			sql.UseCompatibilityLevel(SqlServerCompatibilityLevel);
-			if (migrationsAssemblyName is not null)
-				sql.MigrationsAssembly(migrationsAssemblyName);
-		});
+		optionsBuilder
+			.UseSqlServer(connectionString, sql =>
+			{
+				sql.UseCompatibilityLevel(SqlServerCompatibilityLevel);
+				if (migrationsAssemblyName is not null)
+					sql.MigrationsAssembly(migrationsAssemblyName);
+			})
+			.ReplaceService<IRelationalAnnotationProvider, NorseSqlServerAnnotationProvider>()
+			.ReplaceService<IMigrationsAnnotationProvider, NorseSqlServerMigrationsAnnotationProvider>()
+			.ReplaceService<IMigrationsSqlGenerator, NorseSqlServerMigrationsSqlGenerator>();
 
 	/// <inheritdoc />
 	public void Enrich<TContext>(IHostApplicationBuilder builder)

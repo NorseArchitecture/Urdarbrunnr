@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Testcontainers.MsSql" Version="*" />
+		<ProjectReference Include="../../src/Persistence.EntityFramework.SqlServer/Persistence.EntityFramework.SqlServer.csproj" />
+	</ItemGroup>
+</Project>

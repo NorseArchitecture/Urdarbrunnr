@@ -34,7 +34,8 @@ public interface INorseEfProvider
 	/// <summary>
 	///     Invoked by <c>TemporalEntityConvention</c> once per validated temporal entity at model
 	///     finalize, immediately after its <see cref="NorseAnnotationNames.Temporal" /> stamp (SQL Server:
-	///     native <c>IsTemporal</c>, period/history naming, and the split-table park guard).
+	///     native <c>IsTemporal</c> and period/history naming for unsplit entities, the
+	///     <c>TemporalOnPrincipalTableOnly()</c> guard for split ones).
 	///     <see langword="null" /> when the provider realizes temporality outside the model (Postgres:
 	///     migration SQL generation). No default: like <see cref="EntityRenameHook" />, every binding
 	///     states its posture rather than silently inheriting a no-op.

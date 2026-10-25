@@ -61,7 +61,10 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 	async Task An_insert_opens_a_current_version_and_writes_no_history()
 	{
 		await using var live = await StartWidgetsAsync("temporal_insert");
-		var before = DateTimeOffset.UtcNow;
+		// Bracketed by the server's own clock, never the host's: the container's clock is not the test
+		// runner's (a Docker VM drifts behind its host), so comparing the trigger's clock_timestamp() against
+		// DateTimeOffset.UtcNow measures the skew between two machines rather than the apparatus.
+		var before = await live.ServerClockAsync();
 
 		var id = await SeedWidgetAsync(live, "before");
 
@@ -73,7 +76,7 @@ public sealed class TemporalApparatusIntegrationTests(PostgresContainerFixture f
 		// long-stale timestamp — the INSERT branch reads clock_timestamp() the same as the UPDATE
 		// closure clamp does (§3.2 amendment, 2026-08-05).
 		current.Lower.ShouldBeGreaterThanOrEqualTo(before);
-		current.Lower.ShouldBeLessThanOrEqualTo(DateTimeOffset.UtcNow);
+		current.Lower.ShouldBeLessThanOrEqualTo(await live.ServerClockAsync());
 		(await live.HistoryAsync(Widgets, id)).ShouldBeEmpty();
 	}
 
@@ -451,6 +454,13 @@ sealed class TemporalDatabase<TContext>(TContext context, string connectionStrin
 		(await reader.ReadAsync(Cancellation)).ShouldBeTrue($"'{sql}' should have returned a row");
 		return await reader.GetFieldValueAsync<T>(0, Cancellation);
 	}
+
+	/// <summary>
+	///     The server's <c>clock_timestamp()</c> — the clock the versioning trigger reads, so a bound compared
+	///     against it is compared within one clock.
+	/// </summary>
+	public Task<DateTimeOffset> ServerClockAsync() =>
+		ScalarAsync<DateTimeOffset>("SELECT clock_timestamp()");
 
 	public Task<long> CountAsync(string relation, params object[] arguments) =>
 		ScalarAsync<long>($"SELECT count(*) FROM public.{relation}", arguments);
