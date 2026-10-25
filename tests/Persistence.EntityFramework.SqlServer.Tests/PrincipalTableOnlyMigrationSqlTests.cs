@@ -242,6 +242,56 @@ public sealed class PrincipalTableOnlyMigrationSqlTests
 	}
 
 	[Fact]
+	void A_nullable_principal_column_made_required_is_rejected_naming_the_manual_sequence()
+	{
+		var message = RejectionOf<AddedColumnContext, RequiredColumnContext>();
+
+		message.ShouldContain("column 'Extra'");
+		message.ShouldContain("'Users'");
+		message.ShouldContain("TemporalOnPrincipalTableOnly()");
+		message.ShouldContain("Msg 515");
+		// History is the audit record: the author decides what its NULLs become; the chassis never backfills it.
+		PositionsOf(message,
+		[
+			"ALTER TABLE [Users] SET (SYSTEM_VERSIONING = OFF);",
+			"in a batch of its own",
+			"backfill the NULLs of 'Extra' in [Users]",
+			"decide deliberately what the NULLs recorded in [dbo].[UsersHistory] become",
+			"ALTER TABLE [Users] ALTER COLUMN [Extra] nvarchar(32) NOT NULL;",
+			"ALTER TABLE [dbo].[UsersHistory] ALTER COLUMN [Extra] nvarchar(32) NOT NULL;",
+			"ALTER TABLE [Users] SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = [dbo].[UsersHistory], DATA_CONSISTENCY_CHECK = ON));"
+		]).ShouldBeInOrder();
+	}
+
+	[Fact]
+	void A_required_principal_column_made_nullable_is_emitted_with_versioning_left_on()
+	{
+		using RequiredColumnContext from = new(Options<RequiredColumnContext>());
+		using AddedColumnContext to = new(Options<AddedColumnContext>());
+
+		// Relaxing a constraint cannot be violated by any recorded version, so the engine's propagation is enough.
+		var alter = DiffSql(from, to).ShouldHaveSingleItem();
+
+		alter.ShouldContain("ALTER TABLE [Users] ALTER COLUMN [Extra] nvarchar(32) NULL;");
+		ShouldNotWrapVersioning(alter);
+		alter.ShouldNotContain("UsersHistory");
+	}
+
+	[Fact]
+	void A_nullable_fragment_column_made_required_emits_plain_DDL()
+	{
+		using FragmentColumnContext from = new(Options<FragmentColumnContext>());
+		using RequiredFragmentColumnContext to = new(Options<RequiredFragmentColumnContext>());
+
+		// Fragments are never versioned, so there is no history for the constraint to reach.
+		var alter = string.Join(Environment.NewLine, DiffSql(from, to));
+
+		alter.ShouldContain("ALTER TABLE [UserLockout] ALTER COLUMN [Note] nvarchar(32) NOT NULL;");
+		ShouldNotWrapVersioning(alter);
+		alter.ShouldNotContain("UsersHistory");
+	}
+
+	[Fact]
 	void Splitting_an_EF_native_temporal_entity_in_one_migration_is_rejected_by_name()
 	{
 		var message = RejectionOf<NativeTemporalContext, OptedInContext>();
@@ -387,6 +437,23 @@ public sealed class PrincipalTableOnlyMigrationSqlTests
 	{
 		protected override void Principal(EntityTypeBuilder<PrincipalUser> user) =>
 			user.Property<string>("Note").HasMaxLength(32);
+
+		protected override void Fragment(SplitTableBuilder<PrincipalUser> lockout) =>
+			lockout.Property<string>("Note");
+	}
+
+	sealed class RequiredColumnContext(DbContextOptions<RequiredColumnContext> options)
+		: SplitContext<PrincipalUser>(options)
+	{
+		protected override void Principal(EntityTypeBuilder<PrincipalUser> user) =>
+			user.Property<string>("Extra").HasMaxLength(32).IsRequired();
+	}
+
+	sealed class RequiredFragmentColumnContext(DbContextOptions<RequiredFragmentColumnContext> options)
+		: SplitContext<PrincipalUser>(options)
+	{
+		protected override void Principal(EntityTypeBuilder<PrincipalUser> user) =>
+			user.Property<string>("Note").HasMaxLength(32).IsRequired();
 
 		protected override void Fragment(SplitTableBuilder<PrincipalUser> lockout) =>
 			lockout.Property<string>("Note");

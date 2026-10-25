@@ -23,11 +23,18 @@ namespace Norse.Persistence.EntityFramework.SqlServer.IntegrationTests;
 sealed class SqlServerDatabase(string connectionString)
 {
 	/// <summary>A context of the given model over this database, wired exactly as a consumer's would be.</summary>
-	public TContext Context<TContext>() where TContext : DbContext
+	public TContext Context<TContext>() where TContext : DbContext =>
+		Context<TContext>(stockGenerator: false);
+
+	// stockGenerator swaps SQL Server's own migrations SQL generator back in over the chassis's, so a test can
+	// show the engine refusing exactly what the chassis's guards stand in front of.
+	TContext Context<TContext>(bool stockGenerator) where TContext : DbContext
 	{
 		DbContextOptionsBuilder<TContext> optionsBuilder = new();
 		optionsBuilder.ApplyNorseProviderOptions(NorseSqlServerEfProvider.Instance, connectionString,
 			migrationsAssemblyName: null);
+		if (stockGenerator)
+			optionsBuilder.ReplaceService<IMigrationsSqlGenerator, SqlServerMigrationsSqlGenerator>();
 		return Activator.CreateInstance(typeof(TContext), optionsBuilder.Options) as TContext
 			?? throw new InvalidOperationException($"{typeof(TContext).Name} takes its options as its only argument.");
 	}
@@ -37,12 +44,26 @@ sealed class SqlServerDatabase(string connectionString)
 	///     applies it to this database — the path <c>dotnet ef migrations add</c> plus <c>Migrate()</c> takes,
 	///     minus the scaffolded C# in between.
 	/// </summary>
-	public async Task MigrateAsync<TFrom, TTo>(CancellationToken cancellationToken = default)
+	public Task MigrateAsync<TFrom, TTo>(CancellationToken cancellationToken = default)
+		where TFrom : DbContext
+		where TTo : DbContext =>
+		MigrateAsync<TFrom, TTo>(stockGenerator: false, cancellationToken);
+
+	/// <summary>
+	///     <see cref="MigrateAsync{TFrom,TTo}(CancellationToken)" /> with SQL Server's own migrations SQL generator
+	///     in place of the chassis's — what the migration would do without the chassis's guards.
+	/// </summary>
+	public Task MigrateWithStockGeneratorAsync<TFrom, TTo>(CancellationToken cancellationToken = default)
+		where TFrom : DbContext
+		where TTo : DbContext =>
+		MigrateAsync<TFrom, TTo>(stockGenerator: true, cancellationToken);
+
+	async Task MigrateAsync<TFrom, TTo>(bool stockGenerator, CancellationToken cancellationToken)
 		where TFrom : DbContext
 		where TTo : DbContext
 	{
 		await using var from = Context<TFrom>();
-		await using var to = Context<TTo>();
+		await using var to = Context<TTo>(stockGenerator);
 		var targetModel = to.GetService<IDesignTimeModel>().Model;
 		var operations = to.GetService<IMigrationsModelDiffer>().GetDifferences(
 			from.GetService<IDesignTimeModel>().Model.GetRelationalModel(),
