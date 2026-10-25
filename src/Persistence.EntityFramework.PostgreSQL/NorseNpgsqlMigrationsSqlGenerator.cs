@@ -84,6 +84,9 @@ sealed class NorseNpgsqlMigrationsSqlGenerator(
 		_preludeEmitted = false;
 		_utf8Sha256Emitted = false;
 		_rebuildingColumn = false;
+		// A fragment check constraint becomes Npgsql's own check-constraint DDL; a fragment is never temporal, so
+		// nothing below touches it.
+		operations = NorseFragmentCheckConstraints.Expand(operations);
 		// The scan first: both guards below read the batch's rename map, and so does every column
 		// operation that EF sorted ahead of its own table's rename.
 		ScanBatch(operations, model);

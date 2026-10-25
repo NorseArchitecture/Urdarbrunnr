@@ -19,6 +19,9 @@ namespace Norse.Persistence.EntityFramework.SqlServer;
 ///     things depend on it: the create path, which reads it off <c>CreateTableOperation</c>, and the
 ///     enable/disable transitions, which EF emits as annotation-only table alterations and would otherwise
 ///     diff away to nothing. EF-native temporal entities are left to EF's own annotations and never carry it.
+///     It also projects a split fragment's <see cref="NorseAnnotationNames.FragmentCheckConstraintPrefix" />
+///     annotations onto that fragment's table alone (<see cref="NorseFragmentCheckConstraints.For" />), the only
+///     way a fragment's check constraint reaches the differ.
 /// </summary>
 /// <param name="dependencies">The relational annotation-provider dependencies, forwarded to SQL Server's own provider.</param>
 sealed class NorseSqlServerAnnotationProvider(RelationalAnnotationProviderDependencies dependencies)
@@ -32,6 +35,12 @@ sealed class NorseSqlServerAnnotationProvider(RelationalAnnotationProviderDepend
 
 		if (table.EntityTypeMappings.Any(mapping => IsPrincipalTableOfOptedInEntity(mapping.TypeBase, table)))
 			yield return new Annotation(NorseAnnotationNames.TemporalPrincipalTableOnly, true);
+
+		// Design time only, as EF's own check constraints are: they matter to migrations alone.
+		if (!designTime)
+			yield break;
+		foreach (var constraint in NorseFragmentCheckConstraints.For(table))
+			yield return constraint;
 	}
 
 	// A split entity maps to its principal table AND to every fragment table; only the principal is

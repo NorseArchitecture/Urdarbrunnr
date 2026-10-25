@@ -17,7 +17,10 @@ namespace Norse.Persistence.EntityFramework.PostgreSQL;
 ///     enable/disable transitions in the chassis design §3.3, which EF emits as annotation-only table
 ///     alterations and would otherwise diff away to nothing, and the marker's presence on
 ///     <c>AlterTableOperation.OldTable</c>, the only discriminator available on the disable side once
-///     the entity has left the target model.
+///     the entity has left the target model. It also projects a split fragment's
+///     <see cref="NorseAnnotationNames.FragmentCheckConstraintPrefix" /> annotations onto that fragment's table alone
+///     (<see cref="NorseFragmentCheckConstraints.For" />), the only way a fragment's check constraint reaches the
+///     differ.
 /// </summary>
 /// <param name="dependencies">The relational annotation-provider dependencies, forwarded to Npgsql's own provider.</param>
 sealed class NorseNpgsqlAnnotationProvider(RelationalAnnotationProviderDependencies dependencies)
@@ -31,6 +34,12 @@ sealed class NorseNpgsqlAnnotationProvider(RelationalAnnotationProviderDependenc
 
 		if (table.EntityTypeMappings.Any(mapping => IsRootTableOfTemporalEntity(mapping.TypeBase, table)))
 			yield return new Annotation(NorseAnnotationNames.Temporal, true);
+
+		// Design time only, as EF's own check constraints are: they matter to migrations alone.
+		if (!designTime)
+			yield break;
+		foreach (var constraint in NorseFragmentCheckConstraints.For(table))
+			yield return constraint;
 	}
 
 	// A split entity maps to its main table AND to every fragment table; only the main table carries
