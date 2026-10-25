@@ -52,6 +52,13 @@ sealed class WidenedColumnContext(DbContextOptions<WidenedColumnContext> options
 		user.Property(entity => entity.Name).HasMaxLength(200);
 }
 
+sealed class RequiredColumnContext(DbContextOptions<RequiredColumnContext> options)
+	: SplitContext<PrincipalUser>(options)
+{
+	protected override void Principal(EntityTypeBuilder<PrincipalUser> user) =>
+		user.Property<string>("Extra").HasMaxLength(32).IsRequired();
+}
+
 sealed class FragmentColumnContext(DbContextOptions<FragmentColumnContext> options)
 	: SplitContext<PrincipalUser>(options)
 {

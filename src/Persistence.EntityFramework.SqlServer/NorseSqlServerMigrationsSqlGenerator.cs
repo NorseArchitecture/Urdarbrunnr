@@ -48,11 +48,10 @@ sealed class NorseSqlServerMigrationsSqlGenerator(
 	// The open bound of a current row: datetime2's maximum, the value the engine itself writes (G5).
 	const string PeriodEndMaximum = "CONVERT(datetime2, '9999-12-31 23:59:59.9999999')";
 
-	// The tail of every rejection but the computed/identity add, which has a manual sequence of its own.
+	// The tail of every rejection but the computed/identity add and the nullable-to-required alter, which have
+	// manual sequences of their own.
 	const string SanctionedPath =
-		"The sanctioned path is deliberate: disable versioning first (remove ITemporalEntity — visible destruction "
-		+ "of the recorded history), perform the change in its own migration, then re-enable; or author the "
-		+ "migration by hand for the rare case that must preserve history across the change.";
+		"The sanctioned path is deliberate: disable versioning first (remove ITemporalEntity — visible destruction of the recorded history), perform the change in its own migration, then re-enable; or author the migration by hand for the rare case that must preserve history across the change.";
 
 	/// <inheritdoc />
 	public override IReadOnlyList<MigrationCommand> Generate(IReadOnlyList<MigrationOperation> operations,
@@ -230,6 +229,9 @@ sealed class NorseSqlServerMigrationsSqlGenerator(
 				case AddColumnOperation add when add[SqlServerAnnotationNames.Identity] is not null
 					&& IsPrincipalTableOnly(model, add.Table, add.Schema):
 					throw VersioningOffColumn("identity", 13704, add, model);
+				case AlterColumnOperation alter when alter.OldColumn.IsNullable && !alter.IsNullable
+					&& IsPrincipalTableOnly(model, alter.Table, alter.Schema):
+					throw NullableMadeRequired(alter, model);
 				default:
 					continue;
 			}
@@ -237,24 +239,13 @@ sealed class NorseSqlServerMigrationsSqlGenerator(
 	}
 
 	InvalidOperationException PrimaryKeyChange(string table, string? schema, IModel? model) =>
-		new($"A primary key change on system-versioned principal table '{table}' (TemporalOnPrincipalTableOnly()) "
-			+ "is not supported. SQL Server refuses to drop the primary key of a system-versioned table, and every "
-			+ $"row of {HistoryTable(table, schema, model)} is a version of a key that would no longer exist. "
-			+ SanctionedPath);
+		new($"A primary key change on system-versioned principal table '{table}' (TemporalOnPrincipalTableOnly()) is not supported. SQL Server refuses to drop the primary key of a system-versioned table, and every row of {HistoryTable(table, schema, model)} is a version of a key that would no longer exist. {SanctionedPath}");
 
 	InvalidOperationException Rename(RenameTableOperation rename, IModel? model) =>
-		new($"Renaming system-versioned principal table '{rename.Name}' to '{rename.NewName}' "
-			+ "(TemporalOnPrincipalTableOnly()) is not supported. Its history table "
-			+ $"{HistoryTable(rename.Name, rename.Schema, model)} and its period defaults "
-			+ $"([{DefaultConstraint(rename.Name, PeriodStart)}], [{DefaultConstraint(rename.Name, PeriodEnd)}]) are "
-			+ "named for it, and the disable path would go looking for them under the new name. "
-			+ SanctionedPath);
+		new($"Renaming system-versioned principal table '{rename.Name}' to '{rename.NewName}' (TemporalOnPrincipalTableOnly()) is not supported. Its history table {HistoryTable(rename.Name, rename.Schema, model)} and its period defaults ([{DefaultConstraint(rename.Name, PeriodStart)}], [{DefaultConstraint(rename.Name, PeriodEnd)}]) are named for it, and the disable path would go looking for them under the new name. {SanctionedPath}");
 
 	InvalidOperationException SchemaMove(RenameTableOperation rename, IModel? model) =>
-		new($"A schema move to '{rename.NewSchema ?? DefaultSchema}' of system-versioned principal table "
-			+ $"'{rename.Name}' (TemporalOnPrincipalTableOnly()) is not supported. HISTORY_TABLE is named in the "
-			+ $"table's own schema, so {HistoryTable(rename.Name, rename.Schema, model)} would be stranded in the old "
-			+ "one. " + SanctionedPath);
+		new($"A schema move to '{rename.NewSchema ?? DefaultSchema}' of system-versioned principal table '{rename.Name}' (TemporalOnPrincipalTableOnly()) is not supported. HISTORY_TABLE is named in the table's own schema, so {HistoryTable(rename.Name, rename.Schema, model)} would be stranded in the old one. {SanctionedPath}");
 
 	// The one rejection whose manual sequence is not the disable/re-enable path: the engine refuses the add while
 	// versioning is on (13724 for a computed column; 13704 for an identity one, measured against SQL Server 2025
@@ -265,27 +256,28 @@ sealed class NorseSqlServerMigrationsSqlGenerator(
 	{
 		var table = AlterTable(add.Table, add.Schema);
 		var history = HistoryTable(add.Table, add.Schema, model);
-		return new($"Adding {kind} column '{add.Name}' to system-versioned principal table '{add.Table}' "
-			+ "(TemporalOnPrincipalTableOnly()) is not supported: SQL Server refuses it while versioning is on "
-			+ $"(Msg {engineError}), and the change cannot share a batch with the statement that turns versioning off. "
-			+ "Author it by hand instead, as separate migrationBuilder.Sql batches: "
-			+ $"(1) {table} SET (SYSTEM_VERSIONING = OFF); in a batch of its own; "
-			+ $"(2) add the {kind} column '{add.Name}' to {Dependencies.SqlGenerationHelper.DelimitIdentifier(add.Table, add.Schema)}; "
-			+ $"(3) add a plain (non-{kind}) column '{add.Name}' of the same type and nullability to {history} "
-			+ "(a NOT NULL one with a default, to fill the existing history rows); "
-			+ $"(4) {table} SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = {history}, DATA_CONSISTENCY_CHECK = ON));");
+		return new($"Adding {kind} column '{add.Name}' to system-versioned principal table '{add.Table}' (TemporalOnPrincipalTableOnly()) is not supported: SQL Server refuses it while versioning is on (Msg {engineError}), and the change cannot share a batch with the statement that turns versioning off. Author it by hand instead, as separate migrationBuilder.Sql batches: (1) {table} SET (SYSTEM_VERSIONING = OFF); in a batch of its own; (2) add the {kind} column '{add.Name}' to {Dependencies.SqlGenerationHelper.DelimitIdentifier(add.Table, add.Schema)}; (3) add a plain (non-{kind}) column '{add.Name}' of the same type and nullability to {history} (a NOT NULL one with a default, to fill the existing history rows); (4) {table} SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = {history}, DATA_CONSISTENCY_CHECK = ON));");
+	}
+
+	// With versioning on, ALTER COLUMN … NOT NULL reaches history too, and the engine refuses it while any recorded
+	// version holds NULL (515, naming the history table, measured against SQL Server 2025 17.0); SQL Server's own
+	// generator backfills the current table only. History is never backfilled here: it is the audit record, and
+	// rewriting recorded versions to satisfy a constraint they predate would falsify it, so what its NULLs become
+	// is the author's decision, made by hand with versioning off.
+	InvalidOperationException NullableMadeRequired(AlterColumnOperation alter, IModel? model)
+	{
+		var table = AlterTable(alter.Table, alter.Schema);
+		var current = Dependencies.SqlGenerationHelper.DelimitIdentifier(alter.Table, alter.Schema);
+		var history = HistoryTable(alter.Table, alter.Schema, model);
+		var column = $"{Delimit(alter.Name)} {GetColumnType(alter.Schema, alter.Table, alter.Name, alter, model)} NOT NULL";
+		return new($"Making column '{alter.Name}' of system-versioned principal table '{alter.Table}' (TemporalOnPrincipalTableOnly()) required is not supported: with versioning on, SQL Server applies the NOT NULL to {history} as well and refuses it while any recorded version holds NULL (Msg 515), and the chassis never backfills history — it is the audit record, and rewriting recorded versions to satisfy a constraint they predate would falsify it. Author it by hand instead, as separate migrationBuilder.Sql batches: (1) {table} SET (SYSTEM_VERSIONING = OFF); in a batch of its own; (2) backfill the NULLs of '{alter.Name}' in {current}; (3) decide deliberately what the NULLs recorded in {history} become — an audit decision the migration's author owns — and UPDATE them accordingly; (4) {table} ALTER COLUMN {column}; and ALTER TABLE {history} ALTER COLUMN {column}; (5) {table} SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = {history}, DATA_CONSISTENCY_CHECK = ON));");
 	}
 
 	// EF-native temporality maps the periods as model columns and owns the history table through its own
 	// annotations; the opt-in keeps them HIDDEN outside the model. Neither realization can take over the
 	// other's versioning in one migration.
 	InvalidOperationException SplitTransition(AlterTableOperation alter, IModel? model) =>
-		new($"Table '{alter.Name}' is {(IsPrincipalTableOnly(alter) ? "splitting" : "unsplitting")} in a single "
-			+ "migration, changing between EF-native temporality (an unsplit temporal entity) and "
-			+ "TemporalOnPrincipalTableOnly() (a split one). The two realizations own the period columns and "
-			+ $"{HistoryTable(alter.Name, alter.Schema, model)} differently — EF-native maps the periods as model "
-			+ "columns, the opt-in keeps them HIDDEN outside the model — so neither can hand versioning to the other "
-			+ "in place. " + SanctionedPath);
+		new($"Table '{alter.Name}' is {(IsPrincipalTableOnly(alter) ? "splitting" : "unsplitting")} in a single migration, changing between EF-native temporality (an unsplit temporal entity) and TemporalOnPrincipalTableOnly() (a split one). The two realizations own the period columns and {HistoryTable(alter.Name, alter.Schema, model)} differently — EF-native maps the periods as model columns, the opt-in keeps them HIDDEN outside the model — so neither can hand versioning to the other in place. {SanctionedPath}");
 
 	static bool IsSplitTransition(AlterTableOperation alter) =>
 		IsPrincipalTableOnly(alter) != IsPrincipalTableOnly(alter.OldTable)
@@ -303,10 +295,8 @@ sealed class NorseSqlServerMigrationsSqlGenerator(
 	// named defaults so the disable path can drop them by name.
 	void AppendPeriodColumns(MigrationCommandListBuilder builder, string? enabledTable = null) =>
 		builder
-			.AppendLine($"{Delimit(PeriodStart)} datetime2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL"
-				+ $"{PeriodDefault(enabledTable, PeriodStart, "SYSUTCDATETIME()")},")
-			.AppendLine($"{Delimit(PeriodEnd)} datetime2 GENERATED ALWAYS AS ROW END HIDDEN NOT NULL"
-				+ $"{PeriodDefault(enabledTable, PeriodEnd, PeriodEndMaximum)},");
+			.AppendLine($"{Delimit(PeriodStart)} datetime2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL{PeriodDefault(enabledTable, PeriodStart, "SYSUTCDATETIME()")},")
+			.AppendLine($"{Delimit(PeriodEnd)} datetime2 GENERATED ALWAYS AS ROW END HIDDEN NOT NULL{PeriodDefault(enabledTable, PeriodEnd, PeriodEndMaximum)},");
 
 	string PeriodDefault(string? enabledTable, string column, string value) =>
 		enabledTable is null ?
