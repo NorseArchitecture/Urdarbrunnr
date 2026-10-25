@@ -110,6 +110,11 @@ sealed class NorseSnakeCaseNamingConvention(
 				var renamedFragment = entity.GetOrCreateMappingFragment(renamed);
 				if (fragment.IsTableExcludedFromMigrations is not null)
 					renamedFragment.SetIsTableExcludedFromMigrations(fragment.IsTableExcludedFromMigrations);
+				// Whatever was stamped on the fragment travels with it — a fragment check constraint
+				// (HasFragmentCheckConstraint) first among them. Left behind, it would vanish from the model, the
+				// snapshot and every migration without a word.
+				foreach (var annotation in fragment.GetAnnotations())
+					renamedFragment.SetAnnotation(annotation.Name, annotation.Value);
 
 				foreach (var property in entity.GetProperties())
 				{

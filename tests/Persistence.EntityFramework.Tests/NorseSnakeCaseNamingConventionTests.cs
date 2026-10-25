@@ -181,6 +181,20 @@ public sealed class NorseSnakeCaseNamingConventionTests
 	}
 
 	[Fact]
+	void Split_fragment_annotations_survive_the_rename()
+	{
+		// The fragment is renamed by re-creation, so anything stamped on the old one -- a fragment check
+		// constraint first among them -- has to be carried across, or it vanishes from the model, the snapshot
+		// and every migration without a word.
+		using var ctx = CreateContext<SplitTestContext>();
+
+		var fragment = ctx.Model.FindEntityType(typeof(SplitTestUser))!.GetMappingFragments().ShouldHaveSingleItem();
+
+		fragment.FindAnnotation($"{NorseAnnotationNames.FragmentCheckConstraintPrefix}ck_split_test_user_lockout_failures")
+			.ShouldNotBeNull().Value.ShouldBe("access_failed_count >= 0");
+	}
+
+	[Fact]
 	void Split_entity_primary_key_names_stay_distinct_per_table()
 	{
 		// An explicit key-name annotation is GLOBAL per key (RelationalAnnotationNames.Name -- EF has no
@@ -425,6 +439,7 @@ public sealed class NorseSnakeCaseNamingConventionTests
 				{
 					lockout.Property(u => u.LockoutEnd);
 					lockout.Property(u => u.AccessFailedCount);
+					lockout.HasFragmentCheckConstraint("ck_split_test_user_lockout_failures", "access_failed_count >= 0");
 				}));
 		}
 	}

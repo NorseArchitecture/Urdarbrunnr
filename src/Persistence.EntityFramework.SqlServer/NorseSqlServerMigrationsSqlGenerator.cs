@@ -57,8 +57,11 @@ sealed class NorseSqlServerMigrationsSqlGenerator(
 	public override IReadOnlyList<MigrationCommand> Generate(IReadOnlyList<MigrationOperation> operations,
 		IModel? model = null, MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
 	{
-		GuardRejectedOperations(operations, model);
-		return base.Generate(operations, model, options);
+		// Fragment DDL is always plain (spec §6.1): a fragment check constraint becomes SQL Server's own
+		// check-constraint DDL, never touched by the versioning emission below.
+		var expanded = NorseFragmentCheckConstraints.Expand(operations);
+		GuardRejectedOperations(expanded, model);
+		return base.Generate(expanded, model, options);
 	}
 
 	/// <inheritdoc />
