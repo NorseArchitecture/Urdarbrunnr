@@ -11,8 +11,8 @@ public static class NorseAnnotationNames
 	public const string Temporal = "Norse:Temporal";
 
 	/// <summary>
-	///     Stamped by <see cref="TemporalEntityTypeBuilderExtensions.TemporalParkedOnSqlServer" /> to acknowledge the
-	///     SQL-Server-only park.
+	///     Stamped by <see cref="TemporalEntityTypeBuilderExtensions.TemporalOnPrincipalTableOnly" /> on a split
+	///     temporal entity whose principal table alone is versioned.
 	/// </summary>
-	public const string TemporalParkedOnSqlServer = "Norse:TemporalParkedOnSqlServer";
+	public const string TemporalPrincipalTableOnly = "Norse:TemporalPrincipalTableOnly";
 }

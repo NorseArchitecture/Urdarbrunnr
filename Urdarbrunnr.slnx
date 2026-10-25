@@ -30,6 +30,7 @@
 		<Project Path="tests/Persistence.EntityFramework.Tests/Persistence.EntityFramework.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.PostgreSQL.Tests/Persistence.EntityFramework.PostgreSQL.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.SqlServer.Tests/Persistence.EntityFramework.SqlServer.Tests.csproj" />
+		<Project Path="tests/Persistence.EntityFramework.SqlServer.IntegrationTests/Persistence.EntityFramework.SqlServer.IntegrationTests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.Design.Tests/Persistence.EntityFramework.Design.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.Generator.Tests/Persistence.EntityFramework.Generator.Tests.csproj" />
 		<Project Path="tests/Persistence.EntityFramework.Migrations.Tests/Persistence.EntityFramework.Migrations.Tests.csproj" />

@@ -43,40 +43,98 @@ public sealed class SqlServerTemporalRealizationTests
 	}
 
 	[Fact]
-	void A_marked_split_entity_without_the_park_declaration_throws_at_model_finalize()
+	void Split_temporal_entity_without_opt_in_throws_naming_TemporalOnPrincipalTableOnly()
 	{
 		var act = () => SqlServerTestContext.Create<SplitTemporalUser>().Model;
 
-		act.ShouldThrow<InvalidOperationException>().Message.ShouldContain("TemporalParkedOnSqlServer");
+		act.ShouldThrow<InvalidOperationException>().Message.ShouldContain("TemporalOnPrincipalTableOnly()");
 	}
 
 	[Fact]
-	void A_parked_split_entity_skips_temporality_on_sql_server_only()
+	void Opt_in_on_an_unsplit_entity_throws()
 	{
-		using var context =
-			SqlServerTestContext.Create<ParkedSplitTemporalUser>();
+		var act = () => SqlServerTestContext.Create<OptedInUnsplitTemporalUser>().Model;
 
-		context.Model.FindEntityType(typeof(ParkedSplitTemporalUser))!.IsTemporal().ShouldBeFalse();
+		var message = act.ShouldThrow<InvalidOperationException>().Message;
+		message.ShouldContain("TemporalOnPrincipalTableOnly() applies only to entity-split temporal entities");
+		message.ShouldContain(nameof(OptedInUnsplitTemporalUser));
+	}
+
+	[Fact]
+	void Opted_in_split_entity_is_not_EF_temporal_on_SQL_Server()
+	{
+		using var context = SqlServerTestContext.Create<OptedInSplitTemporalUser>();
+		var entity = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(OptedInSplitTemporalUser))!;
+
+		entity.IsTemporal().ShouldBeFalse();
+		// HIDDEN periods live in DDL only (PoC G2): nothing in the model names them.
+		entity.FindProperty("SystemPeriodStart").ShouldBeNull();
+		entity.FindProperty("SystemPeriodEnd").ShouldBeNull();
+	}
+
+	[Fact]
+	void Opted_in_split_entity_stamps_the_principal_table_mapping_only()
+	{
+		using var context = SqlServerTestContext.Create<OptedInSplitTemporalUser>();
+		var entity = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(OptedInSplitTemporalUser))!;
+
+		entity.FindAnnotation(NorseAnnotationNames.Temporal)!.Value.ShouldBe(true);
+		entity.FindAnnotation(NorseAnnotationNames.TemporalPrincipalTableOnly)!.Value.ShouldBe(true);
+		var fragment = entity.GetMappingFragments(StoreObjectType.Table).ShouldHaveSingleItem();
+		fragment.StoreObject.Name.ShouldBe("user_lockout");
+		fragment.FindAnnotation(NorseAnnotationNames.Temporal).ShouldBeNull();
+	}
+
+	[Fact]
+	void Non_split_temporal_entity_remains_EF_native()
+	{
+		// One model holding both shapes: the opt-in is read per entity, never model-wide.
+		using var context = new MixedTemporalContext(SqlServerTestContext.Options<MixedTemporalContext>());
+		var model = context.GetService<IDesignTimeModel>().Model;
+		var order = model.FindEntityType(typeof(TemporalOrder))!;
+
+		order.IsTemporal().ShouldBeTrue();
+		order.GetPeriodStartPropertyName().ShouldBe("SystemPeriodStart");
+		order.GetPeriodEndPropertyName().ShouldBe("SystemPeriodEnd");
+		order.GetHistoryTableName().ShouldBe("TemporalOrderHistory");
+		model.FindEntityType(typeof(OptedInSplitTemporalUser))!.IsTemporal().ShouldBeFalse();
 	}
 
 	static void ConfigureSplitTemporalUser(EntityTypeBuilder<SplitTemporalUser> builder) =>
 		builder.SplitToTable("user_lockout", static lockout => lockout.Property(user => user.LockoutEnd));
 
-	static void ConfigureParkedSplitTemporalUser(EntityTypeBuilder<ParkedSplitTemporalUser> builder)
+	static void ConfigureOptedInSplitTemporalUser(EntityTypeBuilder<OptedInSplitTemporalUser> builder)
 	{
-		ParkedSplitTemporalUser.Configure(builder);
+		OptedInSplitTemporalUser.Configure(builder);
 		builder.SplitToTable("user_lockout", static lockout => lockout.Property(user => user.LockoutEnd));
 	}
 
 	static class SqlServerTestContext
 	{
-		public static TemporalTestContext<TEntity> Create<TEntity>() where TEntity : class
+		public static DbContextOptions<TContext> Options<TContext>() where TContext : DbContext
 		{
-			var optionsBuilder = new DbContextOptionsBuilder<TemporalTestContext<TEntity>>();
+			DbContextOptionsBuilder<TContext> optionsBuilder = new();
 			optionsBuilder.ApplyNorseProviderOptions(NorseSqlServerEfProvider.Instance,
 				"Server=localhost;Database=test;Trusted_Connection=True;TrustServerCertificate=True;",
 				migrationsAssemblyName: null);
-			return new TemporalTestContext<TEntity>(optionsBuilder.Options);
+			return optionsBuilder.Options;
+		}
+
+		public static TemporalTestContext<TEntity> Create<TEntity>() where TEntity : class =>
+			new(Options<TemporalTestContext<TEntity>>());
+	}
+
+	sealed class MixedTemporalContext(DbContextOptions<MixedTemporalContext> options) : NorseDbContext(options)
+	{
+		public DbSet<TemporalOrder> Orders => Set<TemporalOrder>();
+
+		public DbSet<OptedInSplitTemporalUser> Users => Set<OptedInSplitTemporalUser>();
+
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			base.OnModelCreating(builder);
+			builder.Entity<TemporalOrder>().ToTable("TemporalOrder");
+			ConfigureOptedInSplitTemporalUser(builder.Entity<OptedInSplitTemporalUser>());
 		}
 	}
 
@@ -93,8 +151,10 @@ public sealed class SqlServerTemporalRealizationTests
 				builder.Entity<TemporalOrder>().ToTable("TemporalOrder");
 			else if (typeof(TEntity) == typeof(SplitTemporalUser))
 				ConfigureSplitTemporalUser(builder.Entity<SplitTemporalUser>());
-			else if (typeof(TEntity) == typeof(ParkedSplitTemporalUser))
-				ConfigureParkedSplitTemporalUser(builder.Entity<ParkedSplitTemporalUser>());
+			else if (typeof(TEntity) == typeof(OptedInSplitTemporalUser))
+				ConfigureOptedInSplitTemporalUser(builder.Entity<OptedInSplitTemporalUser>());
+			else if (typeof(TEntity) == typeof(OptedInUnsplitTemporalUser))
+				OptedInUnsplitTemporalUser.Configure(builder.Entity<OptedInUnsplitTemporalUser>());
 		}
 	}
 
@@ -120,13 +180,22 @@ public sealed class SqlServerTemporalRealizationTests
 		}
 	}
 
-	sealed record ParkedSplitTemporalUser : ITemporalEntity, INorseEntity<ParkedSplitTemporalUser>
+	sealed record OptedInSplitTemporalUser : ITemporalEntity, INorseEntity<OptedInSplitTemporalUser>
 	{
 		public int Id { get; init; }
 		[MaxLength(100)] public string Name { get; init; } = "";
 		public DateTimeOffset? LockoutEnd { get; init; }
 
-		public static void Configure(EntityTypeBuilder<ParkedSplitTemporalUser> builder) =>
-			builder.TemporalParkedOnSqlServer();
+		public static void Configure(EntityTypeBuilder<OptedInSplitTemporalUser> builder) =>
+			builder.TemporalOnPrincipalTableOnly();
+	}
+
+	sealed record OptedInUnsplitTemporalUser : ITemporalEntity, INorseEntity<OptedInUnsplitTemporalUser>
+	{
+		public int Id { get; init; }
+		[MaxLength(100)] public string Name { get; init; } = "";
+
+		public static void Configure(EntityTypeBuilder<OptedInUnsplitTemporalUser> builder) =>
+			builder.TemporalOnPrincipalTableOnly();
 	}
 }

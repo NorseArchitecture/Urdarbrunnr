@@ -65,12 +65,12 @@ public sealed class TemporalEntityConventionTests
 	}
 
 	[Fact]
-	void The_park_fluent_stamps_the_park_annotation()
+	void The_principal_table_only_fluent_stamps_the_opt_in_annotation()
 	{
-		using var context = TestContext.Create<TemporalWidget, ParkedTemporalWidgetConfiguration>();
+		using var context = TestContext.Create<TemporalWidget, PrincipalTableOnlyTemporalWidgetConfiguration>();
 
 		context.Model.FindEntityType(typeof(TemporalWidget))!
-			.FindAnnotation(NorseAnnotationNames.TemporalParkedOnSqlServer)!.Value.ShouldBe(true);
+			.FindAnnotation(NorseAnnotationNames.TemporalPrincipalTableOnly)!.Value.ShouldBe(true);
 	}
 
 	interface ITestConfiguration<TEntity> where TEntity : class
@@ -238,9 +238,9 @@ public sealed class TemporalEntityConventionTests
 			});
 	}
 
-	sealed class ParkedTemporalWidgetConfiguration : ITestConfiguration<TemporalWidget>
+	sealed class PrincipalTableOnlyTemporalWidgetConfiguration : ITestConfiguration<TemporalWidget>
 	{
 		public static void Configure(ModelBuilder builder) =>
-			builder.Entity<TemporalWidget>().TemporalParkedOnSqlServer();
+			builder.Entity<TemporalWidget>().TemporalOnPrincipalTableOnly();
 	}
 }
