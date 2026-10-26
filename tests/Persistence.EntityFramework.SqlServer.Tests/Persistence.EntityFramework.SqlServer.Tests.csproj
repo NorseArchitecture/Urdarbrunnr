@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.*-*" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0-rc.2.26504.105" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="11.*-*" />
 		<ProjectReference Include="../../src/Persistence.EntityFramework.Migrations/Persistence.EntityFramework.Migrations.csproj" />
 		<ProjectReference Include="../../src/Persistence.EntityFramework.SqlServer/Persistence.EntityFramework.SqlServer.csproj" />
